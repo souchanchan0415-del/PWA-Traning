@@ -163,18 +163,56 @@ async function bindHistoryUI(){
 }
 async function renderHistory(){
   const count = Number($('#historyCount').value || 20);
-  const sessions = (await getAll('sessions')).sort((a,b)=>b.created_at-a.created_at).slice(0,count);
-  const exMap = Object.fromEntries((await getAll('exercises')).map(e=>[e.id,e.name]));
-  const ul = $('#historyList'); ul.innerHTML='';
-  for(const s of sessions){
-    const sets = await indexGetAll('sets','by_session', s.id);
-    const vol = sets.reduce((sum,x)=>sum + x.weight*x.reps, 0);
-    const est = sets.length ? Math.max(...sets.map(x=> x.weight * (1 + x.reps/30))) : 0;
-    const li = document.createElement('li');
-    li.innerHTML = `<div><strong>${s.date}</strong> <span class="badge">${Math.round(vol)}kg</span> <span class="badge">1RM推定:${Math.round(est)}kg</span><div style="font-size:12px;color:#aaa">${s.note||''}</div></div><div>${sets.length} sets</div>`;
+  const sessions = (await getAll('sessions'))
+    .sort((a,b)=>b.created_at-a.created_at)
+    .slice(0, count);
+
+  const ul = $('#historyList');
+  ul.innerHTML = '';
+
+  for (const s of sessions){
+    const sets = await indexGetAll('sets', 'by_session', s.id);
+    const vol  = sets.reduce((sum,x)=> sum + x.weight * x.reps, 0);
+    const est  = sets.length ? Math.max(...sets.map(x => x.weight * (1 + x.reps/30))) : 0;
+
+    const li = document.createElement('li');   // ← ここは1回だけ
+    li.innerHTML = `
+      <div>
+        <strong>${s.date}</strong>
+        <span class="badge">${Math.round(vol)}kg</span>
+        <span class="badge">1RM推定:${Math.round(est)}kg</span>
+        <div style="font-size:12px;color:#aaa">${s.note || ''}</div>
+      </div>
+      <div style="display:flex; gap:6px">
+        <button class="ghost"  data-act="dup"  data-id="${s.id}">複製</button>
+        <button class="ghost"  data-act="edit" data-id="${s.id}">編集</button>
+        <button class="danger" data-act="del"  data-id="${s.id}">削除</button>
+      </div>
+    `;
     ul.appendChild(li);
   }
-  if(!sessions.length){ ul.innerHTML='<li>まだありません</li>'; }
+
+  if (!sessions.length){
+    ul.innerHTML = '<li>まだありません</li>';
+  }
+
+  // ▼ クリック処理（委譲）— ここが「②③」の部分
+  if (!ul._bound){
+    ul.addEventListener('click', async (e)=>{
+      const b = e.target.closest('button'); if (!b) return;
+      const id  = Number(b.dataset.id);
+      const act = b.dataset.act;
+
+      if (act === 'del'){
+        if (confirm('このセッションを削除しますか？')) await deleteSession(id);
+      } else if (act === 'edit'){
+        await editSessionNote(id);
+      } else if (act === 'dup'){
+        await duplicateSessionToToday(id);
+      }
+    });
+    ul._bound = true; // 重複バインド防止
+  }
 }
 
 // Analytics
