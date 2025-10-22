@@ -394,11 +394,4 @@ async function duplicateSessionToToday(id){
   renderHistory(); renderAnalytics();
   showToast('今日に複製しました');
 }
-$('#btnExportJson')?.addEventListener('click', exportJSON);
-$('#jsonIn')?.addEventListener('change', (e) => {
-  const f = e.target.files && e.target.files[0];
-  if (f) importJSON(f);
-  e.target.value = '';
-});
-
 init(); // ← これは元からある行（消さない）
