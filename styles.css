@@ -104,3 +104,7 @@ canvas{image-rendering:-webkit-optimize-contrast}
 /* Accessible focus */
 :focus-visible{ outline:3px solid color-mix(in oklab, var(--accent) 70%, transparent) ;
   outline-offset:2px; border-radius:12px }
+
+/* Tabs visibility */
+.tab { display: none; }        /* すべて隠す */
+.tab.active { display: block; }/* 選択タブだけ表示 */
