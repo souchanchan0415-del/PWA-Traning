@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Train Punch — 筋トレロガー</title>
+  <meta name="theme-color" content="#111111">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css?v=1.1.0">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Train Punch">
+</head>
+<body>
+  <header>
+    <h1>Train Punch</h1>
+    <nav class="tabs">
+      <button data-tab="session" class="active">セッション</button>
+      <button data-tab="history">履歴</button>
+      <button data-tab="analytics">分析</button>
+      <button data-tab="settings">設定</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="tab-session" class="tab active">
+      <div class="card">
+        <div class="row">
+          <label>日付</label>
+          <input id="sessDate" type="date">
+        </div>
+        <div class="row">
+          <label>メモ</label>
+          <input id="sessNote" placeholder="任意メモ">
+        </div>
+        <div class="row">
+          <label>種目</label>
+          <select id="exSelect"></select>
+          <button id="btnAddEx" class="ghost">＋追加</button>
+        </div>
+        <div class="grid3">
+          <input id="weight" inputmode="decimal" placeholder="重量(kg)">
+          <input id="reps" inputmode="numeric" placeholder="回数">
+          <input id="rpe" inputmode="decimal" placeholder="RPE(任意)">
+        </div>
+        <div class="row">
+          <button id="btnAddSet">セット追加</button>
+          <button id="btnTimer" class="ghost">休憩60s</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>今日のセット</h3>
+        <ul id="todaySets" class="list"></ul>
+        <div class="row end">
+          <button id="btnSaveSession">セッション保存</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-history" class="tab">
+      <div class="card">
+        <div class="row">
+          <label>表示件数</label>
+          <select id="historyCount">
+            <option>10</option>
+            <option selected>20</option>
+            <option>50</option>
+          </select>
+          <button id="btnExport" class="ghost">CSV書き出し</button>
+          <input type="file" id="importFile" accept=".csv" style="display:none">
+          <button id="btnImport" class="ghost">CSV読み込み</button>
+        </div>
+        <ul id="historyList" class="list"></ul>
+      </div>
+    </section>
+
+    <section id="tab-analytics" class="tab">
+      <div class="card">
+        <h3>直近7日：合計ボリューム(kg)</h3>
+        <canvas id="chart" width="800" height="280"></canvas>
+        <div id="legend" class="legend"></div>
+      </div>
+      <div class="card">
+        <h3>主要指標</h3>
+        <div class="kv" id="metrics"></div>
+      </div>
+    </section>
+
+    <section id="tab-settings" class="tab">
+      <div class="card">
+        <h3>種目管理</h3>
+        <div class="row">
+          <input id="newExName" placeholder="例：ベンチプレス">
+          <button id="btnCreateEx">追加</button>
+        </div>
+        <ul id="exList" class="list"></ul>
+      </div>
+      <div class="card">
+        <h3>通知 / データ</h3>
+        <div class="row">
+          <button id="btnNotif" class="ghost">通知を許可（休憩タイマー用）</button>
+          <button id="btnWipe" class="danger">全データ削除</button>
+        </div>
+        <small>※ OSの通知設定でオフにしている場合は通知は表示されません。</small>
+      </div>
+      <div class="card">
+        <h3>表示</h3>
+        <div class="row">
+          <label>ダークモード</label>
+          <input id="darkToggle" type="checkbox">
+        </div>
+      </div>
+      <div class="card">
+        <h3>情報</h3>
+        <div class="kv">
+          <div>バージョン</div><div>1.1.0</div>
+          <div>プライバシー</div><div><a target="_blank" href="privacy.html">プライバシーポリシー</a></div>
+          <div>サポート</div><div><a href="mailto:you@example.com">you@example.com</a></div>
+        </div>
+        <small>当アプリはトレーニング記録を目的としたツールです。医療情報や効果を保証するものではありません。安全に配慮し、体調に異変があれば医療機関に相談してください。</small>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+  <script src="app.js?v=1.1.0"></script>
+  <script src="sw-register.js"></script>
+</body>
+</html>
