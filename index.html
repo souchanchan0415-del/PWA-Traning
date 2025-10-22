@@ -110,6 +110,21 @@
           <label>ダークモード</label>
           <input id="darkToggle" type="checkbox">
         </div>
+        <!-- ▼ バックアップ（JSON） -->
+<div class="card">
+  <h3>バックアップ</h3>
+  <div class="row">
+    <button id="btnExportJson" class="ghost">JSON書き出し</button>
+
+    <!-- 見た目はボタン、実体はファイル選択 -->
+    <label for="jsonIn" class="ghost" style="display:inline-block; padding:12px 16px; border-radius:12px; cursor:pointer;">
+      JSON読み込み
+    </label>
+    <input id="jsonIn" type="file" accept="application/json" style="display:none">
+  </div>
+  <small>書き出しは端末に保存、読み込みはファイル選択で復元できます。</small>
+</div>
+<!-- ▲ バックアップ（JSON） -->
       </div>
       <div class="card">
         <h3>情報</h3>
