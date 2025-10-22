@@ -327,5 +327,33 @@ function parseCSVRow(row){
     else { if(c===','){ out.push(cur); cur=''; } else if(c=='"'){ inQ=true; } else cur+=c; }
   } out.push(cur); return out;
 }
+async function deleteSession(id){
+  const sets = await indexGetAll('sets','by_session', id);
+  await Promise.all(sets.map(s => del('sets', s.id)));
+  await del('sessions', id);
+  renderHistory(); renderAnalytics();
+  showToast('セッションを削除しました');
+}
 
+async function editSessionNote(id){
+  const s = await get('sessions', id);
+  const next = prompt('メモを編集', s?.note || '');
+  if(next === null) return;
+  s.note = next;
+  await put('sessions', s);
+  renderHistory();
+  showToast('メモを更新しました');
+}
+
+async function duplicateSessionToToday(id){
+  const src = await get('sessions', id);
+  const today = todayStr();
+  const newId = await put('sessions', {date: today, note: (src?.note||'') + ' (複製)', created_at: Date.now()});
+  const sets = await indexGetAll('sets','by_session', id);
+  for(const x of sets){
+    await put('sets', {session_id:newId, exercise_id:x.exercise_id, weight:x.weight, reps:x.reps, rpe:x.rpe, ts: Date.now(), date: today});
+  }
+  renderHistory(); renderAnalytics();
+  showToast('今日に複製しました');
+}
 init();
