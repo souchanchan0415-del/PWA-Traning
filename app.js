@@ -405,4 +405,55 @@ async function ensureExerciseId(name){
   }
   return ex.id;
 }
+// テンプレ定義（重量は目安：あとで自由に編集）
+const TEMPLATES = {
+  '5x5': [
+    ['スクワット',     40, 5, 5],
+    ['ベンチプレス',   30, 5, 5],
+    ['デッドリフト',   50, 5, 5],
+  ],
+  'ppl-push': [
+    ['ベンチプレス',           30, 4, 8],
+    ['ショルダープレス',       20, 3, 10],
+    ['ディップス/プッシュアップ', 0, 3, 12],
+    ['トライセプスエクステンション', 10, 3, 12],
+  ],
+  'ppl-pull': [
+    ['ベントオーバーロー', 30, 4, 8],
+    ['懸垂/ラットプル',    0,  3, 10],
+    ['フェイスプル',      8,  3, 15],
+    ['アームカール',     10,  3, 12],
+  ],
+  'ppl-legs': [
+    ['スクワット',     40, 4, 6],
+    ['ルーマニアンDL', 30, 3, 8],
+    ['レッグプレス',   80, 3, 12],
+    ['カーフレイズ',   40, 3, 15],
+  ],
+};
+
+// テンプレ投入：選んだテンプレの種目/セットを今日のセットに一括追加
+async function applyTemplate(kind){
+  const tpl = TEMPLATES[kind];
+  if (!tpl){ showToast('テンプレが見つかりません'); return; }
+  const date = $('#sessDate').value;
+  for (const [name, weight, sets, reps] of tpl){
+    const exId = await ensureExerciseId(name);
+    for (let i=0; i<sets; i++){
+      currentSession.sets.push({
+        temp_id: crypto.randomUUID(),
+        exercise_id: exId,
+        weight: Number(weight),
+        reps: Number(reps),
+        rpe: null,
+        ts: Date.now(),
+        date
+      });
+    }
+  }
+  // UI更新
+  await renderExSelect();
+  renderTodaySets();
+  showToast('テンプレを追加しました');
+}
 init(); // ← これは元からある行（消さない）
