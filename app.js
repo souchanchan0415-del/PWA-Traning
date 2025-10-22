@@ -132,7 +132,43 @@ function renderTodaySets(){
     });
   });
 }
+async function applyTemplate(kind){
+  // 種目名 → id 変換用
+  const exs = await getAll('exercises');
+  const byName = Object.fromEntries(exs.map(e => [e.name, e.id]));
 
+  const date = $('#sessDate').value;
+  const now  = Date.now();
+
+  // 1セットを currentSession に積むヘルパ
+  function pushSet(name, reps){
+    const exId = byName[name];
+    if(!exId) return; // 種目が見つからなければスキップ
+    currentSession.sets.push({
+      temp_id: crypto.randomUUID(),
+      exercise_id: exId,
+      weight: 0,         // 重量はあとで自分の数値に書き換える
+      reps,
+      rpe: null,
+      ts: now,
+      date
+    });
+  }
+
+  // ▼ テンプレ定義（初期3種目で完結）
+  if(kind === '5x5'){
+    for(let i=0;i<5;i++){ pushSet('スクワット',5); }
+    for(let i=0;i<5;i++){ pushSet('ベンチプレス',5); }
+    for(let i=0;i<5;i++){ pushSet('デッドリフト',5); }
+  }else if(kind === 'ppl-push'){
+    for(let i=0;i<5;i++){ pushSet('ベンチプレス',5); }
+  }else if(kind === 'ppl-pull'){
+    for(let i=0;i<5;i++){ pushSet('デッドリフト',5); }
+  }else if(kind === 'ppl-legs'){
+    for(let i=0;i<5;i++){ pushSet('スクワット',5); }
+  }
+  // ▲ テンプレ定義おわり
+}
 // Timer with notification fallback
 let timerHandle=null, timerLeft=0;
 function startRestTimer(sec){
