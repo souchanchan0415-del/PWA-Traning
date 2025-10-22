@@ -394,4 +394,15 @@ async function duplicateSessionToToday(id){
   renderHistory(); renderAnalytics();
   showToast('今日に複製しました');
 }
+// 名前から種目IDを取得。なければ作成してIDを返す
+async function ensureExerciseId(name){
+  const all = await getAll('exercises');
+  let ex = all.find(e => e.name === name);
+  if (!ex){
+    await put('exercises', { name });
+    const all2 = await getAll('exercises');
+    ex = all2.find(e => e.name === name);
+  }
+  return ex.id;
+}
 init(); // ← これは元からある行（消さない）
