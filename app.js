@@ -90,6 +90,11 @@ function bindSessionUI(){
     renderTodaySets();
   });
   $('#btnTimer').addEventListener('click', ()=>startRestTimer(60));
+  // 既存の bindSessionUI() 内に追加
+  $('#btnApplyTpl').addEventListener('click', async ()=>{
+  const kind = $('#tplSelect').value;
+  await applyTemplate(kind);
+});
   $('#btnSaveSession').addEventListener('click', async ()=>{
     const date = $('#sessDate').value;
     const note = $('#sessNote').value;
