@@ -1,10 +1,10 @@
 // sw.js
-const CACHE = 'trainpunch-1.2.1';
+const CACHE = 'trainpunch-1.2.2';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=1.2.1',
-  './app.js?v=1.2.1',
+  './styles.css?v=1.2.2',
+  './app.js?v=1.2.2',
   './sw-register.js',
   './manifest.webmanifest',
   './privacy.html',
