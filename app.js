@@ -1,26 +1,47 @@
-// Train Punch - store-ready PWA core
+// Train Punch - store-ready PWA core (with body-part categories)
 const DB_NAME = 'trainpunch_v2';
-const DB_VER = 2;
+const DB_VER  = 3; // ★ v3: exercises に by_group インデックス追加
 let db;
+
+// 汎用
+const $ = s => document.querySelector(s);
+function showToast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1500); }
+function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function escapeHTML(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]); }
+
 function openDB(){
   return new Promise((resolve,reject)=>{
     const req = indexedDB.open(DB_NAME, DB_VER);
     req.onupgradeneeded = (e)=>{
-      const d = e.target.result;
+      const d = req.result;
+
+      // stores
       if(!d.objectStoreNames.contains('exercises')){
         const s = d.createObjectStore('exercises',{keyPath:'id', autoIncrement:true});
         s.createIndex('name','name',{unique:true});
+        s.createIndex('by_group','group',{unique:false}); // ★ 新規
       }
-      if(!d.objectStoreNames.contains('sessions')) d.createObjectStore('sessions',{keyPath:'id', autoIncrement:true});
+      if(!d.objectStoreNames.contains('sessions')){
+        d.createObjectStore('sessions',{keyPath:'id', autoIncrement:true});
+      }
       if(!d.objectStoreNames.contains('sets')){
         const s = d.createObjectStore('sets',{keyPath:'id', autoIncrement:true});
         s.createIndex('by_session','session_id');
         s.createIndex('by_date','date');
       }
-      if(!d.objectStoreNames.contains('prefs')) d.createObjectStore('prefs',{keyPath:'key'});
+      if(!d.objectStoreNames.contains('prefs')){
+        d.createObjectStore('prefs',{keyPath:'key'});
+      }
+
+      // 既存ストアに index を追加（v2→v3 マイグレーション）
+      try{
+        const s = e.target.transaction.objectStore('exercises');
+        if(!s.indexNames.contains('name'))     s.createIndex('name','name',{unique:true});
+        if(!s.indexNames.contains('by_group')) s.createIndex('by_group','group',{unique:false});
+      }catch(_){}
     };
     req.onsuccess = ()=>{ db = req.result; resolve(db); };
-    req.onerror = ()=>reject(req.error);
+    req.onerror   = ()=>reject(req.error);
   });
 }
 function tx(names, mode='readonly'){ return db.transaction(names, mode); }
@@ -30,188 +51,33 @@ async function del(store, key){ return new Promise((res,rej)=>{ const r=tx([stor
 async function indexGetAll(store, index, q){ return new Promise((res,rej)=>{ const r=tx([store]).objectStore(store).index(index).getAll(q); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
 async function get(store, key){ return new Promise((res,rej)=>{ const r=tx([store]).objectStore(store).get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
 
-const $ = s=>document.querySelector(s);
-function showToast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1500); }
-function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
-function escapeHTML(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
+// ========= 部位 × 種目 定義 =========
+const PARTS = ['胸','背中','肩','脚','腕'];
+const EX_GROUPS = {
+  '胸':  ['ベンチプレス','足上げベンチプレス','スミスマシンベンチプレス','インクラインダンベルプレス','インクラインマシンプレス','スミスマシンインクラインプレス','スミスマシンデクラインプレス','ディップス','ディップス（荷重）','ケーブルクロスオーバー','ペックフライ','チェストプレス'],
+  '背中':['デッドリフト','ハーフデッドリフト','懸垂（チンニング）','ラットプルダウン','ラットプルダウン（ナロー）','ラットプルダウン（ちょーナロー）','ワイドラットプルダウン','スミスマシンベントオーバーロウ','ベントオーバーロウ','ローロウ','シーテッドロウ','Tバーロウ'],
+  '肩':  ['ダンベルショルダープレス','スミスマシンショルダープレス','マシンショルダープレス','ケーブルフロントレイズ','サイドレイズ','ベンチサイドレイズ','ケーブルサイドレイズ','ケーブルリアレイズ','リアデルトイド'],
+  '脚':  ['スクワット','バーベルスクワット','バックスクワット','レッグプレス','レッグカール','レッグエクステンション','インナーサイ','ルーマニアンデッドリフト','スティフレッグデッドリフト'],
+  '腕':  ['バーベルカール','インクラインダンベルカール','インクラインダンベルカール（右）','インクラインダンベルカール（左）','ダンベルプリチャーカール（右）','ダンベルプリチャーカール（左）','ハンマーカール','スミスマシンナロープレス','ナロープレス','スカルクラッシャー','フレンチプレス','ケーブルプレスダウン','スミスJMプレス'],
+};
 
-let currentSession = { date: todayStr(), note:'', sets: [] };
-
-/* ===== 初期種目プリセット（重複・表記ゆれ整備済み） ===== */
-const EX_PRESETS = [
-  // 胸
-  'ベンチプレス','足上げベンチプレス','スミスマシンベンチプレス',
-  'インクラインダンベルプレス','インクラインマシンプレス',
-  'スミスマシンインクラインプレス','スミスマシンデクラインプレス',
-  'ディップス','ディップス（荷重）','ケーブルクロスオーバー',
-  'ペックフライ','チェストプレス',
-  // 背中
-  'デッドリフト','ハーフデッドリフト','懸垂（チンニング）',
-  'ラットプルダウン','ラットプルダウン（ナロー）','ラットプルダウン（ちょーナロー）','ワイドラットプルダウン',
-  'スミスマシンベントオーバーロウ','ベントオーバーロウ','ローロウ','シーテッドロウ','Tバーロウ',
-  // 肩
-  'ダンベルショルダープレス','スミスマシンショルダープレス','マシンショルダープレス',
-  'ケーブルフロントレイズ','サイドレイズ','ベンチサイドレイズ',
-  'ケーブルサイドレイズ','ケーブルリアレイズ','リアデルトイド',
-  // 脚
-  'スクワット','バーベルスクワット','バックスクワット','レッグプレス',
-  'レッグカール','レッグエクステンション','インナーサイ',
-  'ルーマニアンデッドリフト','スティフレッグデッドリフト',
-  // 腕
-  'バーベルカール','インクラインダンベルカール',
-  'インクラインダンベルカール（右）','インクラインダンベルカール（左）',
-  'ダンベルプリチャーカール（右）','ダンベルプリチャーカール（左）',
-  'ハンマーカール','スミスマシンナロープレス','ナロープレス',
-  'スカルクラッシャー','フレンチプレス','ケーブルプレスダウン','スミスJMプレス',
-];
-
-/* 既存にない種目だけを足す（重複回避） */
+// 既存に無い種目は追加、既存の種目には不足している group を補完
 async function ensureInitialExercises(){
-  const existing = new Set((await getAll('exercises')).map(e => e.name));
-  const toAdd = EX_PRESETS.filter(n => !existing.has(n));
-  for (const name of toAdd) await put('exercises', { name });
-}
-
-/* ====== 履歴テンプレ用の集計データ ====== */
-let patternMap = {}; // { exId: { '5×5': count, '3×8': count, ... } }
-
-/* 履歴からテンプレ候補を再生成（頻度順）＆各セレクト更新 */
-async function refreshTplOptions(){
-  const exs  = await getAll('exercises');
-  const sets = await getAll('sets');
-
-  // セッション×種目で reps の出現回数を数える
-  const perSess = {}; // key: `${session_id}:${exercise_id}` -> { reps: count }
-  const lastByEx = {}; // exercise_id -> {ts, weight}
-  for(const s of sets){
-    const key = `${s.session_id}:${s.exercise_id}`;
-    (perSess[key] ||= {});
-    perSess[key][s.reps] = (perSess[key][s.reps]||0) + 1;
-
-    const cur = lastByEx[s.exercise_id];
-    if(!cur || (s.ts ?? 0) > cur.ts) lastByEx[s.exercise_id] = { ts: s.ts ?? 0, weight: s.weight ?? 0 };
-  }
-
-  patternMap = {};
-  for(const key in perSess){
-    const exId = Number(key.split(':')[1]);
-    for(const repsStr in perSess[key]){
-      const setsN = perSess[key][repsStr];
-      const pat   = `${setsN}×${Number(repsStr)}`;
-      (patternMap[exId] ||= {});
-      patternMap[exId][pat] = (patternMap[exId][pat]||0) + 1;
-    }
-  }
-
-  // 種目セレクト（履歴ありだけ）
-  const selExFromHist = $('#tplExFromHist');
-  if (selExFromHist){
-    selExFromHist.innerHTML = '';
-    const candidates = Object.keys(patternMap).map(Number);
-    if (candidates.length === 0){
-      const opt = document.createElement('option');
-      opt.value=''; opt.textContent='履歴がありません';
-      selExFromHist.appendChild(opt);
-    }else{
-      // 頻度合計の多い種目から
-      const sum = id => Object.values(patternMap[id]).reduce((a,b)=>a+b,0);
-      candidates.sort((a,b)=> sum(b)-sum(a));
-      const id2name = Object.fromEntries(exs.map(e=>[e.id,e.name]));
-      for(const id of candidates){
-        const o = document.createElement('option');
-        o.value = id; o.textContent = id2name[id] || `ID:${id}`;
-        selExFromHist.appendChild(o);
+  const all = await getAll('exercises');
+  const byName = Object.fromEntries(all.map(e=>[e.name,e]));
+  for (const part of PARTS){
+    for (const name of EX_GROUPS[part]){
+      const hit = byName[name];
+      if (!hit){
+        await put('exercises', { name, group: part });
+      }else if (!hit.group){
+        await put('exercises', { ...hit, group: part });
       }
     }
-    // 選択した種目のパターン一覧を描画
-    renderPatternOptions();
-  }
-
-  // カスタム用の種目セレクト
-  const selExCustom = $('#tplExCustom');
-  if (selExCustom){
-    selExCustom.innerHTML = '';
-    exs.forEach(e=>{
-      const o=document.createElement('option');
-      o.value=e.id; o.textContent=e.name;
-      selExCustom.appendChild(o);
-    });
   }
 }
 
-/* 選択中の種目に対するパターン一覧を更新 */
-function renderPatternOptions(){
-  const exId = Number($('#tplExFromHist')?.value || 0);
-  const sel  = $('#tplPattern'); if(!sel) return;
-  sel.innerHTML = '';
-  const entries = Object.entries(patternMap[exId] || {});
-  if(entries.length === 0){
-    const o = document.createElement('option');
-    o.value=''; o.textContent='パターンなし';
-    sel.appendChild(o);
-    return;
-  }
-  entries.sort((a,b)=> b[1]-a[1]);
-  for(const [pat,cnt] of entries){
-    const o = document.createElement('option');
-    o.value = pat; o.textContent = `${pat}（${cnt}回）`;
-    sel.appendChild(o);
-  }
-}
-
-/* 履歴パターンから一括追加 */
-async function addSetsQuick(){
-  const exId = Number($('#tplExFromHist').value);
-  const pat  = $('#tplPattern').value;
-  if(!exId || !pat){ showToast('履歴パターンがありません'); return; }
-  const m = pat.split(/[x×]/i);
-  const setsN = Number(m[0]||0);
-  const reps  = Number(m[1]||0);
-  if(!setsN || !reps){ showToast('パターンが不正です'); return; }
-
-  // 前回重量
-  let weight = 0;
-  if ($('#tplUseLastW').checked){
-    const all = await getAll('sets');
-    const last = all.filter(s=>s.exercise_id===exId).sort((a,b)=>(b.ts??0)-(a.ts??0))[0];
-    weight = last?.weight || 0;
-  }
-
-  const date = $('#sessDate').value;
-  const now  = Date.now();
-  for(let i=0;i<setsN;i++){
-    currentSession.sets.push({
-      temp_id: crypto.randomUUID(),
-      exercise_id: exId,
-      weight, reps, rpe: null, ts: now, date
-    });
-  }
-  renderTodaySets();
-  document.getElementById('todaySets')?.scrollIntoView({behavior:'smooth', block:'start'});
-  showToast('履歴から追加しました');
-}
-
-/* カスタム投入（自由指定） */
-async function addSetsCustom(){
-  const exId   = Number($('#tplExCustom').value);
-  const setsN  = Number($('#tplCustomSets').value);
-  const reps   = Number($('#tplCustomReps').value);
-  const weight = Number($('#tplCustomWeight').value || 0);
-  if(!exId || !setsN || !reps){ showToast('種目/セット数/回数は必須'); return; }
-
-  const date = $('#sessDate').value;
-  const now  = Date.now();
-  for(let i=0;i<setsN;i++){
-    currentSession.sets.push({
-      temp_id: crypto.randomUUID(),
-      exercise_id: exId,
-      weight, reps, rpe: null, ts: now, date
-    });
-  }
-  renderTodaySets();
-  document.getElementById('todaySets')?.scrollIntoView({behavior:'smooth', block:'start'});
-  showToast('カスタム投入しました');
-}
+let currentSession = { date: todayStr(), note:'', sets: [] };
 
 async function init(){
   await openDB();
@@ -222,17 +88,18 @@ async function init(){
   bindSessionUI();
   bindHistoryUI();
   bindSettingsUI();
-  await renderExSelect();
+
+  await renderExSelect();   // 部位フィルタに応じて種目リスト
   renderTodaySets();
-  await renderHistory();
+  renderHistory();
   renderAnalytics();
-  await refreshTplOptions();
 
   const dark = (await get('prefs','dark'))?.value || false;
   $('#darkToggle').checked = dark;
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
 }
 
+// ====== タブ ======
 function bindTabs(){
   document.querySelectorAll('nav.tabs button').forEach(b=>{
     b.addEventListener('click', ()=>{
@@ -242,19 +109,25 @@ function bindTabs(){
       document.querySelectorAll('section.tab').forEach(s=>s.classList.remove('active'));
       document.querySelector('#tab-'+tab).classList.add('active');
       if(tab==='analytics') renderAnalytics();
-      if(tab==='history') renderHistory();
+      if(tab==='history')   renderHistory();
     });
   });
 }
 
+// ====== セッション ======
 function bindSessionUI(){
+  // 部位が変わったら種目リストを絞る
+  $('#partSelect')?.addEventListener('change', ()=>renderExSelect());
+
+  // 種目の手動追加（選択中の部位があればそれを付与）
   $('#btnAddEx').addEventListener('click', async ()=>{
     const name = prompt('種目名を入力（例：懸垂）');
     if(!name) return;
+    const part = ($('#partSelect')?.value && $('#partSelect').value !== 'all') ? $('#partSelect').value : undefined;
     try{
-      await put('exercises',{name});
+      await put('exercises',{name, group: part});
       await renderExSelect();
-      await refreshTplOptions();
+      renderExList(); // 設定タブ側も更新
       showToast('種目を追加');
     }catch(e){
       showToast('同名の種目があります');
@@ -275,13 +148,6 @@ function bindSessionUI(){
 
   $('#btnTimer').addEventListener('click', ()=>startRestTimer(60));
 
-  // ▼ 新テンプレ：履歴ベース
-  $('#tplExFromHist')?.addEventListener('change', renderPatternOptions);
-  $('#btnTplApply')?.addEventListener('click', addSetsQuick);
-
-  // ▼ 新テンプレ：カスタム
-  $('#btnTplCustom')?.addEventListener('click', addSetsCustom);
-
   $('#btnSaveSession').addEventListener('click', async ()=>{
     const date = $('#sessDate').value;
     const note = $('#sessNote').value;
@@ -292,35 +158,32 @@ function bindSessionUI(){
     }
     currentSession = { date: todayStr(), note:'', sets: [] };
     $('#sessDate').value = todayStr(); $('#sessNote').value='';
-    renderTodaySets(); await renderHistory(); renderAnalytics(); await refreshTplOptions();
+    renderTodaySets(); renderHistory(); renderAnalytics();
     showToast('セッションを保存しました');
   });
 }
 
+// 部位に応じて種目セレクトを再描画
 async function renderExSelect(){
-  const exs = await getAll('exercises');
-  const sel = $('#exSelect'); sel.innerHTML='';
+  const part = $('#partSelect')?.value || 'all';
+  let exs = await getAll('exercises');
+  if (part !== 'all') exs = exs.filter(e=>e.group === part);
+  exs.sort((a,b)=> a.name.localeCompare(b.name,'ja'));
+
+  const sel = $('#exSelect');
+  sel.innerHTML='';
   exs.forEach(e=>{
     const opt = document.createElement('option');
     opt.value = e.id; opt.textContent = e.name;
     sel.appendChild(opt);
   });
-  // カスタム投入の種目も更新（保険：初期化時に1回呼ばれる）
-  const sel2 = $('#tplExCustom');
-  if (sel2){
-    sel2.innerHTML='';
-    exs.forEach(e=>{
-      const opt = document.createElement('option');
-      opt.value=e.id; opt.textContent=e.name;
-      sel2.appendChild(opt);
-    });
-  }
 }
 
 function renderTodaySets(){
-  const ul = $('#todaySets'); if(currentSession.sets.length===0){ ul.innerHTML='<li>まだありません</li>'; return; }
+  const ul = $('#todaySets');
+  if(currentSession.sets.length===0){ ul.innerHTML='<li>まだありません</li>'; return; }
   ul.innerHTML = currentSession.sets.map(s=>{
-    const name = $('#exSelect').querySelector(`option[value="${s.exercise_id}"]`)?.textContent || '?';
+    const name = $('#exSelect').querySelector(`option[value="${s.exercise_id}"]`)?.textContent || '種目';
     return `<li><span><strong>${escapeHTML(name)}</strong> ${s.weight}kg x ${s.reps}${s.rpe?` RPE${s.rpe}`:''}</span><button data-id="${s.temp_id}" class="ghost">削除</button></li>`;
   }).join('');
   ul.querySelectorAll('button').forEach(b=>{
@@ -332,7 +195,7 @@ function renderTodaySets(){
   });
 }
 
-// Timer with notification fallback
+// ====== 休憩タイマー ======
 let timerHandle=null, timerLeft=0;
 function startRestTimer(sec){
   clearInterval(timerHandle);
@@ -347,9 +210,7 @@ function startRestTimer(sec){
       btn.textContent = '休憩60s';
       btn.disabled = false;
       if('vibrate' in navigator) navigator.vibrate([100,100,100]);
-      try{
-        const a = new Audio('beep.wav'); a.play().catch(()=>{});
-      }catch(e){}
+      try{ new Audio('beep.wav').play().catch(()=>{}); }catch(e){}
       if('Notification' in window && Notification.permission==='granted'){
         new Notification('休憩終了', { body: '次のセットへ', icon: 'icons/icon-192.png' });
       }
@@ -358,7 +219,7 @@ function startRestTimer(sec){
   }, 1000);
 }
 
-// History
+// ====== 履歴 ======
 async function bindHistoryUI(){
   $('#historyCount').addEventListener('change', renderHistory);
   $('#btnExport').addEventListener('click', exportCSV);
@@ -367,18 +228,12 @@ async function bindHistoryUI(){
 }
 async function renderHistory(){
   const count = Number($('#historyCount').value || 20);
-  const sessions = (await getAll('sessions'))
-    .sort((a,b)=>b.created_at-a.created_at)
-    .slice(0, count);
-
-  const ul = $('#historyList');
-  ul.innerHTML = '';
-
+  const sessions = (await getAll('sessions')).sort((a,b)=>b.created_at-a.created_at).slice(0, count);
+  const ul = $('#historyList'); ul.innerHTML = '';
   for (const s of sessions){
     const sets = await indexGetAll('sets', 'by_session', s.id);
     const vol  = sets.reduce((sum,x)=> sum + x.weight * x.reps, 0);
     const est  = sets.length ? Math.max(...sets.map(x => x.weight * (1 + x.reps/30))) : 0;
-
     const li = document.createElement('li');
     li.innerHTML = `
       <div>
@@ -395,43 +250,28 @@ async function renderHistory(){
     `;
     ul.appendChild(li);
   }
-
-  if (!sessions.length){
-    ul.innerHTML = '<li>まだありません</li>';
-  }
+  if (!sessions.length) ul.innerHTML = '<li>まだありません</li>';
 
   if (!ul._bound){
     ul.addEventListener('click', async (e)=>{
       const b = e.target.closest('button'); if (!b) return;
       const id  = Number(b.dataset.id);
       const act = b.dataset.act;
-
-      if (act === 'del'){
-        if (confirm('このセッションを削除しますか？')) await deleteSession(id);
-      } else if (act === 'edit'){
-        await editSessionNote(id);
-      } else if (act === 'dup'){
-        await duplicateSessionToToday(id);
-      }
+      if (act === 'del'){ if (confirm('このセッションを削除しますか？')) await deleteSession(id); }
+      else if (act === 'edit'){ await editSessionNote(id); }
+      else if (act === 'dup'){ await duplicateSessionToToday(id); }
     });
     ul._bound = true;
   }
-
-  // 履歴を描画したらテンプレ候補も更新
-  refreshTplOptions();
 }
 
-// Analytics（従来どおり）
+// ====== 分析 ======
 async function renderAnalytics(){
   const sets = await getAll('sets');
   const exMap = Object.fromEntries((await getAll('exercises')).map(e=>[e.id,e.name]));
   const today = new Date(); today.setHours(0,0,0,0);
   const days = [];
-  for(let i=6;i>=0;i--){
-    const d = new Date(today.getTime() - i*86400000);
-    const key = d.toISOString().slice(0,10);
-    days.push({key, label: `${d.getMonth()+1}/${d.getDate()}`});
-  }
+  for(let i=6;i>=0;i--){ const d = new Date(today.getTime() - i*86400000); days.push({key:d.toISOString().slice(0,10), label:`${d.getMonth()+1}/${d.getDate()}`}); }
   const perEx = {};
   for(const s of sets){
     if(!days.find(d=>d.key===s.date)) continue;
@@ -439,65 +279,59 @@ async function renderAnalytics(){
     perEx[name] = perEx[name] || {};
     perEx[name][s.date] = (perEx[name][s.date]||0) + s.weight*s.reps;
   }
-  const canvas = document.getElementById('chart');
-  const ctx = canvas.getContext('2d');
+  const canvas = document.getElementById('chart'); const ctx = canvas.getContext('2d');
   ctx.clearRect(0,0,canvas.width,canvas.height);
   const W=canvas.width, H=canvas.height, L=40, B=30, T=10, R=10;
   ctx.strokeStyle='#444'; ctx.fillStyle='#999'; ctx.lineWidth=1;
   ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L,H-B); ctx.lineTo(W-R,H-B); ctx.stroke();
-  let max=0;
-  Object.values(perEx).forEach(map=> days.forEach(d=> { max = Math.max(max, map[d.key]||0); }));
-  if(max<=0) max=1;
+  let max=1; Object.values(perEx).forEach(map=> days.forEach(d=> max = Math.max(max, map[d.key]||0)));
   const colors = ['#7cb342','#42a5f5','#ab47bc','#ef5350','#ffb300','#26a69a'];
-  let seriesIndex=0;
+  let idx=0;
   const legend = document.getElementById('legend'); legend.innerHTML='';
   Object.keys(perEx).forEach(name=>{
-    const color = colors[seriesIndex++ % colors.length];
-    const pts = days.map((d,i)=>{
-      const x = L + (i*(W-L-R)/(days.length-1));
-      const y = (H-B) - ((perEx[name][d.key]||0)/max)*(H-B-T);
-      return {x,y};
-    });
-    ctx.strokeStyle = color; ctx.beginPath();
-    pts.forEach((p,i)=>{ if(i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y); });
-    ctx.stroke();
+    const color = colors[idx++ % colors.length];
+    const pts = days.map((d,i)=>({x: L + (i*(W-L-R)/(days.length-1)), y:(H-B) - ((perEx[name][d.key]||0)/max)*(H-B-T)}));
+    ctx.strokeStyle = color; ctx.beginPath(); pts.forEach((p,i)=> i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.stroke();
     pts.forEach(p=>{ ctx.beginPath(); ctx.arc(p.x,p.y,2,0,Math.PI*2); ctx.fillStyle=color; ctx.fill(); });
-    const chip = document.createElement('div'); chip.className='chip';
-    const dot = document.createElement('div'); dot.className='dot'; dot.style.background=color;
-    const label = document.createElement('span'); label.textContent=name;
+    const chip=document.createElement('div'); chip.className='chip';
+    const dot=document.createElement('div'); dot.className='dot'; dot.style.background=color;
+    const label=document.createElement('span'); label.textContent=name;
     chip.appendChild(dot); chip.appendChild(label); legend.appendChild(chip);
   });
   ctx.fillStyle='#aaa'; ctx.textAlign='center'; ctx.font='12px system-ui';
-  days.forEach((d,i)=>{
-    const x = L + (i*(W-L-R)/(days.length-1));
-    ctx.fillText(d.label, x, H-10);
-  });
-  const metrics = document.getElementById('metrics');
+  days.forEach((d,i)=> ctx.fillText(d.label, L + (i*(W-L-R)/(days.length-1)), H-10) );
   const total7 = Object.values(perEx).reduce((sum,map)=> sum + days.reduce((a,d)=>a+(map[d.key]||0),0), 0);
-  metrics.innerHTML = `
+  document.getElementById('metrics').innerHTML = `
     <div>直近7日ボリューム</div><div>${Math.round(total7)} kg</div>
     <div>種目数</div><div>${Object.keys(perEx).length} 種目</div>
   `;
 }
 
-// Settings
+// ====== 設定 ======
 async function bindSettingsUI(){
+  // 追加：一覧の部位絞り込み
+  $('#filterPart')?.addEventListener('change', renderExList);
+
+  // 種目追加：部位付き
   $('#btnCreateEx').addEventListener('click', async ()=>{
     const name = $('#newExName').value.trim();
+    const part = $('#newExPart')?.value || undefined;
     if(!name) return;
     try{
-      await put('exercises',{name});
+      await put('exercises',{name, group: part});
       $('#newExName').value='';
-      await renderExSelect(); await renderExList(); await refreshTplOptions();
+      await renderExList();
+      await renderExSelect(); // セッション側も更新
       showToast('追加しました');
     }catch(e){
       showToast('同名の種目があります');
     }
   });
+
+  // ダーク/通知/全消去（既存）
   $('#darkToggle').addEventListener('change', async (e)=>{
-    const v = e.target.checked;
-    await put('prefs',{key:'dark', value:v});
-    document.documentElement.dataset.theme = v?'dark':'light';
+    await put('prefs',{key:'dark', value:e.target.checked});
+    document.documentElement.dataset.theme = e.target.checked?'dark':'light';
   });
   $('#btnNotif').addEventListener('click', async ()=>{
     if(!('Notification' in window)){ showToast('この端末は通知に未対応'); return; }
@@ -508,24 +342,37 @@ async function bindSettingsUI(){
     if(!confirm('本当に全データを削除しますか？この操作は元に戻せません。')) return;
     await clearAll();
     await put('prefs',{key:'dark', value: $('#darkToggle').checked});
-    await renderExSelect(); await renderExList(); await renderHistory(); renderAnalytics(); renderTodaySets(); await refreshTplOptions();
+    await renderExSelect(); renderExList(); renderHistory(); renderAnalytics(); renderTodaySets();
     showToast('全データを削除しました');
   });
+
   renderExList();
 }
+
 async function renderExList(){
-  const exs = (await getAll('exercises')).sort((a,b)=>a.id-b.id);
+  const filt = $('#filterPart')?.value || 'all';
+  let exs = await getAll('exercises');
+  if (filt !== 'all') exs = exs.filter(e=>e.group===filt);
+  // 部位→名前で並べる
+  exs.sort((a,b)=> (a.group||'').localeCompare(b.group||'','ja') || a.name.localeCompare(b.name,'ja'));
+
   const ul = $('#exList');
-  ul.innerHTML = exs.map(e=> `<li><span>${escapeHTML(e.name)}</span><button class="ghost" data-id="${e.id}">削除</button></li>`).join('');
+  ul.innerHTML = exs.map(e=>{
+    const tag = e.group ? `<span class="badge" style="margin-right:8px">${escapeHTML(e.group)}</span>` : '';
+    return `<li><span>${tag}${escapeHTML(e.name)}</span><button class="ghost" data-id="${e.id}">削除</button></li>`;
+  }).join('');
+
   ul.querySelectorAll('button').forEach(b=>{
     b.addEventListener('click', async ()=>{
       await del('exercises', Number(b.dataset.id));
-      await renderExList(); await renderExSelect(); renderAnalytics(); await refreshTplOptions();
+      await renderExList();
+      await renderExSelect();
+      renderAnalytics();
     });
   });
 }
 
-// CSV
+// ====== CSV（既存のまま） ======
 async function exportCSV(){
   const sessions = await getAll('sessions');
   const sets = await getAll('sets');
@@ -535,8 +382,7 @@ async function exportCSV(){
   const lines2 = sets.map(s=> [s.id,s.session_id,s.exercise_id,s.weight,s.reps,(s.rpe??''),s.ts,s.date].join(',')).join('\n');
   const blob = new Blob([header1+lines1+header2+lines2], {type:'text/csv'});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'train_punch_export.csv'; a.click();
+  const a = document.createElement('a'); a.href = url; a.download = 'train_punch_export.csv'; a.click();
   URL.revokeObjectURL(url);
 }
 async function importCSV(ev){
@@ -556,18 +402,14 @@ async function importCSV(ev){
     const [id,session_id,exercise_id,weight,reps,rpe,ts,date] = parseCSVRow(line);
     await put('sets',{id:Number(id), session_id:Number(session_id), exercise_id:Number(exercise_id), weight:Number(weight), reps:Number(reps), rpe: rpe?Number(rpe):null, ts:Number(ts), date });
   }
-  await renderHistory(); renderAnalytics(); await refreshTplOptions(); showToast('インポート完了'); ev.target.value='';
+  renderHistory(); renderAnalytics(); showToast('インポート完了'); ev.target.value='';
 }
 async function clearAll(){
-  const stores = ['sessions','sets','exercises'];
-  for(const s of stores){
-    await new Promise((res,rej)=>{
-      const r = tx([s],'readwrite').objectStore(s).clear();
-      r.onsuccess=()=>res(); r.onerror=()=>rej(r.error);
-    });
+  for(const s of ['sessions','sets','exercises']){
+    await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
   }
-  // 初期種目を戻す（全プリセット）
-  for (const name of EX_PRESETS) await put('exercises', { name });
+  // 初期種目を「部位付き」で補充
+  await ensureInitialExercises();
 }
 function csvEscape(s){ const needs = /[",\n]/.test(s); return needs ? '"' + String(s).replace(/"/g,'""') + '"' : s; }
 function parseCSVRow(row){
@@ -578,11 +420,13 @@ function parseCSVRow(row){
     else { if(c===','){ out.push(cur); cur=''; } else if(c=='"'){ inQ=true; } else cur+=c; }
   } out.push(cur); return out;
 }
+
+// ====== 履歴操作 ======
 async function deleteSession(id){
   const sets = await indexGetAll('sets','by_session', id);
   await Promise.all(sets.map(s => del('sets', s.id)));
   await del('sessions', id);
-  await renderHistory(); renderAnalytics(); await refreshTplOptions();
+  renderHistory(); renderAnalytics();
   showToast('セッションを削除しました');
 }
 async function editSessionNote(id){
@@ -591,7 +435,7 @@ async function editSessionNote(id){
   if(next === null) return;
   s.note = next;
   await put('sessions', s);
-  await renderHistory();
+  renderHistory();
   showToast('メモを更新しました');
 }
 async function duplicateSessionToToday(id){
@@ -602,7 +446,7 @@ async function duplicateSessionToToday(id){
   for(const x of sets){
     await put('sets', {session_id:newId, exercise_id:x.exercise_id, weight:x.weight, reps:x.reps, rpe:x.rpe, ts: Date.now(), date: today});
   }
-  await renderHistory(); renderAnalytics(); await refreshTplOptions();
+  renderHistory(); renderAnalytics();
   showToast('今日に複製しました');
 }
 
