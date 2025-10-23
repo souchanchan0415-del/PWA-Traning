@@ -6,21 +6,11 @@
   <title>Train Punch — 筋トレロガー</title>
   <meta name="theme-color" content="#111111">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=1.2.1">
+  <link rel="stylesheet" href="styles.css?v=1.2.2">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Train Punch">
-  <style>
-    /* 2段タブ用の軽量スタイル（既存CSSに追加されてもOK） */
-    .pills{display:flex;gap:8px;flex-wrap:wrap}
-    .pills button{padding:8px 12px;border-radius:999px;border:1px solid var(--line,#e3e3e3);background:transparent}
-    .pills button.active{background:var(--accent,#0db);color:#fff;border-color:transparent}
-    .scrollchips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
-    .scrollchips button{white-space:nowrap;padding:8px 12px;border-radius:999px;border:1px solid var(--line,#e3e3e3);background:transparent}
-    .scrollchips button.active{background:var(--accent,#0db);color:#fff;border-color:transparent}
-    .muted{color:#999;font-size:12px}
-  </style>
 </head>
 <body>
   <header>
@@ -36,6 +26,7 @@
   <main>
     <!-- セッション -->
     <section id="tab-session" class="tab active">
+      <!-- 入力カード -->
       <div class="card">
         <div class="row">
           <label>日付</label>
@@ -46,22 +37,26 @@
           <input id="sessNote" placeholder="任意メモ">
         </div>
 
-        <!-- ▼ 2段タブ: 部位 → 種目 -->
+        <!-- ▼ 部位タブ（常に文字表示） -->
         <div class="row">
           <label>部位</label>
-          <nav id="partTabs" class="pills"></nav>
-        </div>
-        <div class="row" style="align-items:flex-start">
-          <label>種目</label>
-          <div style="flex:1;min-width:0">
-            <div id="exChips" class="scrollchips"></div>
-            <div class="muted" id="exCurrentLabel" style="margin-top:6px"></div>
+          <div id="partTabs" class="seg">
+            <button type="button" data-part="胸">胸</button>
+            <button type="button" data-part="背中">背中</button>
+            <button type="button" data-part="肩">肩</button>
+            <button type="button" data-part="脚">脚</button>
+            <button type="button" data-part="腕">腕</button>
           </div>
-          <!-- 互換用に hidden select を維持（JSから更新） -->
-          <select id="exSelect" style="display:none"></select>
-          <button id="btnAddEx" class="ghost" style="margin-left:8px">＋追加</button>
         </div>
-        <!-- ▲ 2段タブ -->
+        <!-- ▲ 部位タブ -->
+
+        <div class="row">
+          <label>種目</label>
+          <!-- プルダウン方式 -->
+          <select id="exSelect"></select>
+          <button id="btnAddEx" class="ghost">＋追加</button>
+        </div>
+        <small id="exSelectedText" style="display:block; margin:-6px 0 6px 0; color:#999;">選択中：—</small>
 
         <div class="grid3">
           <input id="weight" inputmode="decimal" placeholder="重量(kg)">
@@ -74,7 +69,7 @@
         </div>
       </div>
 
-      <!-- クイック/カスタム投入は現状のまま（必要なら後でタブ化も可） -->
+      <!-- ▼ クイック投入（履歴ベース） -->
       <div class="card">
         <h3>クイック投入（履歴）</h3>
         <div class="row">
@@ -92,7 +87,9 @@
         </div>
         <small>パターンは履歴から自動生成（例：5×5, 3×8, 4×10）。重複はまとめて頻度順に並びます。</small>
       </div>
+      <!-- ▲ クイック投入 -->
 
+      <!-- ▼ カスタム投入 -->
       <div class="card">
         <h3>カスタム投入</h3>
         <div class="grid3">
@@ -106,7 +103,9 @@
           <button id="btnTplCustom">投入</button>
         </div>
       </div>
+      <!-- ▲ カスタム投入 -->
 
+      <!-- 今日のセット -->
       <div class="card">
         <h3>今日のセット</h3>
         <ul id="todaySets" class="list"></ul>
@@ -147,25 +146,14 @@
       </div>
     </section>
 
-    <!-- 設定 -->
+    <!-- 設定（既存） -->
     <section id="tab-settings" class="tab">
       <div class="card">
         <h3>種目管理</h3>
-
-        <!-- 表示フィルタ（部位タブ） -->
-        <div class="row" style="align-items:flex-start">
-          <label>表示する部位</label>
-          <nav id="filterPartTabs" class="pills"></nav>
-        </div>
-
-        <!-- 追加（部位タブ + 名前） -->
-        <div class="row" style="align-items:flex-start">
+        <div class="row">
           <input id="newExName" placeholder="例：ベンチプレス">
-          <!-- 互換用 hidden（タブがここを書き換える） -->
-          <select id="newExPart" style="display:none"></select>
           <button id="btnCreateEx">追加</button>
         </div>
-
         <ul id="exList" class="list"></ul>
       </div>
 
@@ -186,6 +174,7 @@
         </div>
       </div>
 
+      <!-- バックアップ（JSON） -->
       <div class="card">
         <h3>バックアップ</h3>
         <div class="row">
@@ -199,7 +188,7 @@
       <div class="card">
         <h3>情報</h3>
         <div class="kv">
-          <div>バージョン</div><div>1.2.0</div>
+          <div>バージョン</div><div>1.2.2</div>
           <div>プライバシー</div><div><a target="_blank" href="privacy.html">プライバシーポリシー</a></div>
           <div>サポート</div>
           <div><a href="mailto:toreninguguanli53@gmail.com?subject=Train%20Punch%20サポート">toreninguguanli53@gmail.com</a></div>
@@ -210,7 +199,7 @@
   </main>
 
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=1.2.1"></script>
+  <script src="app.js?v=1.2.2"></script>
   <script src="sw-register.js"></script>
 </body>
 </html>
