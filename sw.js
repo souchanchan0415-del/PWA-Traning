@@ -1,9 +1,10 @@
-const CACHE = 'trainpunch-1.3.0';
+// Train Punch SW (v1.3.1) — cache bust + SPA nav fallback
+const CACHE = 'trainpunch-1.3.1';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=1.3.0',
-  './app.js?v=1.3.0',
+  './styles.css?v=1.3.1',
+  './app.js?v=1.3.1',
   './sw-register.js',
   './manifest.webmanifest',
   './privacy.html',
@@ -13,48 +14,66 @@ const ASSETS = [
   './icons/icon-512.png'
 ];
 
-self.addEventListener('install', (e) => {
+self.addEventListener('install', (e)=>{
   self.skipWaiting();
   e.waitUntil(
-    caches.open(CACHE).then(async (c) => {
-      // 1) HTTPキャッシュをバイパスして常に最新を取る
-      await c.addAll(ASSETS.map((url) => new Request(url, { cache: 'reload' })));
-    })
+    (async ()=>{
+      const cache = await caches.open(CACHE);
+      // HTTP キャッシュをバイパスして確実に最新を保存
+      await Promise.all(
+        ASSETS.map(url => cache.add(new Request(url, {cache:'reload'})).catch(()=>{}))
+      );
+    })()
   );
 });
 
-self.addEventListener('activate', (e) => {
+self.addEventListener('activate', (e)=>{
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    (async ()=>{
+      const keys = await caches.keys();
+      await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
+      await self.clients.claim();
+    })()
   );
 });
 
-// 2) SPAナビゲーションでも index.html を返す（オフライン許容）
-self.addEventListener('fetch', (e) => {
+self.addEventListener('fetch', (e)=>{
   const req = e.request;
 
-  // navigation requests → app shell
-  if (req.mode === 'navigate') {
+  // SPA ナビゲーション: オフライン時は index.html を返す
+  const isNav = req.mode === 'navigate' && req.method === 'GET';
+  if (isNav){
     e.respondWith(
-      (async () => {
-        const cache = await caches.open(CACHE);
-        try {
-          const fresh = await fetch(new Request('./index.html', { cache: 'reload' }));
-          cache.put('./index.html', fresh.clone());
+      (async ()=>{
+        try{
+          const fresh = await fetch(req);
           return fresh;
-        } catch {
-          const cached = await cache.match('./index.html');
-          return cached || new Response('offline', { status: 503, statusText: 'Offline' });
+        }catch(_){
+          const cache = await caches.open(CACHE);
+          const fallback = await cache.match('./index.html');
+          return fallback || new Response('', {status: 200, headers:{'Content-Type':'text/html'}});
         }
       })()
     );
     return;
   }
 
-  // asset: cache-first → network fallback
+  // 通常リクエスト: Cache, falling back to network, and cache update
   e.respondWith(
-    caches.match(req).then(cached => cached || fetch(req).catch(() => caches.match('./index.html')))
+    (async ()=>{
+      const cache = await caches.open(CACHE);
+      const cached = await cache.match(req);
+      if (cached) return cached;
+
+      try{
+        const res = await fetch(req);
+        if(res && res.ok && req.method==='GET' && (req.url.startsWith(self.location.origin))){
+          cache.put(req, res.clone());
+        }
+        return res;
+      }catch(_){
+        return cached || Response.error();
+      }
+    })()
   );
 });
