@@ -387,52 +387,161 @@ async function renderHistory(){
 }
 
 // =================== Analytics ===================
-async function renderAnalytics(){
-  const sets = await getAll('sets');
-  const exMap = Object.fromEntries((await getAll('exercises')).map(e=>[e.id,e.name]));
-  const today = new Date(); today.setHours(0,0,0,0);
-  const days = [];
-  for(let i=6;i>=0;i--){ const d = new Date(today.getTime() - i*86400000); days.push({key:d.toISOString().slice(0,10), label:`${d.getMonth()+1}/${d.getDate()}`}); }
+// レスポンシブなバー表示（直近7日合計）
 
-  const perEx = {};
-  for(const s of sets){
-    if(!days.find(d=>d.key===s.date)) continue;
-    const name = exMap[s.exercise_id] || '不明';
-    perEx[name] ??= {};
-    perEx[name][s.date] = (perEx[name][s.date]||0) + s.weight*s.reps;
+function _resizeCanvas(canvas, targetHeight = 260){
+  const dpr  = Math.max(1, window.devicePixelRatio || 1);
+  const rect = canvas.getBoundingClientRect();
+  const w    = Math.max(200, Math.floor(rect.width));
+  const h    = targetHeight;
+  if (canvas.width !== w * dpr || canvas.height !== h * dpr){
+    canvas.width  = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.height = h + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // 論理座標=CSSピクセル
+  }
+}
+function _lastNDays(n){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const days=[];
+  for(let i=n-1;i>=0;i--){
+    const d = new Date(today.getTime() - i*86400000);
+    days.push({ key:d.toISOString().slice(0,10), label:`${d.getMonth()+1}/${d.getDate()}` });
+  }
+  return days;
+}
+function _drawBarChart(canvas, days, totals, hoverIndex=-1){
+  _resizeCanvas(canvas, 260);
+  const ctx = canvas.getContext('2d');
+  const W = canvas.getBoundingClientRect().width;
+  const H = 260;
+  const L=42, R=10, T=18, B=28;
+
+  ctx.clearRect(0,0,W,H);
+
+  // 軸
+  ctx.strokeStyle = '#9993';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(L, T);
+  ctx.lineTo(L, H-B);
+  ctx.lineTo(W-R, H-B);
+  ctx.stroke();
+
+  const innerW = W - L - R;
+  const step   = innerW / days.length;
+  const barW   = Math.min(32, step * 0.58);
+
+  // ラベル・グリッド
+  const max = Math.max(1, Math.max(...totals));
+  const gridLines = 4;
+  ctx.fillStyle = '#9aa4b2';
+  ctx.font = '12px system-ui';
+  ctx.textAlign='center';
+  for(let i=0;i<days.length;i++){
+    const x = L + i*step + step/2;
+    ctx.fillText(days[i].label, x, H-8);
+  }
+  ctx.strokeStyle='#9992';
+  for(let g=1; g<=gridLines; g++){
+    const y = T + (H-B-T)* (g/gridLines);
+    ctx.beginPath();
+    ctx.moveTo(L, y);
+    ctx.lineTo(W-R, y);
+    ctx.stroke();
   }
 
-  const canvas = $('#chart'); const ctx = canvas.getContext('2d');
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  const W=canvas.width, H=canvas.height, L=40, B=28, T=10, R=10;
-  ctx.strokeStyle='#445'; ctx.fillStyle='#99a'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L,H-B); ctx.lineTo(W-R,H-B); ctx.stroke();
+  // 空データ
+  if (totals.every(v => v <= 0)){
+    ctx.fillStyle = '#9aa4b2';
+    ctx.textAlign='center';
+    ctx.font = '14px system-ui';
+    ctx.fillText('まだデータがありません。セットを追加すると表示されます。', W/2, (H-B+T)/2);
+    canvas._chartDims = {L, step, barW, W, H, T, B, max};
+    canvas._days = days; canvas._totals = totals;
+    return;
+  }
 
-  let max = 1;
-  Object.values(perEx).forEach(m => days.forEach(d => max = Math.max(max, m[d.key]||0)));
-  const colors = ['#0fb6a9','#42a5f5','#ab47bc','#ef5350','#ffb300','#26a69a'];
-  let idx=0;
+  // バー
+  for(let i=0;i<totals.length;i++){
+    const xC   = L + i*step + step/2;
+    const x    = xC - barW/2;
+    const h    = (totals[i]/max)*(H-B-T);
+    const y    = (H-B) - h;
 
-  const legend = $('#legend'); legend.innerHTML='';
-  Object.keys(perEx).forEach(name=>{
-    const color = colors[idx++ % colors.length];
-    const pts = days.map((d,i)=>({ x:L+(i*(W-L-R)/(days.length-1)), y:(H-B) - ((perEx[name][d.key]||0)/max)*(H-B-T) }));
-    ctx.strokeStyle=color;
-    ctx.beginPath(); pts.forEach((p,i)=> i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.stroke();
-    pts.forEach(p=>{ ctx.beginPath(); ctx.arc(p.x,p.y,2,0,Math.PI*2); ctx.fillStyle=color; ctx.fill(); });
+    ctx.fillStyle = (i===hoverIndex) ? '#0fb6a9' : '#6cc7bf';
+    ctx.fillRect(x, y, barW, h);
 
-    const chip = document.createElement('div'); chip.className='chip'; chip.textContent=name; chip.style.borderColor='transparent'; chip.style.background=color; chip.style.color='#fff';
-    legend.appendChild(chip);
-  });
+    // 値チップ
+    if (i===hoverIndex){
+      const tip = Math.round(totals[i]) + ' kg';
+      const tw  = ctx.measureText(tip).width + 10;
+      const th  = 22;
+      const tx  = Math.min(W-R-tw, Math.max(L, xC - tw/2));
+      const ty  = y - 8 - th;
+      ctx.fillStyle='#0fb6a9';
+      ctx.fillRect(tx, ty, tw, th);
+      ctx.fillStyle='#fff';
+      ctx.textAlign='center';
+      ctx.textBaseline='middle';
+      ctx.font = '12px system-ui';
+      ctx.fillText(tip, tx + tw/2, ty + th/2);
+    }
+  }
 
-  ctx.fillStyle='#aab'; ctx.textAlign='center'; ctx.font='12px system-ui';
-  days.forEach((d,i)=> ctx.fillText(d.label, L+(i*(W-L-R)/(days.length-1)), H-8) );
+  // 共有（インタラクション用）
+  canvas._chartDims = {L, step, barW, W, H, T, B, max};
+  canvas._days = days;
+  canvas._totals = totals;
+}
 
-  const total7 = Object.values(perEx).reduce((sum,map)=> sum + days.reduce((a,d)=>a+(map[d.key]||0),0), 0);
+let _chartEventsBound = false;
+async function renderAnalytics(){
+  const canvas = $('#chart');
+  if(!canvas) return;
+
+  const sets = await getAll('sets');
+  const days = _lastNDays(7);
+  // 全種目の「日別合計ボリューム」
+  const totals = days.map(d =>
+    sets.filter(s => s.date === d.key)
+        .reduce((sum,x)=> sum + x.weight * x.reps, 0)
+  );
+
+  // 描画
+  _drawBarChart(canvas, days, totals, -1);
+
+  // メトリクス
+  const recentKeys = new Set(days.map(d=>d.key));
+  const recentSets = sets.filter(s => recentKeys.has(s.date));
+  const total7     = totals.reduce((a,b)=>a+b,0);
+  const uniqEx     = new Set(recentSets.map(s=>s.exercise_id)).size;
   $('#metrics').innerHTML = `
     <div>直近7日ボリューム</div><div>${Math.round(total7)} kg</div>
-    <div>種目数</div><div>${Object.keys(perEx).length} 種目</div>
+    <div>種目数</div><div>${uniqEx} 種目</div>
   `;
+  // 凡例は使わない（念のためクリア）
+  const legend = $('#legend'); if (legend) legend.innerHTML = '';
+
+  // 一度だけイベントをバインド（データは canvas.* から参照）
+  if(!_chartEventsBound){
+    const pickIndex = (evt)=>{
+      const r = canvas.getBoundingClientRect();
+      const x = (evt.touches ? evt.touches[0].clientX : evt.clientX) - r.left;
+      const dims = canvas._chartDims || {L:0, step:1};
+      const i = Math.floor((x - dims.L) / dims.step);
+      return (i>=0 && i<(canvas._days?.length||0)) ? i : -1;
+    };
+    const redraw = (i=-1)=> _drawBarChart(canvas, canvas._days||[], canvas._totals||[], i);
+
+    canvas.addEventListener('mousemove', (e)=> redraw(pickIndex(e)));
+    canvas.addEventListener('mouseleave', ()=> redraw(-1));
+    canvas.addEventListener('touchstart', (e)=> redraw(pickIndex(e)), {passive:true});
+    canvas.addEventListener('touchmove',  (e)=> redraw(pickIndex(e)), {passive:true});
+    window.addEventListener('resize', ()=> redraw(-1));
+    _chartEventsBound = true;
+  }
 }
 
 // =================== Settings ===================
