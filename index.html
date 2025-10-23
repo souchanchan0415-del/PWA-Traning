@@ -15,10 +15,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Train Punch" />
 
-  <!-- 軽い体感UP：タイマー音を先読み -->
   <link rel="preload" href="beep.wav" as="audio" />
-
-  <link rel="stylesheet" href="styles.css?v=1.3.4" />
+  <link rel="stylesheet" href="styles.css?v=1.4.0" />
 </head>
 <body>
   <noscript>
@@ -29,13 +27,8 @@
 
   <header class="appbar">
     <h1 class="logo">Train Punch</h1>
-
-    <!-- 強制更新(キャッシュ削除+再読込)ボタン -->
-    <button id="btnHardRefresh"
-            class="iconbtn"
-            type="button"
-            aria-label="キャッシュをクリアして再読込"
-            title="キャッシュをクリアして再読込">↻</button>
+    <button id="btnHardRefresh" class="iconbtn" type="button"
+            aria-label="キャッシュをクリアして再読込" title="キャッシュをクリアして再読込">↻</button>
 
     <nav class="tabs" role="tablist" aria-label="Main tabs">
       <button id="tabbtn-session"  data-tab="session"  class="active" role="tab" aria-selected="true"  aria-controls="tab-session"  type="button">セッション</button>
@@ -53,21 +46,19 @@
           <label for="sessDate">日付</label>
           <input id="sessDate" type="date" autocomplete="off" />
         </div>
-
         <div class="row">
           <label for="sessNote">メモ</label>
           <input id="sessNote" placeholder="任意メモ" autocomplete="off" enterkeyhint="done" />
         </div>
 
-        <!-- 部位 → 種目（ドロップダウン） -->
         <div class="row">
           <label>部位</label>
           <div id="partChips" class="chipset" aria-label="部位の選択">
-            <button class="chip" data-part="胸"   type="button">胸</button>
+            <button class="chip" data-part="胸" type="button">胸</button>
             <button class="chip" data-part="背中" type="button">背中</button>
-            <button class="chip" data-part="肩"   type="button">肩</button>
-            <button class="chip" data-part="脚"   type="button">脚</button>
-            <button class="chip" data-part="腕"   type="button">腕</button>
+            <button class="chip" data-part="肩" type="button">肩</button>
+            <button class="chip" data-part="脚" type="button">脚</button>
+            <button class="chip" data-part="腕" type="button">腕</button>
           </div>
         </div>
 
@@ -83,21 +74,12 @@
           <input id="rpe"    inputmode="decimal" placeholder="RPE(任意)"autocomplete="off" />
         </div>
 
-        <!-- ▼ e1RM（推定1RM）ミニパネル：今/ベスト/差分 -->
-        <div class="row" id="e1rmPanel" aria-live="polite" hidden>
-          <span class="badge">e1RM 今: <strong id="e1rmNow">—</strong> kg</span>
-          <span class="badge">ベスト: <strong id="e1rmBest">—</strong> kg</span>
-          <span class="badge" id="e1rmDelta" hidden>+0 kg</span>
-        </div>
-        <!-- ▲ ここまで -->
-
         <div class="row">
           <button id="btnAddSet" type="button">セット追加</button>
           <button id="btnTimer" class="ghost" type="button">休憩60s</button>
         </div>
       </div>
 
-      <!-- クイック投入（履歴ベース） -->
       <div class="card">
         <h3>クイック投入（履歴）</h3>
         <div class="row">
@@ -118,7 +100,6 @@
         <small>パターンは履歴から自動生成（例：5×5, 3×8, 4×10）。重複はまとめて頻度順に並びます。</small>
       </div>
 
-      <!-- カスタム投入 -->
       <div class="card">
         <h3>カスタム投入</h3>
         <div class="grid grid-3">
@@ -127,15 +108,14 @@
           <input id="tplCustomWeight" inputmode="decimal"  placeholder="重量kg（例 40）"  autocomplete="off" />
         </div>
 
-        <!-- カスタム投入：部位 -->
         <div class="row">
           <label>部位</label>
           <div id="tplPartChips" class="chipset" aria-label="部位(カスタム)">
-            <button class="chip" data-part="胸"   type="button">胸</button>
+            <button class="chip" data-part="胸" type="button">胸</button>
             <button class="chip" data-part="背中" type="button">背中</button>
-            <button class="chip" data-part="肩"   type="button">肩</button>
-            <button class="chip" data-part="脚"   type="button">脚</button>
-            <button class="chip" data-part="腕"   type="button">腕</button>
+            <button class="chip" data-part="肩" type="button">肩</button>
+            <button class="chip" data-part="脚" type="button">脚</button>
+            <button class="chip" data-part="腕" type="button">腕</button>
           </div>
         </div>
         <div class="row">
@@ -145,7 +125,6 @@
         </div>
       </div>
 
-      <!-- 今日のセット -->
       <div class="card">
         <h3>今日のセット</h3>
         <ul id="todaySets" class="list"></ul>
@@ -161,12 +140,9 @@
         <div class="row">
           <label for="historyCount">表示件数</label>
           <select id="historyCount">
-            <option>10</option>
-            <option selected>20</option>
-            <option>50</option>
+            <option>10</option><option selected>20</option><option>50</option>
           </select>
           <button id="btnExport" class="ghost" type="button">CSV書き出し</button>
-
           <input type="file" id="importFile" accept=".csv" hidden />
           <label for="importFile" class="ghost btnlike">CSV読み込み</label>
         </div>
@@ -181,9 +157,22 @@
         <canvas id="chart"></canvas>
         <div id="legend" class="legend"></div>
       </div>
+
+      <!-- 追加：e1RM推移 -->
       <div class="card">
-        <h3>主要指標</h3>
-        <div class="kv" id="metrics"></div>
+        <h3>e1RM 推移</h3>
+        <div class="row">
+          <label for="exTrendSelect">種目</label>
+          <select id="exTrendSelect" aria-label="ウォッチ種目から選択"></select>
+          <select id="trendRange" aria-label="表示範囲">
+            <option value="10" selected>最近10回</option>
+            <option value="20">最近20回</option>
+            <option value="all">全期間</option>
+          </select>
+        </div>
+        <canvas id="trendChart"></canvas>
+        <div id="trendInfo" class="legend"></div>
+        <small id="trendHint" style="display:block;margin-top:6px;color:var(--muted);"></small>
       </div>
     </section>
 
@@ -191,34 +180,36 @@
     <section id="tab-settings" class="tab" role="tabpanel" aria-labelledby="tabbtn-settings">
       <div class="card">
         <h3>種目管理</h3>
-
         <div class="row">
           <label for="filterPart">表示する部位</label>
           <select id="filterPart">
             <option value="all" selected>すべて</option>
-            <option value="胸">胸</option>
-            <option value="背中">背中</option>
-            <option value="肩">肩</option>
-            <option value="脚">脚</option>
-            <option value="腕">腕</option>
+            <option value="胸">胸</option><option value="背中">背中</option>
+            <option value="肩">肩</option><option value="脚">脚</option><option value="腕">腕</option>
           </select>
         </div>
-
         <div class="grid grid-2">
           <input id="newExName" placeholder="例：ベンチプレス" autocomplete="off" />
           <select id="newExPart" aria-label="部位">
             <option value="">部位</option>
-            <option value="胸">胸</option>
-            <option value="背中">背中</option>
-            <option value="肩">肩</option>
-            <option value="脚">脚</option>
-            <option value="腕">腕</option>
+            <option value="胸">胸</option><option value="背中">背中</option>
+            <option value="肩">肩</option><option value="脚">脚</option><option value="腕">腕</option>
           </select>
         </div>
-        <div class="row">
-          <button id="btnCreateEx" type="button">追加</button>
-        </div>
+        <div class="row"><button id="btnCreateEx" type="button">追加</button></div>
         <ul id="exList" class="list"></ul>
+      </div>
+
+      <!-- 追加：ウォッチ種目 -->
+      <div class="card">
+        <h3>ウォッチ種目（分析の e1RM で選択）</h3>
+        <div class="row">
+          <label for="watchExSelect">追加</label>
+          <select id="watchExSelect"></select>
+          <button id="btnWatchAdd" type="button">追加</button>
+        </div>
+        <ul id="watchList" class="list"></ul>
+        <small>ここで選んだ種目が、分析タブの「e1RM推移」で選択できます。</small>
       </div>
 
       <div class="card">
@@ -251,7 +242,7 @@
       <div class="card">
         <h3>情報</h3>
         <div class="kv">
-          <div>バージョン</div><div>1.3.4</div>
+          <div>バージョン</div><div>1.4.0</div>
           <div>プライバシー</div><div><a target="_blank" href="privacy.html" rel="noopener">プライバシーポリシー</a></div>
           <div>サポート</div>
           <div><a href="mailto:toreninguguanli53@gmail.com?subject=Train%20Punch%20サポート">toreninguguanli53@gmail.com</a></div>
@@ -263,8 +254,7 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <!-- 末尾読み込み（必要ならdeferでもOK） -->
-  <script src="app.js?v=1.3.4"></script>
+  <script src="app.js?v=1.4.0"></script>
   <script src="sw-register.js"></script>
 </body>
 </html>
