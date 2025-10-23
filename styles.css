@@ -233,3 +233,10 @@ button, select, input { touch-action: manipulation; }
   display:block;
   touch-action:none;
 }
+/* 両チャートを同じ見た目に */
+#chart, #trendChart{
+  width:100%;
+  height:260px;
+  display:block;
+  touch-action:none;
+}
