@@ -24,12 +24,22 @@ html[data-theme="light"]{
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
 body{
-  margin:0; color:var(--text); background:radial-gradient(1200px 600px at 50% -200px, rgba(15,182,169,.07), transparent 60%) , var(--bg);
-  font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+  margin:0; color:var(--text);
+  background:
+    radial-gradient(1200px 600px at 50% -200px, rgba(15,182,169,.07), transparent 60%),
+    var(--bg);
+  font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP",
+        "Hiragino Kaku Gothic ProN", "Yu Gothic", "Helvetica Neue", Arial,
+        "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol", sans-serif;
 }
 
 /* ===== Appbar / Tabs ===== */
-.appbar{ position:sticky; top:0; z-index:10; backdrop-filter:saturate(180%) blur(10px); background:linear-gradient(to bottom, rgba(0,0,0,.35), transparent), var(--bg); padding:12px 16px 8px; }
+.appbar{
+  position:sticky; top:0; z-index:10;
+  backdrop-filter:saturate(180%) blur(10px);
+  background:linear-gradient(to bottom, rgba(0,0,0,.35), transparent), var(--bg);
+  padding:12px 16px 8px;
+}
 .logo{ margin:0 0 10px; font-size:28px; font-weight:800; letter-spacing:.2px; }
 .tabs{ display:flex; gap:12px; flex-wrap:wrap; }
 .tabs button{
@@ -49,13 +59,12 @@ h3{ margin:0 0 12px; font-size:18px; }
 .row{ display:flex; gap:12px; align-items:center; margin:10px 0; flex-wrap:wrap; }
 .grid{ display:grid; gap:12px; }
 .grid-2{ grid-template-columns: 1fr 160px; }
-.grid-3{ grid-template-columns: repeat(3, 1fr); }
+/* minmax(0,1fr) で Safari の shrink 問題を根こそぎ回避 */
+.grid-3{ grid-template-columns: repeat(3, minmax(0,1fr)); }
 .end{ justify-content:flex-end; }
 
 /* ===== Inputs ===== */
-input, select, textarea, button{
-  font:inherit; color:inherit;
-}
+input, select, textarea, button{ font:inherit; color:inherit; }
 input, select{
   background:color-mix(in oklab, var(--card), #000 5%); color:var(--text);
   border:1px solid var(--line); border-radius:12px; padding:12px 14px; min-height:44px;
@@ -86,7 +95,8 @@ button.danger{ background:var(--danger); border-color:transparent; color:#fff; }
   display:flex; align-items:center; justify-content:space-between; gap:12px;
   border-top:1px dashed var(--line); padding:12px 4px;
 }
-.badge{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:color-mix(in oklab, var(--card), #000 8%); border:1px solid var(--line); font-size:12px; }
+.badge{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px;
+  background:color-mix(in oklab, var(--card), #000 8%); border:1px solid var(--line); font-size:12px; }
 .legend{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
 .legend .chip{ padding:6px 10px; }
 .kv{ display:grid; grid-template-columns: 140px 1fr; gap:8px; }
@@ -98,7 +108,8 @@ button.danger{ background:var(--danger); border-color:transparent; color:#fff; }
 /* Toast */
 .toast{
   position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
-  background:#111c; color:#fff; padding:10px 14px; border-radius:999px; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s;
+  background:#111c; color:#fff; padding:10px 14px; border-radius:999px; opacity:0;
+  pointer-events:none; transition:opacity .2s, transform .2s;
 }
 .toast.show{ opacity:1; transform:translateX(-50%) translateY(-4px); }
 
@@ -106,15 +117,23 @@ button.danger{ background:var(--danger); border-color:transparent; color:#fff; }
 .tab{ display:none; }
 .tab.active{ display:block; }
 
-/* Responsive tweaks */
+/* ===== Responsive tweaks ===== */
 @media (max-width: 700px){
   .grid-2{ grid-template-columns:1fr; }
   .grid-3{ grid-template-columns:1fr 1fr; }
+  /* 3つ目（RPE）を次の行で全幅にして、切れを完全阻止 */
+  .grid-3 > :nth-child(3){ grid-column: 1 / -1; }
 }
+/* さらに狭い端末では縦一列 */
+@media (max-width: 360px){
+  .grid-3{ grid-template-columns:1fr; }
+}
+
 @media (min-width: 1100px){
   .logo{ font-size:32px; }
 }
-/* --- iOS Safari での入力欄はみ出し対策 --- */
+
+/* --- iOS Safari ではみ出す問題を総合対策 --- */
 .row > * { min-width: 0; }           /* flex 子要素を縮められるように */
 .grid > * { min-width: 0; }          /* grid 子要素も同様 */
 .grid-3 input,
@@ -127,3 +146,9 @@ button.danger{ background:var(--danger); border-color:transparent; color:#fff; }
 
 /* 種目セレクトの行と次の行が重なって見えないように余白を確保 */
 #exSelect { margin-bottom: 6px; }    /* 必要なら値は好みで微調整 */
+
+/* アクセシビリティ：フォーカスリング */
+:focus-visible{
+  outline:2px solid color-mix(in oklab, var(--primary), #fff 20%);
+  outline-offset:2px; border-radius:12px;
+}
