@@ -36,6 +36,21 @@
           <label>メモ</label>
           <input id="sessNote" placeholder="任意メモ">
         </div>
+
+        <!-- ▼ 追加：部位セレクト -->
+        <div class="row">
+          <label>部位</label>
+          <select id="partSelect">
+            <option value="all">すべて</option>
+            <option>胸</option>
+            <option>背中</option>
+            <option>肩</option>
+            <option>脚</option>
+            <option>腕</option>
+          </select>
+        </div>
+        <!-- ▲ 追加ここまで -->
+
         <div class="row">
           <label>種目</label>
           <select id="exSelect"></select>
@@ -55,10 +70,24 @@
       <!-- ▼ クイック投入（履歴ベース） -->
       <div class="card">
         <h3>クイック投入（履歴）</h3>
+
+        <div class="row">
+          <label>部位</label>
+          <select id="tplPartFromHist">
+            <option value="all">すべて</option>
+            <option>胸</option>
+            <option>背中</option>
+            <option>肩</option>
+            <option>脚</option>
+            <option>腕</option>
+          </select>
+        </div>
+
         <div class="row">
           <label>種目</label>
           <select id="tplExFromHist"></select>
         </div>
+
         <div class="row">
           <label>パターン</label>
           <select id="tplPattern"></select>
@@ -80,6 +109,19 @@
           <input id="tplCustomReps"  inputmode="numeric"  placeholder="回数（例 5）">
           <input id="tplCustomWeight" inputmode="decimal" placeholder="重量kg（例 40）">
         </div>
+
+        <div class="row">
+          <label>部位</label>
+          <select id="tplPartCustom">
+            <option value="all">すべて</option>
+            <option>胸</option>
+            <option>背中</option>
+            <option>肩</option>
+            <option>脚</option>
+            <option>腕</option>
+          </select>
+        </div>
+
         <div class="row">
           <label>種目</label>
           <select id="tplExCustom"></select>
@@ -133,10 +175,34 @@
     <section id="tab-settings" class="tab">
       <div class="card">
         <h3>種目管理</h3>
+
+        <!-- ▼ 追加：表示を部位で絞り込み -->
+        <div class="row">
+          <label>表示する部位</label>
+          <select id="filterPart">
+            <option value="all">すべて</option>
+            <option>胸</option>
+            <option>背中</option>
+            <option>肩</option>
+            <option>脚</option>
+            <option>腕</option>
+          </select>
+        </div>
+        <!-- ▲ 追加 -->
+
+        <!-- 追加フォーム：名前 + 部位 -->
         <div class="row">
           <input id="newExName" placeholder="例：ベンチプレス">
+          <select id="newExPart" title="部位">
+            <option>胸</option>
+            <option>背中</option>
+            <option>肩</option>
+            <option>脚</option>
+            <option>腕</option>
+          </select>
           <button id="btnCreateEx">追加</button>
         </div>
+
         <ul id="exList" class="list"></ul>
       </div>
 
@@ -172,7 +238,7 @@
       <div class="card">
         <h3>情報</h3>
         <div class="kv">
-          <div>バージョン</div><div>1.2.0</div>
+          <div>バージョン</div><div>1.2.1</div>
           <div>プライバシー</div><div><a target="_blank" href="privacy.html">プライバシーポリシー</a></div>
           <div>サポート</div>
           <div>
