@@ -2,20 +2,20 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Train Punch — 筋トレロガー</title>
   <meta name="theme-color" content="#111111">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=1.2.2">
+  <link rel="stylesheet" href="styles.css?v=1.3.0">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Train Punch">
 </head>
 <body>
-  <header>
+  <header class="site-header">
     <h1>Train Punch</h1>
-    <nav class="tabs">
+    <nav class="tabs" role="tablist" aria-label="メインタブ">
       <button data-tab="session" class="active">セッション</button>
       <button data-tab="history">履歴</button>
       <button data-tab="analytics">分析</button>
@@ -23,63 +23,62 @@
     </nav>
   </header>
 
-  <main>
+  <main class="container">
     <!-- セッション -->
     <section id="tab-session" class="tab active">
-      <!-- 入力カード -->
       <div class="card">
         <div class="row">
-          <label>日付</label>
+          <label for="sessDate">日付</label>
           <input id="sessDate" type="date">
         </div>
+
         <div class="row">
-          <label>メモ</label>
+          <label for="sessNote">メモ</label>
           <input id="sessNote" placeholder="任意メモ">
         </div>
 
-        <!-- ▼ 部位タブ（常に文字表示） -->
+        <!-- 部位（常時表示のピル） -->
         <div class="row">
           <label>部位</label>
-          <div id="partTabs" class="seg">
-            <button type="button" data-part="胸">胸</button>
-            <button type="button" data-part="背中">背中</button>
-            <button type="button" data-part="肩">肩</button>
-            <button type="button" data-part="脚">脚</button>
-            <button type="button" data-part="腕">腕</button>
+          <div class="part-pills" id="partPills" role="tablist" aria-label="部位">
+            <button type="button" class="pill" data-part="胸">胸</button>
+            <button type="button" class="pill" data-part="背中">背中</button>
+            <button type="button" class="pill" data-part="肩">肩</button>
+            <button type="button" class="pill" data-part="脚">脚</button>
+            <button type="button" class="pill" data-part="腕">腕</button>
           </div>
         </div>
-        <!-- ▲ 部位タブ -->
 
+        <!-- 種目はプルダウン -->
         <div class="row">
-          <label>種目</label>
-          <!-- プルダウン方式 -->
+          <label for="exSelect">種目</label>
           <select id="exSelect"></select>
           <button id="btnAddEx" class="ghost">＋追加</button>
         </div>
-        <small id="exSelectedText" style="display:block; margin:-6px 0 6px 0; color:#999;">選択中：—</small>
 
         <div class="grid3">
-          <input id="weight" inputmode="decimal" placeholder="重量(kg)">
-          <input id="reps" inputmode="numeric" placeholder="回数">
-          <input id="rpe" inputmode="decimal" placeholder="RPE(任意)">
+          <input id="weight" inputmode="decimal" placeholder="重量(kg)" aria-label="重量(kg)">
+          <input id="reps"   inputmode="numeric" placeholder="回数" aria-label="回数">
+          <input id="rpe"    inputmode="decimal" placeholder="RPE(任意)" aria-label="RPE">
         </div>
+
         <div class="row">
           <button id="btnAddSet">セット追加</button>
           <button id="btnTimer" class="ghost">休憩60s</button>
         </div>
       </div>
 
-      <!-- ▼ クイック投入（履歴ベース） -->
+      <!-- クイック投入（履歴ベース） -->
       <div class="card">
         <h3>クイック投入（履歴）</h3>
         <div class="row">
-          <label>種目</label>
+          <label for="tplExFromHist">種目</label>
           <select id="tplExFromHist"></select>
         </div>
         <div class="row">
-          <label>パターン</label>
+          <label for="tplPattern">パターン</label>
           <select id="tplPattern"></select>
-          <label style="margin-left:8px">
+          <label class="inline">
             <input id="tplUseLastW" type="checkbox" checked>
             前回重量を使う
           </label>
@@ -87,9 +86,8 @@
         </div>
         <small>パターンは履歴から自動生成（例：5×5, 3×8, 4×10）。重複はまとめて頻度順に並びます。</small>
       </div>
-      <!-- ▲ クイック投入 -->
 
-      <!-- ▼ カスタム投入 -->
+      <!-- カスタム投入 -->
       <div class="card">
         <h3>カスタム投入</h3>
         <div class="grid3">
@@ -98,19 +96,18 @@
           <input id="tplCustomWeight" inputmode="decimal" placeholder="重量kg（例 40）">
         </div>
         <div class="row">
-          <label>種目</label>
+          <label for="tplExCustom">種目</label>
           <select id="tplExCustom"></select>
           <button id="btnTplCustom">投入</button>
         </div>
       </div>
-      <!-- ▲ カスタム投入 -->
 
       <!-- 今日のセット -->
       <div class="card">
         <h3>今日のセット</h3>
         <ul id="todaySets" class="list"></ul>
         <div class="row end">
-          <button id="btnSaveSession">セッション保存</button>
+          <button id="btnSaveSession" class="primary-wide">セッション保存</button>
         </div>
       </div>
     </section>
@@ -119,7 +116,7 @@
     <section id="tab-history" class="tab">
       <div class="card">
         <div class="row">
-          <label>表示件数</label>
+          <label for="historyCount">表示件数</label>
           <select id="historyCount">
             <option>10</option>
             <option selected>20</option>
@@ -127,7 +124,7 @@
           </select>
           <button id="btnExport" class="ghost">CSV書き出し</button>
           <input type="file" id="importFile" accept=".csv" style="display:none">
-          <label for="importFile" class="ghost" style="display:inline-block; padding:12px 16px; border-radius:12px; cursor:pointer;">CSV読み込み</label>
+          <label for="importFile" class="ghost filelike">CSV読み込み</label>
         </div>
         <ul id="historyList" class="list"></ul>
       </div>
@@ -137,7 +134,7 @@
     <section id="tab-analytics" class="tab">
       <div class="card">
         <h3>直近7日：合計ボリューム(kg)</h3>
-        <canvas id="chart" width="800" height="280"></canvas>
+        <canvas id="chart" width="900" height="300"></canvas>
         <div id="legend" class="legend"></div>
       </div>
       <div class="card">
@@ -146,14 +143,36 @@
       </div>
     </section>
 
-    <!-- 設定（既存） -->
+    <!-- 設定 -->
     <section id="tab-settings" class="tab">
       <div class="card">
         <h3>種目管理</h3>
+
+        <div class="row">
+          <label for="filterPart">表示する部位</label>
+          <select id="filterPart">
+            <option value="all">すべて</option>
+            <option value="胸">胸</option>
+            <option value="背中">背中</option>
+            <option value="肩">肩</option>
+            <option value="脚">脚</option>
+            <option value="腕">腕</option>
+          </select>
+        </div>
+
         <div class="row">
           <input id="newExName" placeholder="例：ベンチプレス">
+          <select id="newExPart" aria-label="部位">
+            <option value="">部位</option>
+            <option value="胸">胸</option>
+            <option value="背中">背中</option>
+            <option value="肩">肩</option>
+            <option value="脚">脚</option>
+            <option value="腕">腕</option>
+          </select>
           <button id="btnCreateEx">追加</button>
         </div>
+
         <ul id="exList" class="list"></ul>
       </div>
 
@@ -169,17 +188,16 @@
       <div class="card">
         <h3>表示</h3>
         <div class="row">
-          <label>ダークモード</label>
+          <label for="darkToggle">ダークモード</label>
           <input id="darkToggle" type="checkbox">
         </div>
       </div>
 
-      <!-- バックアップ（JSON） -->
       <div class="card">
         <h3>バックアップ</h3>
         <div class="row">
           <button id="btnExportJson" class="ghost">JSON書き出し</button>
-          <label for="jsonIn" class="ghost" style="display:inline-block; padding:12px 16px; border-radius:12px; cursor:pointer;">JSON読み込み</label>
+          <label for="jsonIn" class="ghost filelike">JSON読み込み</label>
           <input id="jsonIn" type="file" accept="application/json" style="display:none">
         </div>
         <small>書き出しは端末に保存、読み込みはファイル選択で復元できます。</small>
@@ -188,7 +206,7 @@
       <div class="card">
         <h3>情報</h3>
         <div class="kv">
-          <div>バージョン</div><div>1.2.2</div>
+          <div>バージョン</div><div>1.3.0</div>
           <div>プライバシー</div><div><a target="_blank" href="privacy.html">プライバシーポリシー</a></div>
           <div>サポート</div>
           <div><a href="mailto:toreninguguanli53@gmail.com?subject=Train%20Punch%20サポート">toreninguguanli53@gmail.com</a></div>
@@ -198,8 +216,8 @@
     </section>
   </main>
 
-  <div id="toast" class="toast"></div>
-  <script src="app.js?v=1.2.2"></script>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js?v=1.3.0"></script>
   <script src="sw-register.js"></script>
 </body>
 </html>
