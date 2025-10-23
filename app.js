@@ -33,7 +33,7 @@ async function get(store, key){ return new Promise((res,rej)=>{ const r=tx([stor
 const $ = s=>document.querySelector(s);
 function showToast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1500); }
 function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
-function escapeHTML(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&gt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
+function escapeHTML(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
 
 let currentSession = { date: todayStr(), note:'', sets: [] };
 
@@ -69,14 +69,152 @@ const EX_PRESETS = [
 async function ensureInitialExercises(){
   const existing = new Set((await getAll('exercises')).map(e => e.name));
   const toAdd = EX_PRESETS.filter(n => !existing.has(n));
-  for (const name of toAdd) {
-    await put('exercises', { name });
+  for (const name of toAdd) await put('exercises', { name });
+}
+
+/* ====== 履歴テンプレ用の集計データ ====== */
+let patternMap = {}; // { exId: { '5×5': count, '3×8': count, ... } }
+
+/* 履歴からテンプレ候補を再生成（頻度順）＆各セレクト更新 */
+async function refreshTplOptions(){
+  const exs  = await getAll('exercises');
+  const sets = await getAll('sets');
+
+  // セッション×種目で reps の出現回数を数える
+  const perSess = {}; // key: `${session_id}:${exercise_id}` -> { reps: count }
+  const lastByEx = {}; // exercise_id -> {ts, weight}
+  for(const s of sets){
+    const key = `${s.session_id}:${s.exercise_id}`;
+    (perSess[key] ||= {});
+    perSess[key][s.reps] = (perSess[key][s.reps]||0) + 1;
+
+    const cur = lastByEx[s.exercise_id];
+    if(!cur || (s.ts ?? 0) > cur.ts) lastByEx[s.exercise_id] = { ts: s.ts ?? 0, weight: s.weight ?? 0 };
   }
+
+  patternMap = {};
+  for(const key in perSess){
+    const exId = Number(key.split(':')[1]);
+    for(const repsStr in perSess[key]){
+      const setsN = perSess[key][repsStr];
+      const pat   = `${setsN}×${Number(repsStr)}`;
+      (patternMap[exId] ||= {});
+      patternMap[exId][pat] = (patternMap[exId][pat]||0) + 1;
+    }
+  }
+
+  // 種目セレクト（履歴ありだけ）
+  const selExFromHist = $('#tplExFromHist');
+  if (selExFromHist){
+    selExFromHist.innerHTML = '';
+    const candidates = Object.keys(patternMap).map(Number);
+    if (candidates.length === 0){
+      const opt = document.createElement('option');
+      opt.value=''; opt.textContent='履歴がありません';
+      selExFromHist.appendChild(opt);
+    }else{
+      // 頻度合計の多い種目から
+      const sum = id => Object.values(patternMap[id]).reduce((a,b)=>a+b,0);
+      candidates.sort((a,b)=> sum(b)-sum(a));
+      const id2name = Object.fromEntries(exs.map(e=>[e.id,e.name]));
+      for(const id of candidates){
+        const o = document.createElement('option');
+        o.value = id; o.textContent = id2name[id] || `ID:${id}`;
+        selExFromHist.appendChild(o);
+      }
+    }
+    // 選択した種目のパターン一覧を描画
+    renderPatternOptions();
+  }
+
+  // カスタム用の種目セレクト
+  const selExCustom = $('#tplExCustom');
+  if (selExCustom){
+    selExCustom.innerHTML = '';
+    exs.forEach(e=>{
+      const o=document.createElement('option');
+      o.value=e.id; o.textContent=e.name;
+      selExCustom.appendChild(o);
+    });
+  }
+}
+
+/* 選択中の種目に対するパターン一覧を更新 */
+function renderPatternOptions(){
+  const exId = Number($('#tplExFromHist')?.value || 0);
+  const sel  = $('#tplPattern'); if(!sel) return;
+  sel.innerHTML = '';
+  const entries = Object.entries(patternMap[exId] || {});
+  if(entries.length === 0){
+    const o = document.createElement('option');
+    o.value=''; o.textContent='パターンなし';
+    sel.appendChild(o);
+    return;
+  }
+  entries.sort((a,b)=> b[1]-a[1]);
+  for(const [pat,cnt] of entries){
+    const o = document.createElement('option');
+    o.value = pat; o.textContent = `${pat}（${cnt}回）`;
+    sel.appendChild(o);
+  }
+}
+
+/* 履歴パターンから一括追加 */
+async function addSetsQuick(){
+  const exId = Number($('#tplExFromHist').value);
+  const pat  = $('#tplPattern').value;
+  if(!exId || !pat){ showToast('履歴パターンがありません'); return; }
+  const m = pat.split(/[x×]/i);
+  const setsN = Number(m[0]||0);
+  const reps  = Number(m[1]||0);
+  if(!setsN || !reps){ showToast('パターンが不正です'); return; }
+
+  // 前回重量
+  let weight = 0;
+  if ($('#tplUseLastW').checked){
+    const all = await getAll('sets');
+    const last = all.filter(s=>s.exercise_id===exId).sort((a,b)=>(b.ts??0)-(a.ts??0))[0];
+    weight = last?.weight || 0;
+  }
+
+  const date = $('#sessDate').value;
+  const now  = Date.now();
+  for(let i=0;i<setsN;i++){
+    currentSession.sets.push({
+      temp_id: crypto.randomUUID(),
+      exercise_id: exId,
+      weight, reps, rpe: null, ts: now, date
+    });
+  }
+  renderTodaySets();
+  document.getElementById('todaySets')?.scrollIntoView({behavior:'smooth', block:'start'});
+  showToast('履歴から追加しました');
+}
+
+/* カスタム投入（自由指定） */
+async function addSetsCustom(){
+  const exId   = Number($('#tplExCustom').value);
+  const setsN  = Number($('#tplCustomSets').value);
+  const reps   = Number($('#tplCustomReps').value);
+  const weight = Number($('#tplCustomWeight').value || 0);
+  if(!exId || !setsN || !reps){ showToast('種目/セット数/回数は必須'); return; }
+
+  const date = $('#sessDate').value;
+  const now  = Date.now();
+  for(let i=0;i<setsN;i++){
+    currentSession.sets.push({
+      temp_id: crypto.randomUUID(),
+      exercise_id: exId,
+      weight, reps, rpe: null, ts: now, date
+    });
+  }
+  renderTodaySets();
+  document.getElementById('todaySets')?.scrollIntoView({behavior:'smooth', block:'start'});
+  showToast('カスタム投入しました');
 }
 
 async function init(){
   await openDB();
-  // ★ 初期種目を不足分だけ投入（初回は全投入／既存ユーザーは足りない分のみ）
   await ensureInitialExercises();
 
   $('#sessDate').value = todayStr();
@@ -84,14 +222,17 @@ async function init(){
   bindSessionUI();
   bindHistoryUI();
   bindSettingsUI();
-  renderExSelect();
+  await renderExSelect();
   renderTodaySets();
-  renderHistory();
+  await renderHistory();
   renderAnalytics();
+  await refreshTplOptions();
+
   const dark = (await get('prefs','dark'))?.value || false;
   $('#darkToggle').checked = dark;
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
 }
+
 function bindTabs(){
   document.querySelectorAll('nav.tabs button').forEach(b=>{
     b.addEventListener('click', ()=>{
@@ -105,12 +246,19 @@ function bindTabs(){
     });
   });
 }
+
 function bindSessionUI(){
   $('#btnAddEx').addEventListener('click', async ()=>{
     const name = prompt('種目名を入力（例：懸垂）');
     if(!name) return;
-    try{ await put('exercises',{name}); renderExSelect(); showToast('種目を追加'); }
-    catch(e){ showToast('同名の種目があります'); }
+    try{
+      await put('exercises',{name});
+      await renderExSelect();
+      await refreshTplOptions();
+      showToast('種目を追加');
+    }catch(e){
+      showToast('同名の種目があります');
+    }
   });
 
   $('#btnAddSet').addEventListener('click', async ()=>{
@@ -127,11 +275,12 @@ function bindSessionUI(){
 
   $('#btnTimer').addEventListener('click', ()=>startRestTimer(60));
 
-  // テンプレ投入：クリック→選択値→関数呼び出し（3行だけ）
-  $('#btnApplyTpl').addEventListener('click', async ()=>{
-    const kind = $('#tplSelect').value;
-    await applyTemplate(kind);
-  });
+  // ▼ 新テンプレ：履歴ベース
+  $('#tplExFromHist')?.addEventListener('change', renderPatternOptions);
+  $('#btnTplApply')?.addEventListener('click', addSetsQuick);
+
+  // ▼ 新テンプレ：カスタム
+  $('#btnTplCustom')?.addEventListener('click', addSetsCustom);
 
   $('#btnSaveSession').addEventListener('click', async ()=>{
     const date = $('#sessDate').value;
@@ -143,10 +292,11 @@ function bindSessionUI(){
     }
     currentSession = { date: todayStr(), note:'', sets: [] };
     $('#sessDate').value = todayStr(); $('#sessNote').value='';
-    renderTodaySets(); renderHistory(); renderAnalytics();
+    renderTodaySets(); await renderHistory(); renderAnalytics(); await refreshTplOptions();
     showToast('セッションを保存しました');
   });
 }
+
 async function renderExSelect(){
   const exs = await getAll('exercises');
   const sel = $('#exSelect'); sel.innerHTML='';
@@ -155,7 +305,18 @@ async function renderExSelect(){
     opt.value = e.id; opt.textContent = e.name;
     sel.appendChild(opt);
   });
+  // カスタム投入の種目も更新（保険：初期化時に1回呼ばれる）
+  const sel2 = $('#tplExCustom');
+  if (sel2){
+    sel2.innerHTML='';
+    exs.forEach(e=>{
+      const opt = document.createElement('option');
+      opt.value=e.id; opt.textContent=e.name;
+      sel2.appendChild(opt);
+    });
+  }
 }
+
 function renderTodaySets(){
   const ul = $('#todaySets'); if(currentSession.sets.length===0){ ul.innerHTML='<li>まだありません</li>'; return; }
   ul.innerHTML = currentSession.sets.map(s=>{
@@ -169,52 +330,6 @@ function renderTodaySets(){
       renderTodaySets();
     });
   });
-}
-
-// ▼ テンプレ投入：確認→ボタン無効化→セット追加→描画→スクロール→再有効化
-async function applyTemplate(kind){
-  if (currentSession.sets.length > 0){
-    const ok = confirm('既存のセットに追加します。よろしいですか？');
-    if (!ok) return;
-  }
-  const _btnTpl = document.getElementById('btnApplyTpl');
-  if (_btnTpl) _btnTpl.disabled = true;
-
-  const exs = await getAll('exercises');
-  const byName = Object.fromEntries(exs.map(e => [e.name, e.id]));
-  const date = $('#sessDate').value;
-  const now  = Date.now();
-
-  function pushSet(name, reps){
-    const exId = byName[name];
-    if(!exId) return;
-    currentSession.sets.push({
-      temp_id: crypto.randomUUID(),
-      exercise_id: exId,
-      weight: 0,
-      reps,
-      rpe: null,
-      ts: now,
-      date
-    });
-  }
-
-  if (kind === '5x5'){
-    for(let i=0;i<5;i++) pushSet('スクワット',5);
-    for(let i=0;i<5;i++) pushSet('ベンチプレス',5);
-    for(let i=0;i<5;i++) pushSet('デッドリフト',5);
-  } else if (kind === 'ppl-push'){
-    for(let i=0;i<5;i++) pushSet('ベンチプレス',5);
-  } else if (kind === 'ppl-pull'){
-    for(let i=0;i<5;i++) pushSet('デッドリフト',5);
-  } else if (kind === 'ppl-legs'){
-    for(let i=0;i<5;i++) pushSet('スクワット',5);
-  }
-
-  renderTodaySets();
-  document.getElementById('todaySets')?.scrollIntoView({ behavior:'smooth', block:'start' });
-  showToast('テンプレを追加しました');
-  if (_btnTpl) _btnTpl.disabled = false;
 }
 
 // Timer with notification fallback
@@ -301,9 +416,12 @@ async function renderHistory(){
     });
     ul._bound = true;
   }
+
+  // 履歴を描画したらテンプレ候補も更新
+  refreshTplOptions();
 }
 
-// Analytics
+// Analytics（従来どおり）
 async function renderAnalytics(){
   const sets = await getAll('sets');
   const exMap = Object.fromEntries((await getAll('exercises')).map(e=>[e.id,e.name]));
@@ -367,8 +485,14 @@ async function bindSettingsUI(){
   $('#btnCreateEx').addEventListener('click', async ()=>{
     const name = $('#newExName').value.trim();
     if(!name) return;
-    try{ await put('exercises',{name}); $('#newExName').value=''; renderExSelect(); renderExList(); showToast('追加しました'); }
-    catch(e){ showToast('同名の種目があります'); }
+    try{
+      await put('exercises',{name});
+      $('#newExName').value='';
+      await renderExSelect(); await renderExList(); await refreshTplOptions();
+      showToast('追加しました');
+    }catch(e){
+      showToast('同名の種目があります');
+    }
   });
   $('#darkToggle').addEventListener('change', async (e)=>{
     const v = e.target.checked;
@@ -384,7 +508,7 @@ async function bindSettingsUI(){
     if(!confirm('本当に全データを削除しますか？この操作は元に戻せません。')) return;
     await clearAll();
     await put('prefs',{key:'dark', value: $('#darkToggle').checked});
-    renderExSelect(); renderExList(); renderHistory(); renderAnalytics(); renderTodaySets();
+    await renderExSelect(); await renderExList(); await renderHistory(); renderAnalytics(); renderTodaySets(); await refreshTplOptions();
     showToast('全データを削除しました');
   });
   renderExList();
@@ -394,7 +518,10 @@ async function renderExList(){
   const ul = $('#exList');
   ul.innerHTML = exs.map(e=> `<li><span>${escapeHTML(e.name)}</span><button class="ghost" data-id="${e.id}">削除</button></li>`).join('');
   ul.querySelectorAll('button').forEach(b=>{
-    b.addEventListener('click', async ()=>{ await del('exercises', Number(b.dataset.id)); renderExList(); renderExSelect(); renderAnalytics(); });
+    b.addEventListener('click', async ()=>{
+      await del('exercises', Number(b.dataset.id));
+      await renderExList(); await renderExSelect(); renderAnalytics(); await refreshTplOptions();
+    });
   });
 }
 
@@ -429,7 +556,7 @@ async function importCSV(ev){
     const [id,session_id,exercise_id,weight,reps,rpe,ts,date] = parseCSVRow(line);
     await put('sets',{id:Number(id), session_id:Number(session_id), exercise_id:Number(exercise_id), weight:Number(weight), reps:Number(reps), rpe: rpe?Number(rpe):null, ts:Number(ts), date });
   }
-  renderHistory(); renderAnalytics(); showToast('インポート完了'); ev.target.value='';
+  await renderHistory(); renderAnalytics(); await refreshTplOptions(); showToast('インポート完了'); ev.target.value='';
 }
 async function clearAll(){
   const stores = ['sessions','sets','exercises'];
@@ -440,9 +567,7 @@ async function clearAll(){
     });
   }
   // 初期種目を戻す（全プリセット）
-  for (const name of EX_PRESETS) {
-    await put('exercises', { name });
-  }
+  for (const name of EX_PRESETS) await put('exercises', { name });
 }
 function csvEscape(s){ const needs = /[",\n]/.test(s); return needs ? '"' + String(s).replace(/"/g,'""') + '"' : s; }
 function parseCSVRow(row){
@@ -457,7 +582,7 @@ async function deleteSession(id){
   const sets = await indexGetAll('sets','by_session', id);
   await Promise.all(sets.map(s => del('sets', s.id)));
   await del('sessions', id);
-  renderHistory(); renderAnalytics();
+  await renderHistory(); renderAnalytics(); await refreshTplOptions();
   showToast('セッションを削除しました');
 }
 async function editSessionNote(id){
@@ -466,7 +591,7 @@ async function editSessionNote(id){
   if(next === null) return;
   s.note = next;
   await put('sessions', s);
-  renderHistory();
+  await renderHistory();
   showToast('メモを更新しました');
 }
 async function duplicateSessionToToday(id){
@@ -477,7 +602,7 @@ async function duplicateSessionToToday(id){
   for(const x of sets){
     await put('sets', {session_id:newId, exercise_id:x.exercise_id, weight:x.weight, reps:x.reps, rpe:x.rpe, ts: Date.now(), date: today});
   }
-  renderHistory(); renderAnalytics();
+  await renderHistory(); renderAnalytics(); await refreshTplOptions();
   showToast('今日に複製しました');
 }
 
