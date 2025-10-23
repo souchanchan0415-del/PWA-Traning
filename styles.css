@@ -187,3 +187,22 @@ button.danger{ background:var(--danger); border-color:transparent; color:#fff; }
   #tplPartChips{ gap: 10px; margin: 6px 0 8px; }
   #tplPartChips .chip{ padding: 8px 12px; }
 }
+/* 非表示タブがタップを奪わない */
+.tab { display: none; }
+.tab.active { display: block; }
+
+/* 飾りレイヤ・トーストは貫通タップにする */
+.appbar::before, .appbar::after,
+.card::before, .card::after,
+#toast { pointer-events: none; }
+
+/* 解析タブのキャンバスが重ならない保険 */
+#tab-analytics, #tab-session, #tab-history, #tab-settings {
+  position: relative; z-index: 0;
+}
+
+/* iOS WebView 安全策：フォーム親に transform を掛けない */
+.container, .card, .chipset { transform: none !important; }
+
+/* iOSのタップ反応を素直に */
+button, select, input { touch-action: manipulation; }
