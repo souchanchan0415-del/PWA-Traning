@@ -214,3 +214,15 @@ button, select, input { touch-action: manipulation; }
 /* 念のためタブとチップを前面に */
 .tabs { position: relative; z-index: 2; }
 .chipset { position: relative; z-index: 2; }
+/* ヘッダー右上の丸アイコン */
+.iconbtn{
+  position:absolute; right:16px; top:12px;
+  width:40px; height:40px; border-radius:999px;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:var(--card); color:var(--text);
+  border:1px solid var(--line); box-shadow:var(--shadow);
+  font-size:18px; line-height:1; cursor:pointer;
+  z-index:3;           /* タブより前面 */
+  touch-action:manipulation;
+}
+.iconbtn:active{ transform:translateY(1px); }
