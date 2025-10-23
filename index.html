@@ -12,11 +12,18 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <meta name="apple-mobile-web-app-title" content="Train Punch" />
 
-  <link rel="stylesheet" href="styles.css?v=1.3.3" />
+  <link rel="stylesheet" href="styles.css?v=1.3.4" />
 </head>
 <body>
   <header class="appbar">
     <h1 class="logo">Train Punch</h1>
+
+    <!-- 強制更新(キャッシュ削除+再読込)ボタン -->
+    <button id="btnHardRefresh"
+            class="iconbtn"
+            aria-label="キャッシュをクリアして再読込"
+            title="キャッシュをクリアして再読込">↻</button>
+
     <nav class="tabs" role="tablist" aria-label="Main tabs">
       <button data-tab="session" class="active" role="tab" aria-selected="true">セッション</button>
       <button data-tab="history" role="tab" aria-selected="false">履歴</button>
@@ -43,7 +50,6 @@
         <div class="row">
           <label>部位</label>
           <div id="partChips" class="chipset" aria-label="部位の選択">
-            <!-- クリックで選択。JSで active を付与 -->
             <button class="chip" data-part="胸">胸</button>
             <button class="chip" data-part="背中">背中</button>
             <button class="chip" data-part="肩">肩</button>
@@ -100,16 +106,16 @@
           <input id="tplCustomWeight" inputmode="decimal" placeholder="重量kg（例 40）" />
         </div>
         <!-- カスタム投入：部位 -->
-<div class="row">
-  <label>部位</label>
-  <div id="tplPartChips" class="chipset" aria-label="部位(カスタム)">
-    <button class="chip" data-part="胸">胸</button>
-    <button class="chip" data-part="背中">背中</button>
-    <button class="chip" data-part="肩">肩</button>
-    <button class="chip" data-part="脚">脚</button>
-    <button class="chip" data-part="腕">腕</button>
-  </div>
-</div>
+        <div class="row">
+          <label>部位</label>
+          <div id="tplPartChips" class="chipset" aria-label="部位(カスタム)">
+            <button class="chip" data-part="胸">胸</button>
+            <button class="chip" data-part="背中">背中</button>
+            <button class="chip" data-part="肩">肩</button>
+            <button class="chip" data-part="脚">脚</button>
+            <button class="chip" data-part="腕">腕</button>
+          </div>
+        </div>
         <div class="row">
           <label for="tplExCustom">種目</label>
           <select id="tplExCustom"></select>
@@ -223,7 +229,7 @@
       <div class="card">
         <h3>情報</h3>
         <div class="kv">
-          <div>バージョン</div><div>1.3.3</div>
+          <div>バージョン</div><div>1.3.4</div>
           <div>プライバシー</div><div><a target="_blank" href="privacy.html">プライバシーポリシー</a></div>
           <div>サポート</div>
           <div><a href="mailto:toreninguguanli53@gmail.com?subject=Train%20Punch%20サポート">toreninguguanli53@gmail.com</a></div>
@@ -235,7 +241,7 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="app.js?v=1.3.3"></script>
+  <script src="app.js?v=1.3.4"></script>
   <script src="sw-register.js"></script>
 </body>
 </html>
