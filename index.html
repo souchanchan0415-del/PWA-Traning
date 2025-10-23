@@ -52,20 +52,41 @@
         </div>
       </div>
 
-      <!-- テンプレカード -->
+      <!-- ▼ クイック投入（履歴ベース） -->
       <div class="card">
-        <h3>テンプレから追加</h3>
+        <h3>クイック投入（履歴）</h3>
         <div class="row">
-          <select id="tplSelect">
-            <option value="5x5">5×5（スクワット/ベンチ/デッド）</option>
-            <option value="ppl-push">PPL：Push</option>
-            <option value="ppl-pull">PPL：Pull</option>
-            <option value="ppl-legs">PPL：Legs</option>
-          </select>
-          <button id="btnApplyTpl" class="ghost">投入</button>
+          <label>種目</label>
+          <select id="tplExFromHist"></select>
         </div>
-        <small>重量は目安です。自分の重量に書き換えてからセッション保存してください。</small>
+        <div class="row">
+          <label>パターン</label>
+          <select id="tplPattern"></select>
+          <label style="margin-left:8px">
+            <input id="tplUseLastW" type="checkbox" checked>
+            前回重量を使う
+          </label>
+          <button id="btnTplApply" class="ghost">投入</button>
+        </div>
+        <small>パターンは履歴から自動生成（例：5×5, 3×8, 4×10）。重複はまとめて頻度順に並びます。</small>
       </div>
+      <!-- ▲ クイック投入（履歴ベース） -->
+
+      <!-- ▼ カスタム投入（自由指定） -->
+      <div class="card">
+        <h3>カスタム投入</h3>
+        <div class="grid3">
+          <input id="tplCustomSets"  inputmode="numeric"  placeholder="セット数（例 5）">
+          <input id="tplCustomReps"  inputmode="numeric"  placeholder="回数（例 5）">
+          <input id="tplCustomWeight" inputmode="decimal" placeholder="重量kg（例 40）">
+        </div>
+        <div class="row">
+          <label>種目</label>
+          <select id="tplExCustom"></select>
+          <button id="btnTplCustom">投入</button>
+        </div>
+      </div>
+      <!-- ▲ カスタム投入（自由指定） -->
 
       <!-- 今日のセット -->
       <div class="card">
