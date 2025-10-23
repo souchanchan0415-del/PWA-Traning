@@ -1,9 +1,9 @@
-// Train Punch - store-ready PWA core (with body-part categories + quick/custom inject)
+// Train Punch - store-ready PWA core (2-tier tabs: part -> exercise)
 const DB_NAME = 'trainpunch_v2';
-const DB_VER  = 3; // v3: exercises に by_group インデックス追加
+const DB_VER  = 3; // exercises に group(index: by_group) 追加
 let db;
 
-// ===== util =====
+// ===== Utils =====
 const $ = s => document.querySelector(s);
 function showToast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1500); }
 function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
@@ -18,27 +18,22 @@ function openDB(){
         const s = d.createObjectStore('exercises',{keyPath:'id', autoIncrement:true});
         s.createIndex('name','name',{unique:true});
         s.createIndex('by_group','group',{unique:false});
+      }else{
+        // 既存に index 追設
+        const s = e.target.transaction.objectStore('exercises');
+        if(!s.indexNames.contains('name'))     s.createIndex('name','name',{unique:true});
+        if(!s.indexNames.contains('by_group')) s.createIndex('by_group','group',{unique:false});
       }
-      if(!d.objectStoreNames.contains('sessions')){
-        d.createObjectStore('sessions',{keyPath:'id', autoIncrement:true});
-      }
+      if(!d.objectStoreNames.contains('sessions')) d.createObjectStore('sessions',{keyPath:'id', autoIncrement:true});
       if(!d.objectStoreNames.contains('sets')){
         const s = d.createObjectStore('sets',{keyPath:'id', autoIncrement:true});
         s.createIndex('by_session','session_id');
         s.createIndex('by_date','date');
       }
-      if(!d.objectStoreNames.contains('prefs')){
-        d.createObjectStore('prefs',{keyPath:'key'});
-      }
-      // 既存 exercises に index 追設
-      try{
-        const s = e.target.transaction.objectStore('exercises');
-        if(!s.indexNames.contains('name'))     s.createIndex('name','name',{unique:true});
-        if(!s.indexNames.contains('by_group')) s.createIndex('by_group','group',{unique:false});
-      }catch(_){}
+      if(!d.objectStoreNames.contains('prefs')) d.createObjectStore('prefs',{keyPath:'key'});
     };
-    req.onsuccess = ()=>{ db = req.result; resolve(db); };
-    req.onerror   = ()=>reject(req.error);
+    req.onsuccess=()=>{ db=req.result; resolve(db); };
+    req.onerror =()=>reject(req.error);
   });
 }
 function tx(names, mode='readonly'){ return db.transaction(names, mode); }
@@ -48,7 +43,7 @@ async function del(store, key){ return new Promise((res,rej)=>{ const r=tx([stor
 async function indexGetAll(store, index, q){ return new Promise((res,rej)=>{ const r=tx([store]).objectStore(store).index(index).getAll(q); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
 async function get(store, key){ return new Promise((res,rej)=>{ const r=tx([store]).objectStore(store).get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
 
-// ========= 部位 × 種目 =========
+// ===== Parts & Exercises =====
 const PARTS = ['胸','背中','肩','脚','腕'];
 const EX_GROUPS = {
   '胸':  ['ベンチプレス','足上げベンチプレス','スミスマシンベンチプレス','インクラインダンベルプレス','インクラインマシンプレス','スミスマシンインクラインプレス','スミスマシンデクラインプレス','ディップス','ディップス（荷重）','ケーブルクロスオーバー','ペックフライ','チェストプレス'],
@@ -58,30 +53,34 @@ const EX_GROUPS = {
   '腕':  ['バーベルカール','インクラインダンベルカール','インクラインダンベルカール（右）','インクラインダンベルカール（左）','ダンベルプリチャーカール（右）','ダンベルプリチャーカール（左）','ハンマーカール','スミスマシンナロープレス','ナロープレス','スカルクラッシャー','フレンチプレス','ケーブルプレスダウン','スミスJMプレス'],
 };
 
-// exercises を初期化（不足分だけ追加 / group 補完）
+// 初期投入＆group補完
 async function ensureInitialExercises(){
   const all = await getAll('exercises');
   const byName = Object.fromEntries(all.map(e=>[e.name,e]));
-  for (const part of PARTS){
-    for (const name of EX_GROUPS[part]){
+  for(const part of PARTS){
+    for(const name of EX_GROUPS[part]){
       const hit = byName[name];
-      if (!hit){
-        await put('exercises', { name, group: part });
-      }else if (!hit.group){
-        await put('exercises', { ...hit, group: part });
-      }
+      if(!hit){ await put('exercises',{name, group:part}); }
+      else if(!hit.group){ await put('exercises',{...hit, group:part}); }
     }
   }
 }
 
-// ===== app state =====
-let currentSession = { date: todayStr(), note:'', sets: [] };
-let EX_CACHE = []; // id->name 参照用
+// 名前キャッシュ（todaySets表示用）
+let EX_NAME_BY_ID = {};
+async function refreshExerciseCache(){
+  const exs = await getAll('exercises');
+  EX_NAME_BY_ID = Object.fromEntries(exs.map(e=>[e.id, e.name]));
+}
 
-// ===== init =====
+// ===== App State =====
+let currentSession = { date: todayStr(), note:'', sets: [] };
+
+// ===== Init =====
 async function init(){
   await openDB();
   await ensureInitialExercises();
+  await refreshExerciseCache();
 
   $('#sessDate').value = todayStr();
   bindTabs();
@@ -89,8 +88,10 @@ async function init(){
   bindHistoryUI();
   bindSettingsUI();
 
-  await renderExSelect();     // セッション（部位→種目）
-  await renderTplSelectors(); // クイック/カスタム用セレクタ
+  buildPartTabs('partTabs', false, '胸', async ()=>{ await renderExChips(); });
+  buildPartTabs('filterPartTabs', true, 'すべて', renderExList);
+
+  await renderExChips(); // セッションの種目チップを初期描画
   renderTodaySets();
   renderHistory();
   renderAnalytics();
@@ -100,7 +101,7 @@ async function init(){
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
 }
 
-// ===== tabs =====
+// ===== Tabs (main) =====
 function bindTabs(){
   document.querySelectorAll('nav.tabs button').forEach(b=>{
     b.addEventListener('click', ()=>{
@@ -115,42 +116,102 @@ function bindTabs(){
   });
 }
 
-// ===== session =====
-function bindSessionUI(){
-  // 部位→種目（セッション）
-  $('#partSelect')?.addEventListener('change', ()=>renderExSelect());
+// ===== 2-tier tabs helpers =====
+function buildPartTabs(navId, includeAll=false, defaultLabel=null, onChange=()=>{}){
+  const nav = $('#'+navId);
+  const items = includeAll ? ['すべて', ...PARTS] : PARTS;
+  nav.innerHTML = '';
+  items.forEach(lbl=>{
+    const btn = document.createElement('button');
+    btn.textContent = lbl;
+    btn.dataset.part = (lbl==='すべて') ? 'all' : lbl;
+    if(!defaultLabel || defaultLabel===lbl) btn.classList.add('active'), defaultLabel='__done__';
+    btn.addEventListener('click', ()=>{
+      nav.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+      btn.classList.add('active');
+      // 設定タブの追加用 hidden select を同期
+      if(navId==='filterPartTabs'){ /* 何もしない（フィルタ用） */ }
+      if(navId==='newExPartTabs'){ const sel=$('#newExPart'); if(sel) sel.value = btn.dataset.part; }
+      onChange();
+    });
+    nav.appendChild(btn);
+  });
+  // 追加用セレクト（設定タブ）の初期値
+  if(navId==='newExPartTabs'){
+    const sel=$('#newExPart'); if(sel) sel.value = nav.querySelector('.active')?.dataset.part || PARTS[0];
+  }
+}
+function activePart(navId){
+  return $('#'+navId).querySelector('.active')?.dataset.part || 'all';
+}
 
-  // 種目の手動追加（選択部位を付与）
-  $('#btnAddEx')?.addEventListener('click', async ()=>{
+// ===== セッション: 種目チップ描画 =====
+async function renderExChips(){
+  await refreshExerciseCache();
+  const part = activePart('partTabs'); // '胸' | ... | 'all'
+  let exs = await getAll('exercises');
+  if(part!=='all') exs = exs.filter(e=>e.group===part);
+  exs.sort((a,b)=> a.name.localeCompare(b.name, 'ja'));
+
+  const chips = $('#exChips'); chips.innerHTML = '';
+  const sel = $('#exSelect'); sel.innerHTML = '';
+
+  exs.forEach(e=>{
+    // hidden select も同期（既存互換）
+    const opt = document.createElement('option');
+    opt.value = e.id; opt.textContent = e.name; sel.appendChild(opt);
+
+    const btn = document.createElement('button');
+    btn.textContent = e.name;
+    btn.dataset.id = e.id;
+    btn.addEventListener('click', ()=>{
+      chips.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+      btn.classList.add('active');
+      sel.value = String(e.id);
+      $('#exCurrentLabel').textContent = `選択中：${e.name}`;
+    });
+    chips.appendChild(btn);
+  });
+
+  // 初期選択
+  const first = chips.querySelector('button');
+  if(first){ first.click(); }
+  else{
+    $('#exCurrentLabel').textContent = '選択できる種目がありません';
+  }
+}
+
+// ===== セッション UI =====
+function bindSessionUI(){
+  // 種目追加（選択中の部位を付与）
+  $('#btnAddEx').addEventListener('click', async ()=>{
     const name = prompt('種目名を入力（例：懸垂）');
     if(!name) return;
-    const part = ($('#partSelect')?.value && $('#partSelect').value !== 'all') ? $('#partSelect').value : undefined;
+    const part = activePart('partTabs'); // 'all' の場合は undefined
     try{
-      await put('exercises',{name, group: part});
-      await renderExSelect();
-      await renderTplSelectors();
-      renderExList(); // 設定タブも更新
+      await put('exercises',{name, group: (part==='all'?undefined:part)});
+      await refreshExerciseCache();
+      await renderExChips();
+      await renderExList();
       showToast('種目を追加');
     }catch(e){ showToast('同名の種目があります'); }
   });
 
-  // セット追加（手入力）
-  $('#btnAddSet')?.addEventListener('click', async ()=>{
+  $('#btnAddSet').addEventListener('click', async ()=>{
     const exId = Number($('#exSelect').value);
     const weight = Number($('#weight').value);
     const reps = Number($('#reps').value);
     const rpe = $('#rpe').value ? Number($('#rpe').value) : null;
     if(!exId || !weight || !reps){ showToast('種目・重量・回数は必須'); return; }
-    currentSession.sets.push({ temp_id: crypto.randomUUID(), exercise_id: exId, weight, reps, rpe, ts: Date.now(), date: $('#sessDate').value });
+    const set = { temp_id: crypto.randomUUID(), exercise_id: exId, weight, reps, rpe, ts: Date.now(), date: $('#sessDate').value };
+    currentSession.sets.push(set);
     $('#weight').value=''; $('#reps').value=''; $('#rpe').value='';
     renderTodaySets();
   });
 
-  // 休憩タイマー
-  $('#btnTimer')?.addEventListener('click', ()=>startRestTimer(60));
+  $('#btnTimer').addEventListener('click', ()=>startRestTimer(60));
 
-  // セッション保存
-  $('#btnSaveSession')?.addEventListener('click', async ()=>{
+  $('#btnSaveSession').addEventListener('click', async ()=>{
     const date = $('#sessDate').value;
     const note = $('#sessNote').value;
     if(currentSession.sets.length===0){ showToast('セットがありません'); return; }
@@ -163,162 +224,15 @@ function bindSessionUI(){
     renderTodaySets(); renderHistory(); renderAnalytics();
     showToast('セッションを保存しました');
   });
-
-  // ===== クイック投入（履歴ベース） =====
-  $('#tplPartFromHist')?.addEventListener('change', ()=>renderTplExFromHist());
-  $('#tplExFromHist')?.addEventListener('change', ()=>renderTplPatterns());
-  $('#btnTplApply')?.addEventListener('click', async ()=>{
-    const exId = Number($('#tplExFromHist').value);
-    const pat  = $('#tplPattern').value; // "5x5"
-    if(!exId || !pat) { showToast('種目とパターンを選択'); return; }
-    const [setsCount, reps] = pat.split('x').map(n=>Number(n));
-    const useLast = $('#tplUseLastW')?.checked;
-    const weight = useLast ? (await getLastWeight(exId) ?? 0) : 0;
-    const date = $('#sessDate').value; const now = Date.now();
-    for(let i=0;i<setsCount;i++){
-      currentSession.sets.push({ temp_id: crypto.randomUUID(), exercise_id: exId, weight, reps, rpe: null, ts: now+i, date });
-    }
-    renderTodaySets();
-    showToast('クイック投入しました');
-  });
-
-  // ===== カスタム投入 =====
-  $('#tplPartCustom')?.addEventListener('change', ()=>renderTplExCustom());
-  $('#btnTplCustom')?.addEventListener('click', ()=>{
-    const setsCount = Number($('#tplCustomSets').value);
-    const reps      = Number($('#tplCustomReps').value);
-    const weight    = Number($('#tplCustomWeight').value || 0);
-    const exId      = Number($('#tplExCustom').value);
-    if(!exId || !setsCount || !reps){ showToast('種目・セット数・回数は必須'); return; }
-    const date = $('#sessDate').value; const now = Date.now();
-    for(let i=0;i<setsCount;i++){
-      currentSession.sets.push({ temp_id: crypto.randomUUID(), exercise_id: exId, weight, reps, rpe: null, ts: now+i, date });
-    }
-    renderTodaySets();
-    showToast('カスタム投入しました');
-  });
 }
 
-// ===== セレクト描画 =====
-async function renderExSelect(){
-  const part = $('#partSelect')?.value || 'all';
-  let exs = await getAll('exercises');
-  if (part !== 'all') exs = exs.filter(e=>e.group === part);
-  exs.sort((a,b)=> a.name.localeCompare(b.name,'ja'));
-  EX_CACHE = exs; // cache
-
-  const sel = $('#exSelect');
-  if (sel){
-    sel.innerHTML='';
-    exs.forEach(e=>{ const opt=document.createElement('option'); opt.value=e.id; opt.textContent=e.name; sel.appendChild(opt); });
-  }
-}
-
-// ---- クイック/カスタム セレクタ一括初期化
-async function renderTplSelectors(){
-  await renderTplExFromHist();
-  await renderTplExCustom();
-  await renderTplPatterns();
-}
-
-// クイック（履歴）: 部位→種目
-async function renderTplExFromHist(){
-  const part = $('#tplPartFromHist')?.value || 'all';
-  let exs = await getAll('exercises');
-  if (part !== 'all') exs = exs.filter(e=>e.group===part);
-  exs.sort((a,b)=> a.name.localeCompare(b.name,'ja'));
-
-  const sel = $('#tplExFromHist');
-  if (sel){
-    sel.innerHTML='';
-    if (exs.length===0) sel.innerHTML = '<option value="">履歴がありません</option>';
-    exs.forEach(e=>{ const opt=document.createElement('option'); opt.value=e.id; opt.textContent=e.name; sel.appendChild(opt); });
-  }
-  await renderTplPatterns();
-}
-
-// クイック（履歴）: パターン生成（例: 5x5, 3x8）
-async function renderTplPatterns(){
-  const exId = Number($('#tplExFromHist')?.value);
-  const patSel = $('#tplPattern');
-  if(!patSel) return;
-  patSel.innerHTML = '';
-
-  if(!exId){
-    patSel.innerHTML = '<option value="">パターンなし</option>';
-    return;
-  }
-
-  const sets = await getAll('sets');
-  // セッション単位で同一種目のセットを集計
-  const bySession = new Map();
-  for(const s of sets){
-    if(s.exercise_id !== exId) continue;
-    const arr = bySession.get(s.session_id) || [];
-    arr.push(s);
-    bySession.set(s.session_id, arr);
-  }
-  const freq = new Map(); // "5x5" -> count
-  for(const arr of bySession.values()){
-    // 同一セッション内の reps がほぼ一定の場合のみ採用
-    const repsList = arr.map(x=>x.reps);
-    const modeReps = repsList.sort((a,b)=> repsList.filter(v=>v===a).length - repsList.filter(v=>v===b).length).pop();
-    const allSame  = arr.every(x=>x.reps===modeReps);
-    if(!allSame) continue;
-    const key = `${arr.length}x${modeReps}`;
-    freq.set(key, (freq.get(key)||0)+1);
-  }
-  const pats = [...freq.entries()]
-    .sort((a,b)=> b[1]-a[1] || parseInt(b[0])-parseInt(a[0]))
-    .map(([k])=>k);
-
-  if (pats.length===0){
-    patSel.innerHTML = '<option value="">パターンなし</option>';
-  }else{
-    for(const k of pats){
-      const opt = document.createElement('option');
-      opt.value = k;
-      opt.textContent = k.replace('x','×');
-      patSel.appendChild(opt);
-    }
-  }
-}
-
-// カスタム: 部位→種目
-async function renderTplExCustom(){
-  const part = $('#tplPartCustom')?.value || 'all';
-  let exs = await getAll('exercises');
-  if (part !== 'all') exs = exs.filter(e=>e.group===part);
-  exs.sort((a,b)=> a.name.localeCompare(b.name,'ja'));
-
-  const sel = $('#tplExCustom');
-  if (sel){
-    sel.innerHTML='';
-    exs.forEach(e=>{ const opt=document.createElement('option'); opt.value=e.id; opt.textContent=e.name; sel.appendChild(opt); });
-  }
-}
-
-// 最終使用重量
-async function getLastWeight(exId){
-  const sets = await getAll('sets');
-  const hit = sets.filter(s=>s.exercise_id===exId).sort((a,b)=>b.ts-a.ts)[0];
-  return hit?.weight ?? null;
-}
-
-// ===== 今日のセット描画 =====
 function renderTodaySets(){
   const ul = $('#todaySets');
   if(currentSession.sets.length===0){ ul.innerHTML='<li>まだありません</li>'; return; }
-
-  const byId = Object.fromEntries(EX_CACHE.map(e=>[e.id,e.name]));
   ul.innerHTML = currentSession.sets.map(s=>{
-    const name = byId[s.exercise_id] || '種目';
-    return `<li>
-      <span><strong>${escapeHTML(name)}</strong> ${s.weight}kg x ${s.reps}${s.rpe?` RPE${s.rpe}`:''}</span>
-      <button data-id="${s.temp_id}" class="ghost">削除</button>
-    </li>`;
+    const name = EX_NAME_BY_ID[s.exercise_id] || '種目';
+    return `<li><span><strong>${escapeHTML(name)}</strong> ${s.weight}kg x ${s.reps}${s.rpe?` RPE${s.rpe}`:''}</span><button data-id="${s.temp_id}" class="ghost">削除</button></li>`;
   }).join('');
-
   ul.querySelectorAll('button').forEach(b=>{
     b.addEventListener('click', ()=>{
       const id = b.dataset.id;
@@ -354,10 +268,10 @@ function startRestTimer(sec){
 
 // ===== 履歴 =====
 async function bindHistoryUI(){
-  $('#historyCount')?.addEventListener('change', renderHistory);
-  $('#btnExport')?.addEventListener('click', exportCSV);
-  $('#btnImport')?.addEventListener('click', ()=>$('#importFile').click());
-  $('#importFile')?.addEventListener('change', importCSV);
+  $('#historyCount').addEventListener('change', renderHistory);
+  $('#btnExport').addEventListener('click', exportCSV);
+  $('#btnImport').addEventListener('click', ()=>$('#importFile').click());
+  $('#importFile').addEventListener('change', importCSV);
 }
 async function renderHistory(){
   const count = Number($('#historyCount').value || 20);
@@ -379,7 +293,8 @@ async function renderHistory(){
         <button class="ghost"  data-act="dup"  data-id="${s.id}">複製</button>
         <button class="ghost"  data-act="edit" data-id="${s.id}">編集</button>
         <button class="danger" data-act="del"  data-id="${s.id}">削除</button>
-      </div>`;
+      </div>
+    `;
     ul.appendChild(li);
   }
   if (!sessions.length) ul.innerHTML = '<li>まだありません</li>';
@@ -435,41 +350,46 @@ async function renderAnalytics(){
   const total7 = Object.values(perEx).reduce((sum,map)=> sum + days.reduce((a,d)=>a+(map[d.key]||0),0), 0);
   document.getElementById('metrics').innerHTML = `
     <div>直近7日ボリューム</div><div>${Math.round(total7)} kg</div>
-    <div>種目数</div><div>${Object.keys(perEx).length} 種目</div>`;
+    <div>種目数</div><div>${Object.keys(perEx).length} 種目</div>
+  `;
 }
 
 // ===== 設定 =====
 async function bindSettingsUI(){
-  $('#filterPart')?.addEventListener('change', renderExList);
+  // 追加用の部位タブ（hidden select 同期）
+  buildPartTabs('newExPartTabs', false, PARTS[0], ()=>{});
+  // 表示フィルタのタブは init() で生成済み
 
-  $('#btnCreateEx')?.addEventListener('click', async ()=>{
+  $('#btnCreateEx').addEventListener('click', async ()=>{
     const name = $('#newExName').value.trim();
-    const part = $('#newExPart')?.value || undefined;
+    const part = activePart('filterPartTabs'); // 追加は「表示する部位」ではなく…
+    const addPart = (part==='all') ? PARTS[0] : part; // いずれかの部位に属させる
     if(!name) return;
     try{
-      await put('exercises',{name, group: part});
+      await put('exercises',{name, group:addPart});
       $('#newExName').value='';
+      await refreshExerciseCache();
       await renderExList();
-      await renderExSelect();
-      await renderTplSelectors();
+      await renderExChips(); // セッション側も更新
       showToast('追加しました');
     }catch(e){ showToast('同名の種目があります'); }
   });
 
-  $('#darkToggle')?.addEventListener('change', async (e)=>{
+  $('#darkToggle').addEventListener('change', async (e)=>{
     await put('prefs',{key:'dark', value:e.target.checked});
     document.documentElement.dataset.theme = e.target.checked?'dark':'light';
   });
-  $('#btnNotif')?.addEventListener('click', async ()=>{
+  $('#btnNotif').addEventListener('click', async ()=>{
     if(!('Notification' in window)){ showToast('この端末は通知に未対応'); return; }
     const perm = await Notification.requestPermission();
     showToast(perm === 'granted' ? '通知を許可しました' : '通知は許可されていません');
   });
-  $('#btnWipe')?.addEventListener('click', async ()=>{
+  $('#btnWipe').addEventListener('click', async ()=>{
     if(!confirm('本当に全データを削除しますか？この操作は元に戻せません。')) return;
     await clearAll();
     await put('prefs',{key:'dark', value: $('#darkToggle').checked});
-    await renderExSelect(); await renderTplSelectors(); renderExList(); renderHistory(); renderAnalytics(); renderTodaySets();
+    await refreshExerciseCache();
+    await renderExChips(); renderExList(); renderHistory(); renderAnalytics(); renderTodaySets();
     showToast('全データを削除しました');
   });
 
@@ -477,9 +397,9 @@ async function bindSettingsUI(){
 }
 
 async function renderExList(){
-  const filt = $('#filterPart')?.value || 'all';
+  const part = activePart('filterPartTabs'); // 'all' | part
   let exs = await getAll('exercises');
-  if (filt !== 'all') exs = exs.filter(e=>e.group===filt);
+  if(part!=='all') exs = exs.filter(e=>e.group===part);
   exs.sort((a,b)=> (a.group||'').localeCompare(b.group||'','ja') || a.name.localeCompare(b.name,'ja'));
 
   const ul = $('#exList');
@@ -491,9 +411,9 @@ async function renderExList(){
   ul.querySelectorAll('button').forEach(b=>{
     b.addEventListener('click', async ()=>{
       await del('exercises', Number(b.dataset.id));
+      await refreshExerciseCache();
       await renderExList();
-      await renderExSelect();
-      await renderTplSelectors();
+      await renderExChips();
       renderAnalytics();
     });
   });
@@ -535,7 +455,8 @@ async function clearAll(){
   for(const s of ['sessions','sets','exercises']){
     await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
   }
-  await ensureInitialExercises(); // 部位付きで補充
+  await ensureInitialExercises();
+  await refreshExerciseCache();
 }
 function csvEscape(s){ const needs = /[",\n]/.test(s); return needs ? '"' + String(s).replace(/"/g,'""') + '"' : s; }
 function parseCSVRow(row){
