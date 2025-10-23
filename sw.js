@@ -1,9 +1,9 @@
-const CACHE = 'trainpunch-1.1.8';
+const CACHE = 'trainpunch-1.1.9';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=1.1.8',
-  './app.js?v=1.1.8',
+  './styles.css?v=1.1.9',
+  './app.js?v=1.1.9',
   './sw-register.js',
   './manifest.webmanifest',
   './privacy.html',
