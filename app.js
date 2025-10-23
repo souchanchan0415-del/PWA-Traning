@@ -206,19 +206,24 @@ function bindSessionUI(){
   buildHistoryTemplates();
 }
 
+// ★ここを修正：セッション用・カスタム投入用どちらのセレクトも「選択中の部位」で絞る
 async function renderExSelect(){
-  // 種目は「選択中の部位」だけを列挙
-  let exs = await getAll('exercises');
-  exs = exs.filter(e=>e.group===selectedPart).sort((a,b)=> a.name.localeCompare(b.name, 'ja'));
+  const all = await getAll('exercises');
+  const byPart = all.filter(e => e.group === selectedPart);
+  const list   = (byPart.length ? byPart : all).slice()
+                  .sort((a,b)=> a.name.localeCompare(b.name,'ja'));
 
-  // main selector
+  // main selector（セッション）
   const sel = $('#exSelect');
-  sel.innerHTML = exs.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('') || '<option>オプションなし</option>';
+  sel.innerHTML = list.length
+    ? list.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('')
+    : '<option>オプションなし</option>';
 
-  // template selectors
+  // custom selector（カスタム投入）
   const sel2 = $('#tplExCustom');
-  sel2.innerHTML = (await getAll('exercises')).sort((a,b)=>a.name.localeCompare(b.name,'ja'))
-                  .map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
+  sel2.innerHTML = list.length
+    ? list.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('')
+    : '<option>オプションなし</option>';
 
   // 履歴テンプレ用の種目は buildHistoryTemplates() が別で描く
 }
