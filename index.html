@@ -5,74 +5,87 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Train Punch — 筋トレロガー</title>
 
+  <meta name="description" content="サクッと記録できる筋トレロガー。オフライン対応・PWA。" />
   <meta name="theme-color" content="#111111" />
+  <meta name="format-detection" content="telephone=no, email=no, address=no" />
+
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Train Punch" />
+
+  <!-- 軽い体感UP：タイマー音を先読み -->
+  <link rel="preload" href="beep.wav" as="audio" />
 
   <link rel="stylesheet" href="styles.css?v=1.3.4" />
 </head>
 <body>
+  <noscript>
+    <div style="padding:12px; background:#ffefc2; color:#5a4100; text-align:center;">
+      このアプリはJavaScriptが必要です。ブラウザ設定で有効にしてください。
+    </div>
+  </noscript>
+
   <header class="appbar">
     <h1 class="logo">Train Punch</h1>
 
     <!-- 強制更新(キャッシュ削除+再読込)ボタン -->
     <button id="btnHardRefresh"
             class="iconbtn"
+            type="button"
             aria-label="キャッシュをクリアして再読込"
             title="キャッシュをクリアして再読込">↻</button>
 
     <nav class="tabs" role="tablist" aria-label="Main tabs">
-      <button data-tab="session" class="active" role="tab" aria-selected="true">セッション</button>
-      <button data-tab="history" role="tab" aria-selected="false">履歴</button>
-      <button data-tab="analytics" role="tab" aria-selected="false">分析</button>
-      <button data-tab="settings" role="tab" aria-selected="false">設定</button>
+      <button id="tabbtn-session"  data-tab="session"  class="active" role="tab" aria-selected="true"  aria-controls="tab-session"  type="button">セッション</button>
+      <button id="tabbtn-history"  data-tab="history"  role="tab" aria-selected="false" aria-controls="tab-history"  type="button">履歴</button>
+      <button id="tabbtn-analytics"data-tab="analytics"role="tab" aria-selected="false" aria-controls="tab-analytics"type="button">分析</button>
+      <button id="tabbtn-settings" data-tab="settings" role="tab" aria-selected="false" aria-controls="tab-settings" type="button">設定</button>
     </nav>
   </header>
 
   <main class="container">
     <!-- ===== セッション ===== -->
-    <section id="tab-session" class="tab active" role="tabpanel" aria-labelledby="セッション">
+    <section id="tab-session" class="tab active" role="tabpanel" aria-labelledby="tabbtn-session">
       <div class="card">
         <div class="row">
           <label for="sessDate">日付</label>
-          <input id="sessDate" type="date" />
+          <input id="sessDate" type="date" autocomplete="off" />
         </div>
 
         <div class="row">
           <label for="sessNote">メモ</label>
-          <input id="sessNote" placeholder="任意メモ" />
+          <input id="sessNote" placeholder="任意メモ" autocomplete="off" enterkeyhint="done" />
         </div>
 
         <!-- 部位 → 種目（ドロップダウン） -->
         <div class="row">
           <label>部位</label>
           <div id="partChips" class="chipset" aria-label="部位の選択">
-            <button class="chip" data-part="胸">胸</button>
-            <button class="chip" data-part="背中">背中</button>
-            <button class="chip" data-part="肩">肩</button>
-            <button class="chip" data-part="脚">脚</button>
-            <button class="chip" data-part="腕">腕</button>
+            <button class="chip" data-part="胸"   type="button">胸</button>
+            <button class="chip" data-part="背中" type="button">背中</button>
+            <button class="chip" data-part="肩"   type="button">肩</button>
+            <button class="chip" data-part="脚"   type="button">脚</button>
+            <button class="chip" data-part="腕"   type="button">腕</button>
           </div>
         </div>
 
         <div class="row">
           <label for="exSelect">種目</label>
           <select id="exSelect" aria-label="種目を選択"></select>
-          <button id="btnAddEx" class="ghost">＋追加</button>
+          <button id="btnAddEx" class="ghost" type="button">＋追加</button>
         </div>
 
         <div class="grid grid-3">
-          <input id="weight" inputmode="decimal" placeholder="重量(kg)" />
-          <input id="reps"   inputmode="numeric" placeholder="回数" />
-          <input id="rpe"    inputmode="decimal" placeholder="RPE(任意)" />
+          <input id="weight" inputmode="decimal" placeholder="重量(kg)" autocomplete="off" />
+          <input id="reps"   inputmode="numeric" placeholder="回数"     autocomplete="off" />
+          <input id="rpe"    inputmode="decimal" placeholder="RPE(任意)"autocomplete="off" />
         </div>
 
         <div class="row">
-          <button id="btnAddSet">セット追加</button>
-          <button id="btnTimer" class="ghost">休憩60s</button>
+          <button id="btnAddSet" type="button">セット追加</button>
+          <button id="btnTimer" class="ghost" type="button">休憩60s</button>
         </div>
       </div>
 
@@ -92,7 +105,7 @@
             <input id="tplUseLastW" type="checkbox" checked />
             前回重量を使う
           </label>
-          <button id="btnTplApply" class="ghost">投入</button>
+          <button id="btnTplApply" class="ghost" type="button">投入</button>
         </div>
         <small>パターンは履歴から自動生成（例：5×5, 3×8, 4×10）。重複はまとめて頻度順に並びます。</small>
       </div>
@@ -101,25 +114,26 @@
       <div class="card">
         <h3>カスタム投入</h3>
         <div class="grid grid-3">
-          <input id="tplCustomSets"   inputmode="numeric"  placeholder="セット数（例 5）" />
-          <input id="tplCustomReps"   inputmode="numeric"  placeholder="回数（例 5）" />
-          <input id="tplCustomWeight" inputmode="decimal" placeholder="重量kg（例 40）" />
+          <input id="tplCustomSets"   inputmode="numeric"  placeholder="セット数（例 5）" autocomplete="off" />
+          <input id="tplCustomReps"   inputmode="numeric"  placeholder="回数（例 5）"     autocomplete="off" />
+          <input id="tplCustomWeight" inputmode="decimal"  placeholder="重量kg（例 40）"  autocomplete="off" />
         </div>
+
         <!-- カスタム投入：部位 -->
         <div class="row">
           <label>部位</label>
           <div id="tplPartChips" class="chipset" aria-label="部位(カスタム)">
-            <button class="chip" data-part="胸">胸</button>
-            <button class="chip" data-part="背中">背中</button>
-            <button class="chip" data-part="肩">肩</button>
-            <button class="chip" data-part="脚">脚</button>
-            <button class="chip" data-part="腕">腕</button>
+            <button class="chip" data-part="胸"   type="button">胸</button>
+            <button class="chip" data-part="背中" type="button">背中</button>
+            <button class="chip" data-part="肩"   type="button">肩</button>
+            <button class="chip" data-part="脚"   type="button">脚</button>
+            <button class="chip" data-part="腕"   type="button">腕</button>
           </div>
         </div>
         <div class="row">
           <label for="tplExCustom">種目</label>
           <select id="tplExCustom"></select>
-          <button id="btnTplCustom">投入</button>
+          <button id="btnTplCustom" type="button">投入</button>
         </div>
       </div>
 
@@ -128,13 +142,13 @@
         <h3>今日のセット</h3>
         <ul id="todaySets" class="list"></ul>
         <div class="row end">
-          <button id="btnSaveSession">セッション保存</button>
+          <button id="btnSaveSession" type="button">セッション保存</button>
         </div>
       </div>
     </section>
 
     <!-- ===== 履歴 ===== -->
-    <section id="tab-history" class="tab" role="tabpanel" aria-labelledby="履歴">
+    <section id="tab-history" class="tab" role="tabpanel" aria-labelledby="tabbtn-history">
       <div class="card">
         <div class="row">
           <label for="historyCount">表示件数</label>
@@ -143,7 +157,7 @@
             <option selected>20</option>
             <option>50</option>
           </select>
-          <button id="btnExport" class="ghost">CSV書き出し</button>
+          <button id="btnExport" class="ghost" type="button">CSV書き出し</button>
 
           <input type="file" id="importFile" accept=".csv" hidden />
           <label for="importFile" class="ghost btnlike">CSV読み込み</label>
@@ -153,7 +167,7 @@
     </section>
 
     <!-- ===== 分析 ===== -->
-    <section id="tab-analytics" class="tab" role="tabpanel" aria-labelledby="分析">
+    <section id="tab-analytics" class="tab" role="tabpanel" aria-labelledby="tabbtn-analytics">
       <div class="card">
         <h3>直近7日：合計ボリューム(kg)</h3>
         <canvas id="chart"></canvas>
@@ -166,7 +180,7 @@
     </section>
 
     <!-- ===== 設定 ===== -->
-    <section id="tab-settings" class="tab" role="tabpanel" aria-labelledby="設定">
+    <section id="tab-settings" class="tab" role="tabpanel" aria-labelledby="tabbtn-settings">
       <div class="card">
         <h3>種目管理</h3>
 
@@ -183,7 +197,7 @@
         </div>
 
         <div class="grid grid-2">
-          <input id="newExName" placeholder="例：ベンチプレス" />
+          <input id="newExName" placeholder="例：ベンチプレス" autocomplete="off" />
           <select id="newExPart" aria-label="部位">
             <option value="">部位</option>
             <option value="胸">胸</option>
@@ -194,7 +208,7 @@
           </select>
         </div>
         <div class="row">
-          <button id="btnCreateEx">追加</button>
+          <button id="btnCreateEx" type="button">追加</button>
         </div>
         <ul id="exList" class="list"></ul>
       </div>
@@ -202,8 +216,8 @@
       <div class="card">
         <h3>通知 / データ</h3>
         <div class="row">
-          <button id="btnNotif" class="ghost">通知を許可（休憩タイマー用）</button>
-          <button id="btnWipe" class="danger">全データ削除</button>
+          <button id="btnNotif" class="ghost" type="button">通知を許可（休憩タイマー用）</button>
+          <button id="btnWipe" class="danger" type="button">全データ削除</button>
         </div>
         <small>※ OSの通知設定でオフにしている場合は通知は表示されません。</small>
       </div>
@@ -219,7 +233,7 @@
       <div class="card">
         <h3>バックアップ</h3>
         <div class="row">
-          <button id="btnExportJson" class="ghost">JSON書き出し</button>
+          <button id="btnExportJson" class="ghost" type="button">JSON書き出し</button>
           <label for="jsonIn" class="ghost btnlike">JSON読み込み</label>
           <input id="jsonIn" type="file" accept="application/json" hidden />
         </div>
@@ -230,7 +244,7 @@
         <h3>情報</h3>
         <div class="kv">
           <div>バージョン</div><div>1.3.4</div>
-          <div>プライバシー</div><div><a target="_blank" href="privacy.html">プライバシーポリシー</a></div>
+          <div>プライバシー</div><div><a target="_blank" href="privacy.html" rel="noopener">プライバシーポリシー</a></div>
           <div>サポート</div>
           <div><a href="mailto:toreninguguanli53@gmail.com?subject=Train%20Punch%20サポート">toreninguguanli53@gmail.com</a></div>
         </div>
@@ -241,6 +255,7 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+  <!-- 末尾読み込み（必要ならdeferでもOK） -->
   <script src="app.js?v=1.3.4"></script>
   <script src="sw-register.js"></script>
 </body>
