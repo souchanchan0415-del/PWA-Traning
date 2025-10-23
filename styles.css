@@ -114,3 +114,16 @@ button.danger{ background:var(--danger); border-color:transparent; color:#fff; }
 @media (min-width: 1100px){
   .logo{ font-size:32px; }
 }
+/* --- iOS Safari での入力欄はみ出し対策 --- */
+.row > * { min-width: 0; }           /* flex 子要素を縮められるように */
+.grid > * { min-width: 0; }          /* grid 子要素も同様 */
+.grid-3 input,
+.grid-3 select { width: 100%; }      /* 列幅にきっちり収める */
+
+/* 狭い画面では「＋追加」を改行してセレクトに幅を譲る */
+@media (max-width: 560px){
+  #btnAddEx{ flex-basis: 100%; }     /* 種目行でボタンが次行に回る */
+}
+
+/* 種目セレクトの行と次の行が重なって見えないように余白を確保 */
+#exSelect { margin-bottom: 6px; }    /* 必要なら値は好みで微調整 */
