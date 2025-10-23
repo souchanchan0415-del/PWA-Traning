@@ -1,4 +1,4 @@
-// Train Punch — responsive + reliable (v1.3.2)
+// Train Punch — responsive + reliable (v1.3.3)
 
 const DB_NAME = 'trainpunch_v3';
 const DB_VER  = 3; // exercises に group index
@@ -15,6 +15,23 @@ function showToast(msg){
 }
 const todayStr = () => new Date().toISOString().slice(0,10);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+// ---- Hard Refresh (SW解除 + キャッシュ削除 + 再読込) ----
+async function hardRefresh(){
+  try{
+    if('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    if('caches' in window){
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  }catch(e){
+    console.warn('hardRefresh failed:', e);
+  }
+  location.reload(); // なるべくネットから取り直す
+}
 
 // ---- IndexedDB helpers ----
 function openDB(){
@@ -89,6 +106,18 @@ let tplSelectedPart = '胸';
 
 // =================== Init ===================
 async function init(){
+  // 右上 ↻（強制更新）バインド
+  $('#btnHardRefresh')?.addEventListener('click', async ()=>{
+    const b = $('#btnHardRefresh');
+    const old = b.textContent;
+    b.disabled = true;
+    b.textContent = '更新…';
+    showToast('最新に更新します…');
+    await hardRefresh(); // ここでSW解除＆キャッシュ削除 → 自動でリロード
+    b.textContent = old;
+    b.disabled = false;
+  });
+
   await openDB();
   await ensureInitialExercises();
 
