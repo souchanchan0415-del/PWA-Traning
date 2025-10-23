@@ -1,10 +1,10 @@
-// Train Punch SW (v1.3.1) — cache bust + SPA nav fallback
-const CACHE = 'trainpunch-1.3.1';
+// Train Punch SW (v1.3.2) — cache bust + SPA nav fallback + SWR for CSS/JS
+const CACHE = 'trainpunch-1.3.2';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=1.3.1',
-  './app.js?v=1.3.1',
+  './styles.css?v=1.3.2',
+  './app.js?v=1.3.2',
   './sw-register.js',
   './manifest.webmanifest',
   './privacy.html',
@@ -14,66 +14,74 @@ const ASSETS = [
   './icons/icon-512.png'
 ];
 
-self.addEventListener('install', (e)=>{
+self.addEventListener('install', (event) => {
   self.skipWaiting();
-  e.waitUntil(
-    (async ()=>{
-      const cache = await caches.open(CACHE);
-      // HTTP キャッシュをバイパスして確実に最新を保存
-      await Promise.all(
-        ASSETS.map(url => cache.add(new Request(url, {cache:'reload'})).catch(()=>{}))
-      );
-    })()
-  );
-});
-
-self.addEventListener('activate', (e)=>{
-  e.waitUntil(
-    (async ()=>{
-      const keys = await caches.keys();
-      await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
-      await self.clients.claim();
-    })()
-  );
-});
-
-self.addEventListener('fetch', (e)=>{
-  const req = e.request;
-
-  // SPA ナビゲーション: オフライン時は index.html を返す
-  const isNav = req.mode === 'navigate' && req.method === 'GET';
-  if (isNav){
-    e.respondWith(
-      (async ()=>{
-        try{
-          const fresh = await fetch(req);
-          return fresh;
-        }catch(_){
-          const cache = await caches.open(CACHE);
-          const fallback = await cache.match('./index.html');
-          return fallback || new Response('', {status: 200, headers:{'Content-Type':'text/html'}});
-        }
-      })()
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await Promise.all(
+      ASSETS.map(u => cache.add(new Request(u, { cache: 'reload' })).catch(() => {}))
     );
+  })());
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
+    if (self.registration.navigationPreload) {
+      await self.registration.navigationPreload.enable();
+    }
+    await self.clients.claim();
+  })());
+});
+
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  const url = new URL(req.url);
+
+  // --- SPA navigation: network (or preload) -> cache fallback ---
+  if (req.mode === 'navigate' && req.method === 'GET') {
+    event.respondWith((async () => {
+      try {
+        const preload = await event.preloadResponse;
+        return preload || await fetch(req);
+      } catch {
+        const cache = await caches.open(CACHE);
+        return (await cache.match('./index.html')) ||
+               new Response('', { status: 200, headers: { 'Content-Type': 'text/html' } });
+      }
+    })());
     return;
   }
 
-  // 通常リクエスト: Cache, falling back to network, and cache update
-  e.respondWith(
-    (async ()=>{
+  // --- SWR for same-origin CSS/JS ---
+  const isStatic = url.origin === self.location.origin && /\.(?:css|js)$/.test(url.pathname);
+  if (isStatic) {
+    event.respondWith((async () => {
       const cache = await caches.open(CACHE);
       const cached = await cache.match(req);
-      if (cached) return cached;
-
-      try{
-        const res = await fetch(req);
-        if(res && res.ok && req.method==='GET' && (req.url.startsWith(self.location.origin))){
-          cache.put(req, res.clone());
-        }
+      const fetching = fetch(req).then(res => {
+        if (res && res.ok) cache.put(req, res.clone());
         return res;
-      }catch(_){
-        return cached || Response.error();
+      }).catch(() => null);
+      return cached || (await fetching) || Response.error();
+    })());
+    return;
+  }
+
+  // --- Default: cache-first, then network; on success, add to cache ---
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    const cached = await cache.match(req);
+    if (cached) return cached;
+    try {
+      const res = await fetch(req);
+      if (res && res.ok && req.method === 'GET' && url.origin === self.location.origin) {
+        cache.put(req, res.clone());
       }
-    })()
-  );
+      return res;
+    } catch {
+      return cached || Response.error();
+    }
+  })());
 });
