@@ -1,4 +1,4 @@
-// Train Punch — responsive + reliable (v1.3.1)
+// Train Punch — responsive + reliable (v1.3.2)
 
 const DB_NAME = 'trainpunch_v3';
 const DB_VER  = 3; // exercises に group index
@@ -9,6 +9,7 @@ const $$ = s => Array.from(document.querySelectorAll(s));
 
 function showToast(msg){
   const t = $('#toast');
+  if(!t) return;
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 1400);
@@ -83,7 +84,8 @@ async function ensureInitialExercises(){
 
 // ---- UI state ----
 let currentSession = { date: todayStr(), note:'', sets: [] };
-let selectedPart = '胸';
+let selectedPart = '胸';           // セッション用
+let selectedPartCustom = '胸';     // カスタム投入用（独立）
 
 // =================== Init ===================
 async function init(){
@@ -101,9 +103,12 @@ async function init(){
   bindHistoryUI();
   bindSettingsUI();
 
-  // Initial renders
-  renderPartChips();
-  await renderExSelect();          // part フィルタ反映
+  // 初期レンダリング
+  renderPartChips('#partChips', selectedPart);
+  await ensureCustomChips();                 // カスタム投入に部位チップを自動挿入
+  renderPartChips('#partChipsCustom', selectedPartCustom);
+
+  await renderExSelect();          // セッション/カスタム両方のセレクトを更新
   renderTodaySets();
   renderHistory();
   renderAnalytics();
@@ -111,7 +116,8 @@ async function init(){
 
   // Theme
   const dark = (await get('prefs','dark'))?.value || false;
-  $('#darkToggle').checked = dark;
+  const tgl = $('#darkToggle');
+  if(tgl){ tgl.checked = dark; }
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
 }
 
@@ -134,38 +140,54 @@ function bindTabs(){
 }
 
 // =================== Session ===================
-function renderPartChips(){
-  // set active visual
-  $$('#partChips .chip').forEach(ch=>{
-    ch.classList.toggle('active', ch.dataset.part === selectedPart);
+function renderPartChips(containerSel, current){
+  const box = $(containerSel);
+  if(!box) return;
+  // 中身を再構築（念のため）
+  box.innerHTML = PARTS.map(p=>`<button type="button" class="chip" data-part="${p}">${p}</button>`).join('');
+  $$(containerSel+' .chip').forEach(ch=>{
+    ch.classList.toggle('active', ch.dataset.part === current);
   });
 }
-
 function bindSessionUI(){
-  // part chips
-  $('#partChips').addEventListener('click', async (e)=>{
-    const b = e.target.closest('.chip');
-    if(!b) return;
-    selectedPart = b.dataset.part;
-    renderPartChips();
-    await renderExSelect();
-  });
-
-  // add custom exercise (bind to current part)
-  $('#btnAddEx').addEventListener('click', async ()=>{
-    const name = prompt('種目名を入力（例：懸垂）');
-    if(!name) return;
-    try{
-      await put('exercises', {name, group:selectedPart});
+  // セッション: 部位チップ
+  const partBox = $('#partChips');
+  if(partBox){
+    partBox.addEventListener('click', async (e)=>{
+      const b = e.target.closest('.chip'); if(!b) return;
+      selectedPart = b.dataset.part;
+      renderPartChips('#partChips', selectedPart);
       await renderExSelect();
-      await renderExList();
-      showToast('種目を追加しました');
-    }catch(e){
-      showToast('同名の種目があります');
-    }
+    });
+  }
+
+  // カスタム投入: 部位チップ
+  document.addEventListener('click', async (e)=>{
+    const b = e.target.closest('#partChipsCustom .chip');
+    if(!b) return;
+    selectedPartCustom = b.dataset.part;
+    renderPartChips('#partChipsCustom', selectedPartCustom);
+    await renderExSelect(); // カスタム側のセレクトだけでなく、全体再構築（速い）
   });
 
-  // set add
+  // 追加（セッション）
+  const addBtn = $('#btnAddEx');
+  if(addBtn){
+    addBtn.addEventListener('click', async ()=>{
+      const name = prompt('種目名を入力（例：懸垂）');
+      if(!name) return;
+      try{
+        await put('exercises', {name, group:selectedPart});
+        await renderExSelect();
+        await renderExList();
+        showToast('種目を追加しました');
+      }catch(e){
+        showToast('同名の種目があります');
+      }
+    });
+  }
+
+  // セット追加
   $('#btnAddSet').addEventListener('click', ()=>{
     const exId = Number($('#exSelect').value);
     const weight = Number($('#weight').value);
@@ -206,31 +228,44 @@ function bindSessionUI(){
   buildHistoryTemplates();
 }
 
-// ★ここを修正：セッション用・カスタム投入用どちらのセレクトも「選択中の部位」で絞る
+// カスタム投入の部位チップを自動挿入（HTML変更不要）
+async function ensureCustomChips(){
+  const sel = $('#tplExCustom');
+  if(!sel) return;
+  if($('#partChipsCustom')) return; // すでにある
+
+  const box = document.createElement('div');
+  box.id = 'partChipsCustom';
+  box.className = 'chipset';
+  // 先に配置してから描画
+  sel.parentElement.insertAdjacentElement('beforebegin', box);
+}
+
+// 種目セレクト（セッション/カスタム両方）を更新
 async function renderExSelect(){
   const all = await getAll('exercises');
-  const byPart = all.filter(e => e.group === selectedPart);
-  const list   = (byPart.length ? byPart : all).slice()
-                  .sort((a,b)=> a.name.localeCompare(b.name,'ja'));
 
-  // main selector（セッション）
+  // セッション側
+  const exsSess = all.filter(e=>e.group===selectedPart).sort((a,b)=> a.name.localeCompare(b.name,'ja'));
   const sel = $('#exSelect');
-  sel.innerHTML = list.length
-    ? list.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('')
-    : '<option>オプションなし</option>';
+  if(sel) sel.innerHTML = exsSess.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('') || '<option>オプションなし</option>';
 
-  // custom selector（カスタム投入）
+  // カスタム側
+  const exsCustom = all
+    .filter(e=>e.group===selectedPartCustom)
+    .sort((a,b)=> a.name.localeCompare(b.name,'ja'));
   const sel2 = $('#tplExCustom');
-  sel2.innerHTML = list.length
-    ? list.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('')
-    : '<option>オプションなし</option>';
+  if(sel2) sel2.innerHTML = exsCustom.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('') || '<option>オプションなし</option>';
 
-  // 履歴テンプレ用の種目は buildHistoryTemplates() が別で描く
+  // 履歴テンプレ用は buildHistoryTemplates() で別管理
+  renderPartChips('#partChips', selectedPart);
+  renderPartChips('#partChipsCustom', selectedPartCustom);
 }
 
 // ---- today list ----
 function renderTodaySets(){
   const ul = $('#todaySets');
+  if(!ul) return;
   if(!currentSession.sets.length){
     ul.innerHTML = '<li>まだありません</li>';
     return;
@@ -249,9 +284,8 @@ function renderTodaySets(){
     });
   });
 }
-
 function exNameById(id){
-  const opt = $('#tplExCustom').querySelector(`option[value="${id}"]`) || $('#exSelect').querySelector(`option[value="${id}"]`);
+  const opt = $('#tplExCustom')?.querySelector(`option[value="${id}"]`) || $('#exSelect')?.querySelector(`option[value="${id}"]`);
   return opt ? opt.textContent : '種目';
 }
 
@@ -265,9 +299,10 @@ async function buildHistoryTemplates(){
   const used = [...new Set(sets.map(s=>s.exercise_id))].map(id=>({id, name:nameById[id] || `#${id}`})).filter(x=>x.name);
   used.sort((a,b)=> a.name.localeCompare(b.name,'ja'));
 
-  $('#tplExFromHist').innerHTML = used.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('') || '<option>履歴がありません</option>';
+  const histSel = $('#tplExFromHist');
+  if(histSel) histSel.innerHTML = used.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('') || '<option>履歴がありません</option>';
 
-  // patterns map: "sets×reps"
+  // patterns map: reps（セット数は見やすさのため 5 を付与）
   const freq = {};
   sets.forEach(s=>{
     const key = `${s.reps}`;
@@ -276,9 +311,10 @@ async function buildHistoryTemplates(){
   const patterns = Object.entries(freq)
     .sort((a,b)=> b[1]-a[1])
     .slice(0,8)
-    .map(([reps])=>`5×${reps}`); // セット数は5をデフォルトで付与（使いやすさ優先）
+    .map(([reps])=>`5×${reps}`);
 
-  $('#tplPattern').innerHTML = patterns.map(p=>`<option>${p}</option>`).join('') || '<option>パターンなし</option>';
+  const pattSel = $('#tplPattern');
+  if(pattSel) pattSel.innerHTML = patterns.map(p=>`<option>${p}</option>`).join('') || '<option>パターンなし</option>';
 }
 
 async function applyQuickInsert(){
@@ -355,7 +391,7 @@ function bindHistoryUI(){
 async function renderHistory(){
   const count = Number($('#historyCount').value || 20);
   const sessions = (await getAll('sessions')).sort((a,b)=>b.created_at-a.created_at).slice(0,count);
-  const ul = $('#historyList'); ul.innerHTML = '';
+  const ul = $('#historyList'); if(!ul) return; ul.innerHTML = '';
 
   for(const s of sessions){
     const sets = await indexGetAll('sets','by_session', s.id);
@@ -526,10 +562,8 @@ async function renderAnalytics(){
     <div>直近7日ボリューム</div><div>${Math.round(total7)} kg</div>
     <div>種目数</div><div>${uniqEx} 種目</div>
   `;
-  // 凡例は使わない（念のためクリア）
   const legend = $('#legend'); if (legend) legend.innerHTML = '';
 
-  // 一度だけイベントをバインド（データは canvas.* から参照）
   if(!_chartEventsBound){
     const pickIndex = (evt)=>{
       const r = canvas.getBoundingClientRect();
@@ -552,85 +586,105 @@ async function renderAnalytics(){
 // =================== Settings ===================
 function bindSettingsUI(){
   // theme
-  $('#darkToggle').addEventListener('change', async (e)=>{
-    const on = e.target.checked;
-    document.documentElement.dataset.theme = on ? 'dark' : 'light';
-    await put('prefs',{key:'dark', value:on});
-  });
+  const tog = $('#darkToggle');
+  if(tog){
+    tog.addEventListener('change', async (e)=>{
+      const on = e.target.checked;
+      document.documentElement.dataset.theme = on ? 'dark' : 'light';
+      await put('prefs',{key:'dark', value:on});
+    });
+  }
 
   // notifications
-  $('#btnNotif').addEventListener('click', async ()=>{
-    if(!('Notification' in window)){ showToast('この端末は通知に未対応'); return; }
-    const perm = await Notification.requestPermission();
-    showToast(perm==='granted' ? '通知を許可しました' : '通知は許可されていません');
-  });
+  const notif = $('#btnNotif');
+  if(notif){
+    notif.addEventListener('click', async ()=>{
+      if(!('Notification' in window)){ showToast('この端末は通知に未対応'); return; }
+      const perm = await Notification.requestPermission();
+      showToast(perm==='granted' ? '通知を許可しました' : '通知は許可されていません');
+    });
+  }
 
   // add exercise (with part)
-  $('#btnCreateEx').addEventListener('click', async ()=>{
-    const name = $('#newExName').value.trim();
-    const part = $('#newExPart').value || undefined;
-    if(!name) return;
-    try{
-      await put('exercises',{name, group:part});
-      $('#newExName').value='';
-      await renderExList();
-      await renderExSelect();
-      showToast('追加しました');
-    }catch(e){
-      showToast('同名の種目があります');
-    }
-  });
+  const create = $('#btnCreateEx');
+  if(create){
+    create.addEventListener('click', async ()=>{
+      const name = $('#newExName').value.trim();
+      const part = $('#newExPart').value || undefined;
+      if(!name) return;
+      try{
+        await put('exercises',{name, group:part});
+        $('#newExName').value='';
+        await renderExList();
+        await renderExSelect();    // セッション/カスタム両方反映
+        showToast('追加しました');
+      }catch(e){
+        showToast('同名の種目があります');
+      }
+    });
+  }
 
   // filter
-  $('#filterPart').addEventListener('change', renderExList);
+  const filter = $('#filterPart');
+  if(filter) filter.addEventListener('change', renderExList);
 
   // wipe
-  $('#btnWipe').addEventListener('click', async ()=>{
-    if(!confirm('本当に全データを削除しますか？')) return;
-    for(const s of ['sessions','sets','exercises']){
-      await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
-    }
-    await ensureInitialExercises();
-    await renderExList(); await renderExSelect(); renderHistory(); renderAnalytics(); renderTodaySets();
-    showToast('全データを削除しました');
-  });
+  const wipe = $('#btnWipe');
+  if(wipe){
+    wipe.addEventListener('click', async ()=>{
+      if(!confirm('本当に全データを削除しますか？')) return;
+      for(const s of ['sessions','sets','exercises']){
+        await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+      }
+      await ensureInitialExercises();
+      await renderExList(); await renderExSelect(); renderHistory(); renderAnalytics(); renderTodaySets();
+      showToast('全データを削除しました');
+    });
+  }
 
   // JSON backup
-  $('#btnExportJson').addEventListener('click', async ()=>{
-    const data = {
-      sessions: await getAll('sessions'),
-      sets: await getAll('sets'),
-      exercises: await getAll('exercises'),
-      prefs: await getAll('prefs')
-    };
-    const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'train_punch_backup.json'; a.click();
-    URL.revokeObjectURL(url);
-  });
-  $('#jsonIn').addEventListener('change', async (e)=>{
-    const file = e.target.files[0]; if(!file) return;
-    const data = JSON.parse(await file.text());
-    for(const s of ['sessions','sets','exercises','prefs']){
-      await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
-    }
-    for(const x of (data.exercises||[])) await put('exercises', x);
-    for(const x of (data.sessions ||[])) await put('sessions', x);
-    for(const x of (data.sets     ||[])) await put('sets', x);
-    for(const x of (data.prefs    ||[])) await put('prefs', x);
-    await renderExList(); await renderExSelect(); renderHistory(); renderAnalytics(); renderTodaySets();
-    showToast('復元しました');
-    e.target.value='';
-  });
+  const exJson = $('#btnExportJson');
+  if(exJson){
+    exJson.addEventListener('click', async ()=>{
+      const data = {
+        sessions: await getAll('sessions'),
+        sets: await getAll('sets'),
+        exercises: await getAll('exercises'),
+        prefs: await getAll('prefs')
+      };
+      const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'train_punch_backup.json'; a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+  const jsonIn = $('#jsonIn');
+  if(jsonIn){
+    jsonIn.addEventListener('change', async (e)=>{
+      const file = e.target.files[0]; if(!file) return;
+      const data = JSON.parse(await file.text());
+      for(const s of ['sessions','sets','exercises','prefs']){
+        await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+      }
+      for(const x of (data.exercises||[])) await put('exercises', x);
+      for(const x of (data.sessions ||[])) await put('sessions', x);
+      for(const x of (data.sets     ||[])) await put('sets', x);
+      for(const x of (data.prefs    ||[])) await put('prefs', x);
+      await renderExList(); await renderExSelect(); renderHistory(); renderAnalytics(); renderTodaySets();
+      showToast('復元しました');
+      e.target.value='';
+    });
+  }
 }
 
 async function renderExList(){
-  const filt = $('#filterPart').value || 'all';
+  const filt = $('#filterPart')?.value || 'all';
   let exs = await getAll('exercises');
   if(filt !== 'all') exs = exs.filter(e=>e.group===filt);
   exs.sort((a,b)=> (a.group||'').localeCompare(b.group||'','ja') || a.name.localeCompare(b.name,'ja'));
 
   const ul = $('#exList');
+  if(!ul) return;
   ul.innerHTML = exs.map(e=>{
     const tag = e.group ? `<span class="badge" style="margin-right:8px">${esc(e.group)}</span>` : '';
     return `<li><span>${tag}${esc(e.name)}</span><button class="ghost" data-id="${e.id}">削除</button></li>`;
