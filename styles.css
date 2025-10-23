@@ -152,3 +152,10 @@ button.danger{ background:var(--danger); border-color:transparent; color:#fff; }
   outline:2px solid color-mix(in oklab, var(--primary), #fff 20%);
   outline-offset:2px; border-radius:12px;
 }
+/* ===== Chart ===== */
+#chart{
+  width:100%;
+  height:260px;          /* 高さは好みで調整可 */
+  display:block;
+  touch-action:none;     /* iOS/Safariでのホバー計算が安定 */
+}
