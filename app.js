@@ -167,6 +167,7 @@ function bindSessionUI(){
     try{
       await put('exercises', {name, group:selectedPart});
       await renderExSelect();
+      await renderTplExSelect(); // ← カスタム側も更新
       await renderExList();
       showToast('種目を追加しました');
     }catch(e){
@@ -603,6 +604,7 @@ function bindSettingsUI(){
       $('#newExName').value='';
       await renderExList();
       await renderExSelect();
+      await renderTplExSelect(); // ← カスタム側も更新
       showToast('追加しました');
     }catch(e){
       showToast('同名の種目があります');
@@ -619,7 +621,7 @@ function bindSettingsUI(){
       await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
     }
     await ensureInitialExercises();
-    await renderExList(); await renderExSelect(); renderHistory(); renderAnalytics(); renderTodaySets();
+    await renderExList(); await renderExSelect(); await renderTplExSelect(); renderHistory(); renderAnalytics(); renderTodaySets();
     showToast('全データを削除しました');
   });
 
@@ -646,7 +648,7 @@ function bindSettingsUI(){
     for(const x of (data.sessions ||[])) await put('sessions', x);
     for(const x of (data.sets     ||[])) await put('sets', x);
     for(const x of (data.prefs    ||[])) await put('prefs', x);
-    await renderExList(); await renderExSelect(); renderHistory(); renderAnalytics(); renderTodaySets();
+    await renderExList(); await renderExSelect(); await renderTplExSelect(); renderHistory(); renderAnalytics(); renderTodaySets();
     showToast('復元しました');
     e.target.value='';
   });
@@ -667,7 +669,10 @@ async function renderExList(){
   ul.querySelectorAll('button').forEach(b=>{
     b.addEventListener('click', async ()=>{
       await del('exercises', Number(b.dataset.id));
-      await renderExList(); await renderExSelect(); renderAnalytics();
+      await renderExList();
+      await renderExSelect();
+      await renderTplExSelect(); // ← カスタム側も更新
+      renderAnalytics();
     });
   });
 }
@@ -691,7 +696,7 @@ async function importCSV(e){
   const [_, sBlock, setBlock] = text.split('##SESSIONS');
   if(!setBlock){ showToast('形式が違います'); e.target.value=''; return; }
   const [sessionsPart, setsPart] = ('##SESSIONS'+setBlock).split('##SETS');
-  const sLines   = sessionsPart.split(/\r?\n/).slice(2).filter(Boolean);
+  const sLines   = sessionsPart split(/\r?\n/).slice(2).filter(Boolean);
   const setLines = setsPart.split(/\r?\n/).slice(2).filter(Boolean);
 
   for(const s of ['sessions','sets']){ await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); }
