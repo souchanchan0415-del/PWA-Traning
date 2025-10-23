@@ -1,19 +1,21 @@
+// sw-register.js
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
-    try{
-      const reg = await navigator.serviceWorker.register('./sw.js');
-      // 新しいSWが waiting 状態なら即時更新
+    try {
+      const reg = await navigator.serviceWorker.register('sw.js', {updateViaCache:'all'});
+
+      // 新SWが waiting なら即有効化
       if (reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'});
 
-      // コントローラ変化時に一度だけリロード
-      let refreshed = false;
+      // 有効化されたらページを1回だけリロード
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (refreshed) return;
-        refreshed = true;
-        location.reload();
+        if (!window.__reloaded) { window.__reloaded = true; location.reload(); }
       });
-    }catch(e){
-      console.warn('SW register failed', e);
+
+      // 起動直後にも更新チェック
+      reg.update();
+    } catch (e) {
+      console.log('SW register failed:', e);
     }
   });
 }
