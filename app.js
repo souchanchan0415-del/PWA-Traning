@@ -1,3 +1,5 @@
+window.addEventListener('error', e => alert('JS Error: ' + e.message));
+window.addEventListener('unhandledrejection', e => alert('Promise: ' + (e.reason?.message || e.reason)));
 // Train Punch — responsive + reliable (v1.3.2)
 
 const DB_NAME = 'trainpunch_v3';
