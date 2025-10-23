@@ -83,6 +83,14 @@
           <input id="rpe"    inputmode="decimal" placeholder="RPE(任意)"autocomplete="off" />
         </div>
 
+        <!-- ▼ e1RM（推定1RM）ミニパネル：今/ベスト/差分 -->
+        <div class="row" id="e1rmPanel" aria-live="polite" hidden>
+          <span class="badge">e1RM 今: <strong id="e1rmNow">—</strong> kg</span>
+          <span class="badge">ベスト: <strong id="e1rmBest">—</strong> kg</span>
+          <span class="badge" id="e1rmDelta" hidden>+0 kg</span>
+        </div>
+        <!-- ▲ ここまで -->
+
         <div class="row">
           <button id="btnAddSet" type="button">セット追加</button>
           <button id="btnTimer" class="ghost" type="button">休憩60s</button>
