@@ -226,3 +226,10 @@ button, select, input { touch-action: manipulation; }
   touch-action:manipulation;
 }
 .iconbtn:active{ transform:translateY(1px); }
+/* e1RM ラインチャート */
+#e1rmChart{
+  width:100%;
+  height:260px;
+  display:block;
+  touch-action:none;
+}
