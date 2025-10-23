@@ -206,3 +206,11 @@ button.danger{ background:var(--danger); border-color:transparent; color:#fff; }
 
 /* iOSのタップ反応を素直に */
 button, select, input { touch-action: manipulation; }
+/* iOS で装飾レイヤがタップをブロックしないように */
+.appbar { position: sticky; top: 0; z-index: 10; isolation: isolate; }
+.appbar::before,
+.appbar::after { pointer-events: none !important; }
+
+/* 念のためタブとチップを前面に */
+.tabs { position: relative; z-index: 2; }
+.chipset { position: relative; z-index: 2; }
