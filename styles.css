@@ -160,3 +160,30 @@ button.danger{ background:var(--danger); border-color:transparent; color:#fff; }
   display:block;
   touch-action:none;     /* iOS/Safariでのホバー計算が安定 */
 }
+/* === Custom Insert spacing tweaks === */
+/* 部位チップの上下余白とチップ同士の間隔を調整 */
+#tplPartChips{
+  margin: 8px 0 10px;   /* 上下の余白を足す */
+  gap: 12px;            /* チップ同士の間隔を少し広げる */
+}
+/* チップのタップしやすさを少しだけアップ */
+#tplPartChips .chip{
+  padding: 9px 14px;    /* ほんの少し大きく */
+}
+
+/* チップの直後の種目セレクトに上マージンを付けて密着感を解消 */
+#tplExCustom{
+  margin-top: 6px;
+}
+
+/* カード内で “チップ行” だけは他の行より余白を気持ち広く */
+#tplPartChips.closest-row,
+#tplPartChips{ /* Safari対策で念のため両方指定 */
+  /* 何もしないがセレクタの優先度確保用 */
+}
+
+/* モバイルでは若干コンパクトに（はみ出し防止） */
+@media (max-width: 560px){
+  #tplPartChips{ gap: 10px; margin: 6px 0 8px; }
+  #tplPartChips .chip{ padding: 8px 12px; }
+}
