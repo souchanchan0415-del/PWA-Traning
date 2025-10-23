@@ -1,4 +1,4 @@
-// Train Punch — responsive + reliable (v1.3.3)
+// Train Punch — responsive + reliable (v1.3.4) + Prefill & PR
 
 const DB_NAME = 'trainpunch_v3';
 const DB_VER  = 3; // exercises に group index
@@ -30,7 +30,7 @@ async function hardRefresh(){
   }catch(e){
     console.warn('hardRefresh failed:', e);
   }
-  location.reload(); // なるべくネットから取り直す
+  location.reload();
 }
 
 // ---- IndexedDB helpers ----
@@ -101,49 +101,60 @@ async function ensureInitialExercises(){
 // ---- UI state ----
 let currentSession = { date: todayStr(), note:'', sets: [] };
 let selectedPart = '胸';
-// ★ カスタム投入用（独立して選べる）
 let tplSelectedPart = '胸';
 
-// =================== 追加ユーティリティ（前回値/PR） ===================
-// 前回値プリフィル
-async function prefillLastFor(exId){
+// ========= Helpers: Prefill & PR =========
+const e1rm = (w,r)=> (w>0 && r>0) ? (w * (1 + r/30)) : 0;
+
+async function getLastSetForExercise(exId){
+  const sets = await getAll('sets');
+  const last = sets.filter(s=>s.exercise_id===exId).sort((a,b)=> b.ts - a.ts)[0];
+  return last || null;
+}
+
+async function prefillLastForExercise(exId){
   if(!exId) return;
-  const last = (await getAll('sets'))
-    .filter(s=>s.exercise_id===exId)
-    .sort((a,b)=>b.ts-a.ts)[0];
+  const last = await getLastSetForExercise(exId);
   if(last){
     $('#weight').value = last.weight ?? '';
-    $('#reps').value   = last.reps ?? '';
-    $('#rpe').value    = (last.rpe ?? '') || '';
-    showToast(`前回: ${last.weight}kg × ${last.reps}${last.rpe?` (RPE${last.rpe})`:''}`);
-  }else{
-    // 初回は空にしておく
-    $('#weight').value = ''; $('#reps').value = ''; $('#rpe').value = '';
+    $('#reps').value   = last.reps   ?? '';
+    $('#rpe').value    = (last.rpe ?? '') === null ? '' : (last.rpe ?? '');
   }
 }
 
-// e1RM PR検出（Epley）
-async function maybePR(exId, weight, reps){
-  if(!exId || !weight || !reps) return;
-  const sets = (await getAll('sets')).filter(s=>s.exercise_id===exId);
-  const prevBest = sets.length ? Math.max(...sets.map(s=> s.weight*(1 + s.reps/30))) : 0;
-  const now = weight*(1 + reps/30);
-  if(now > prevBest){
-    if('vibrate' in navigator) navigator.vibrate([60,60,120]);
-    showToast(`PR更新！e1RM ${Math.round(now)}kg`);
+async function checkAndNotifyPR(exId, weight, reps){
+  const newE = e1rm(weight, reps);
+  if(newE <= 0) return;
+
+  const all = await getAll('sets');
+  const prevSaved = all
+    .filter(s=>s.exercise_id===exId)
+    .reduce((m,s)=> Math.max(m, e1rm(s.weight, s.reps)), 0);
+
+  const prevInSession = currentSession.sets
+    .filter(s=>s.exercise_id===exId)
+    .reduce((m,s)=> Math.max(m, e1rm(s.weight, s.reps)), 0);
+
+  const prevBest = Math.max(prevSaved, prevInSession);
+
+  if(newE > prevBest){
+    const from = Math.round(prevBest);
+    const to   = Math.round(newE);
+    showToast(`PR！ e1RM ${from} → ${to} kg`);
+    try{ if('vibrate' in navigator) navigator.vibrate([180,80,180]); }catch(e){}
   }
 }
 
 // =================== Init ===================
 async function init(){
-  // 右上 ↻（強制更新）バインド
+  // 右上 ↻（強制更新）
   $('#btnHardRefresh')?.addEventListener('click', async ()=>{
     const b = $('#btnHardRefresh');
     const old = b.textContent;
     b.disabled = true;
     b.textContent = '更新…';
     showToast('最新に更新します…');
-    await hardRefresh(); // ここでSW解除＆キャッシュ削除 → 自動でリロード
+    await hardRefresh();
     b.textContent = old;
     b.disabled = false;
   });
@@ -158,7 +169,7 @@ async function init(){
   $('#sessDate').value = todayStr();
   bindSessionUI();
 
-  // Custom insert（部位チップ独立）
+  // Custom insert
   bindCustomInsertUI();
   renderTplPartChips();
   await renderTplExSelect();
@@ -169,10 +180,7 @@ async function init(){
 
   // Initial renders
   renderPartChips();
-  await renderExSelect();          // part フィルタ反映（メイン）
-  // 初期選択種目の前回値を一度だけ入れる
-  await prefillLastFor(Number($('#exSelect')?.value || 0));
-
+  await renderExSelect();          // part フィルタ反映（メイン） → 中で前回値もプリフィル
   renderTodaySets();
   renderHistory();
   renderAnalytics();
@@ -210,7 +218,7 @@ function renderPartChips(){
 }
 
 function bindSessionUI(){
-  // part chips（メイン）
+  // 部位チップ（メイン）
   const chips = $('#partChips');
   if (chips){
     chips.addEventListener('click', async (e)=>{
@@ -218,22 +226,24 @@ function bindSessionUI(){
       if(!b) return;
       selectedPart = b.dataset.part;
       renderPartChips();
-      await renderExSelect();
-      await prefillLastFor(Number($('#exSelect')?.value || 0));
+      await renderExSelect(); // 中でプリフィルも行う
     });
   }
 
-  // 種目変更で前回値プリフィル
-  $('#exSelect')?.addEventListener('change', e => prefillLastFor(Number(e.target.value)));
+  // 種目セレクト変更 → 前回値プリフィル
+  $('#exSelect')?.addEventListener('change', async ()=>{
+    const exId = Number($('#exSelect').value);
+    await prefillLastForExercise(exId);
+  });
 
-  // add custom exercise (bind to current part)
+  // 種目追加（選択中の部位に紐づけ）
   $('#btnAddEx')?.addEventListener('click', async ()=>{
     const name = prompt('種目名を入力（例：懸垂）');
     if(!name) return;
     try{
       await put('exercises', {name, group:selectedPart});
       await renderExSelect();
-      await renderTplExSelect(); // ← カスタム側も更新
+      await renderTplExSelect();
       await renderExList();
       showToast('種目を追加しました');
     }catch(e){
@@ -241,20 +251,22 @@ function bindSessionUI(){
     }
   });
 
-  // set add（PRチェック付き）
+  // セット追加（PR検出もここ）
   $('#btnAddSet')?.addEventListener('click', async ()=>{
     const exId = Number($('#exSelect').value);
     const weight = Number($('#weight').value);
     const reps   = Number($('#reps').value);
     const rpeStr = $('#rpe').value;
     if(!exId || !weight || !reps){ showToast('種目・重量・回数は必須です'); return; }
+
+    await checkAndNotifyPR(exId, weight, reps);
+
     currentSession.sets.push({
       temp_id: crypto.randomUUID(),
       exercise_id: exId, weight, reps,
       rpe: rpeStr ? Number(rpeStr) : null,
       ts: Date.now(), date: $('#sessDate').value
     });
-    await maybePR(exId, weight, reps);
     $('#weight').value=''; $('#reps').value=''; $('#rpe').value='';
     renderTodaySets();
   });
@@ -291,7 +303,7 @@ function renderTplPartChips(){
 }
 function bindCustomInsertUI(){
   const chips = $('#tplPartChips');
-  if (!chips) return; // HTMLが未適用でも落ちないように
+  if (!chips) return;
   chips.addEventListener('click', async (e)=>{
     const b = e.target.closest('.chip'); if(!b) return;
     tplSelectedPart = b.dataset.part;
@@ -307,15 +319,18 @@ async function renderTplExSelect(){
 }
 
 async function renderExSelect(){
-  // 種目は「選択中の部位」だけを列挙（メイン）
+  // 選択中の部位のみ列挙（メイン）
   let exs = await getAll('exercises');
   exs = exs.filter(e=>e.group===selectedPart).sort((a,b)=> a.name.localeCompare(b.name, 'ja'));
 
   const sel = $('#exSelect');
   if (sel){
     sel.innerHTML = exs.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('') || '<option>オプションなし</option>';
+    // リスト再生成直後にも前回値をプリフィル
+    const curId = Number(sel.value);
+    if(curId) await prefillLastForExercise(curId);
   }
-  // ここではプリフィルは呼ばず、呼び側で実行（bindSessionUI/init）
+  // 履歴テンプレ用の種目は buildHistoryTemplates() が別で描く
 }
 
 // ---- today list ----
@@ -401,7 +416,6 @@ async function applyQuickInsert(){
       exercise_id: exId, weight, reps, rpe:null, ts: now+i, date
     });
   }
-  await maybePR(exId, weight, reps);
   renderTodaySets();
   showToast('クイック投入しました');
 }
@@ -417,7 +431,6 @@ async function applyCustomInsert(){
   for(let i=0;i<n;i++){
     currentSession.sets.push({ temp_id:crypto.randomUUID(), exercise_id:exId, weight:w, reps:r, rpe:null, ts: now+i, date });
   }
-  await maybePR(exId, w, r);
   renderTodaySets();
   showToast('カスタム投入しました');
 }
@@ -492,7 +505,6 @@ async function renderHistory(){
 }
 
 // =================== Analytics ===================
-// レスポンシブなバー表示（直近7日合計）
 function _resizeCanvas(canvas, targetHeight = 260){
   const dpr  = Math.max(1, window.devicePixelRatio || 1);
   const rect = canvas.getBoundingClientRect();
@@ -503,7 +515,7 @@ function _resizeCanvas(canvas, targetHeight = 260){
     canvas.height = h * dpr;
     canvas.style.height = h + 'px';
     const ctx = canvas.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // 論理座標=CSSピクセル
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 }
 function _lastNDays(n){
@@ -594,7 +606,6 @@ function _drawBarChart(canvas, days, totals, hoverIndex=-1){
     }
   }
 
-  // 共有（インタラクション用）
   canvas._chartDims = {L, step, barW, W, H, T, B, max};
   canvas._days = days;
   canvas._totals = totals;
@@ -607,16 +618,13 @@ async function renderAnalytics(){
 
   const sets = await getAll('sets');
   const days = _lastNDays(7);
-  // 全種目の「日別合計ボリューム」
   const totals = days.map(d =>
     sets.filter(s => s.date === d.key)
         .reduce((sum,x)=> sum + x.weight * x.reps, 0)
   );
 
-  // 描画
   _drawBarChart(canvas, days, totals, -1);
 
-  // メトリクス
   const recentKeys = new Set(days.map(d=>d.key));
   const recentSets = sets.filter(s => recentKeys.has(s.date));
   const total7     = totals.reduce((a,b)=>a+b,0);
@@ -672,7 +680,7 @@ function bindSettingsUI(){
       $('#newExName').value='';
       await renderExList();
       await renderExSelect();
-      await renderTplExSelect(); // ← カスタム側も更新
+      await renderTplExSelect();
       showToast('追加しました');
     }catch(e){
       showToast('同名の種目があります');
@@ -739,7 +747,7 @@ async function renderExList(){
       await del('exercises', Number(b.dataset.id));
       await renderExList();
       await renderExSelect();
-      await renderTplExSelect(); // ← カスタム側も更新
+      await renderTplExSelect();
       renderAnalytics();
     });
   });
