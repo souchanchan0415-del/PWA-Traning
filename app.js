@@ -33,18 +33,52 @@ async function get(store, key){ return new Promise((res,rej)=>{ const r=tx([stor
 const $ = s=>document.querySelector(s);
 function showToast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1500); }
 function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
-function escapeHTML(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
+function escapeHTML(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&gt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
 
 let currentSession = { date: todayStr(), note:'', sets: [] };
 
+/* ===== 初期種目プリセット（重複・表記ゆれ整備済み） ===== */
+const EX_PRESETS = [
+  // 胸
+  'ベンチプレス','足上げベンチプレス','スミスマシンベンチプレス',
+  'インクラインダンベルプレス','インクラインマシンプレス',
+  'スミスマシンインクラインプレス','スミスマシンデクラインプレス',
+  'ディップス','ディップス（荷重）','ケーブルクロスオーバー',
+  'ペックフライ','チェストプレス',
+  // 背中
+  'デッドリフト','ハーフデッドリフト','懸垂（チンニング）',
+  'ラットプルダウン','ラットプルダウン（ナロー）','ラットプルダウン（ちょーナロー）','ワイドラットプルダウン',
+  'スミスマシンベントオーバーロウ','ベントオーバーロウ','ローロウ','シーテッドロウ','Tバーロウ',
+  // 肩
+  'ダンベルショルダープレス','スミスマシンショルダープレス','マシンショルダープレス',
+  'ケーブルフロントレイズ','サイドレイズ','ベンチサイドレイズ',
+  'ケーブルサイドレイズ','ケーブルリアレイズ','リアデルトイド',
+  // 脚
+  'スクワット','バーベルスクワット','バックスクワット','レッグプレス',
+  'レッグカール','レッグエクステンション','インナーサイ',
+  'ルーマニアンデッドリフト','スティフレッグデッドリフト',
+  // 腕
+  'バーベルカール','インクラインダンベルカール',
+  'インクラインダンベルカール（右）','インクラインダンベルカール（左）',
+  'ダンベルプリチャーカール（右）','ダンベルプリチャーカール（左）',
+  'ハンマーカール','スミスマシンナロープレス','ナロープレス',
+  'スカルクラッシャー','フレンチプレス','ケーブルプレスダウン','スミスJMプレス',
+];
+
+/* 既存にない種目だけを足す（重複回避） */
+async function ensureInitialExercises(){
+  const existing = new Set((await getAll('exercises')).map(e => e.name));
+  const toAdd = EX_PRESETS.filter(n => !existing.has(n));
+  for (const name of toAdd) {
+    await put('exercises', { name });
+  }
+}
+
 async function init(){
   await openDB();
-  const exs = await getAll('exercises');
-  if(exs.length===0){
-    await put('exercises',{id:1,name:'ベンチプレス'});
-    await put('exercises',{id:2,name:'スクワット'});
-    await put('exercises',{id:3,name:'デッドリフト'});
-  }
+  // ★ 初期種目を不足分だけ投入（初回は全投入／既存ユーザーは足りない分のみ）
+  await ensureInitialExercises();
+
   $('#sessDate').value = todayStr();
   bindTabs();
   bindSessionUI();
@@ -88,12 +122,12 @@ function bindSessionUI(){
     const set = { temp_id: crypto.randomUUID(), exercise_id: exId, weight, reps, rpe, ts: Date.now(), date: $('#sessDate').value };
     currentSession.sets.push(set);
     $('#weight').value=''; $('#reps').value=''; $('#rpe').value='';
-    renderTodaySets();        // ← ここまででOK（余計な追記は不要）
+    renderTodaySets();
   });
 
   $('#btnTimer').addEventListener('click', ()=>startRestTimer(60));
 
-  // ▼ テンプレ投入（クリック→選択値→関数呼び出し）の3行だけ
+  // テンプレ投入：クリック→選択値→関数呼び出し（3行だけ）
   $('#btnApplyTpl').addEventListener('click', async ()=>{
     const kind = $('#tplSelect').value;
     await applyTemplate(kind);
@@ -139,30 +173,25 @@ function renderTodaySets(){
 
 // ▼ テンプレ投入：確認→ボタン無効化→セット追加→描画→スクロール→再有効化
 async function applyTemplate(kind){
-  // 1) 既存セットがあるなら確認
   if (currentSession.sets.length > 0){
     const ok = confirm('既存のセットに追加します。よろしいですか？');
     if (!ok) return;
   }
-
-  // 2) 投入ボタンを一時的に無効化
   const _btnTpl = document.getElementById('btnApplyTpl');
   if (_btnTpl) _btnTpl.disabled = true;
 
-  // 3) 種目名→id マップ
   const exs = await getAll('exercises');
   const byName = Object.fromEntries(exs.map(e => [e.name, e.id]));
   const date = $('#sessDate').value;
   const now  = Date.now();
 
-  // 4) 1セット追加のヘルパ
   function pushSet(name, reps){
     const exId = byName[name];
-    if(!exId) return; // 未登録種目はスキップ
+    if(!exId) return;
     currentSession.sets.push({
       temp_id: crypto.randomUUID(),
       exercise_id: exId,
-      weight: 0,   // あとで自分の重量に書き換える
+      weight: 0,
       reps,
       rpe: null,
       ts: now,
@@ -170,7 +199,6 @@ async function applyTemplate(kind){
     });
   }
 
-  // 5) テンプレ定義
   if (kind === '5x5'){
     for(let i=0;i<5;i++) pushSet('スクワット',5);
     for(let i=0;i<5;i++) pushSet('ベンチプレス',5);
@@ -183,10 +211,8 @@ async function applyTemplate(kind){
     for(let i=0;i<5;i++) pushSet('スクワット',5);
   }
 
-  // 6) 描画更新＆フィードバック
   renderTodaySets();
-  const list = document.getElementById('todaySets');
-  if (list) list.scrollIntoView({ behavior:'smooth', block:'start' });
+  document.getElementById('todaySets')?.scrollIntoView({ behavior:'smooth', block:'start' });
   showToast('テンプレを追加しました');
   if (_btnTpl) _btnTpl.disabled = false;
 }
@@ -413,10 +439,10 @@ async function clearAll(){
       r.onsuccess=()=>res(); r.onerror=()=>rej(r.error);
     });
   }
-  // 初期種目を戻す
-  await put('exercises',{id:1,name:'ベンチプレス'});
-  await put('exercises',{id:2,name:'スクワット'});
-  await put('exercises',{id:3,name:'デッドリフト'});
+  // 初期種目を戻す（全プリセット）
+  for (const name of EX_PRESETS) {
+    await put('exercises', { name });
+  }
 }
 function csvEscape(s){ const needs = /[",\n]/.test(s); return needs ? '"' + String(s).replace(/"/g,'""') + '"' : s; }
 function parseCSVRow(row){
