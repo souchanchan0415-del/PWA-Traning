@@ -696,7 +696,7 @@ async function importCSV(e){
   const [_, sBlock, setBlock] = text.split('##SESSIONS');
   if(!setBlock){ showToast('形式が違います'); e.target.value=''; return; }
   const [sessionsPart, setsPart] = ('##SESSIONS'+setBlock).split('##SETS');
-  const sLines   = sessionsPart split(/\r?\n/).slice(2).filter(Boolean);
+  const sLines   = sessionsPart.split(/\r?\n/).slice(2).filter(Boolean);
   const setLines = setsPart.split(/\r?\n/).slice(2).filter(Boolean);
 
   for(const s of ['sessions','sets']){ await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); }
