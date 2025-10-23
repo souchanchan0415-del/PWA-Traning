@@ -6,7 +6,7 @@
   <title>Train Punch — 筋トレロガー</title>
   <meta name="theme-color" content="#111111">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=1.1.8">
+  <link rel="stylesheet" href="styles.css?v=1.1.9">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -24,7 +24,9 @@
   </header>
 
   <main>
+    <!-- セッション -->
     <section id="tab-session" class="tab active">
+      <!-- 入力カード -->
       <div class="card">
         <div class="row">
           <label>日付</label>
@@ -49,20 +51,24 @@
           <button id="btnTimer" class="ghost">休憩60s</button>
         </div>
       </div>
+
+      <!-- テンプレカード -->
       <div class="card">
-  <h3>テンプレから追加</h3>
-  <div class="row">
-    <select id="tplSelect">
-      <option value="5x5">5×5（スクワット/ベンチ/デッド）</option>
-      <option value="ppl-push">PPL：Push</option>
-      <option value="ppl-pull">PPL：Pull</option>
-      <option value="ppl-legs">PPL：Legs</option>
-    </select>
-    <button id="btnApplyTpl" class="ghost">投入</button>
-  </div>
-  <small>重量は目安です。自分の重量に書き換えてからセッション保存してください。</small>
-</div>
-<!-- ▲ テンプレから追加 -->
+        <h3>テンプレから追加</h3>
+        <div class="row">
+          <select id="tplSelect">
+            <option value="5x5">5×5（スクワット/ベンチ/デッド）</option>
+            <option value="ppl-push">PPL：Push</option>
+            <option value="ppl-pull">PPL：Pull</option>
+            <option value="ppl-legs">PPL：Legs</option>
+          </select>
+          <button id="btnApplyTpl" class="ghost">投入</button>
+        </div>
+        <small>重量は目安です。自分の重量に書き換えてからセッション保存してください。</small>
+      </div>
+
+      <!-- 今日のセット -->
+      <div class="card">
         <h3>今日のセット</h3>
         <ul id="todaySets" class="list"></ul>
         <div class="row end">
@@ -71,6 +77,7 @@
       </div>
     </section>
 
+    <!-- 履歴 -->
     <section id="tab-history" class="tab">
       <div class="card">
         <div class="row">
@@ -82,12 +89,13 @@
           </select>
           <button id="btnExport" class="ghost">CSV書き出し</button>
           <input type="file" id="importFile" accept=".csv" style="display:none">
-          <button id="btnImport" class="ghost">CSV読み込み</button>
+          <label for="importFile" class="ghost" style="display:inline-block; padding:12px 16px; border-radius:12px; cursor:pointer;">CSV読み込み</label>
         </div>
         <ul id="historyList" class="list"></ul>
       </div>
     </section>
 
+    <!-- 分析 -->
     <section id="tab-analytics" class="tab">
       <div class="card">
         <h3>直近7日：合計ボリューム(kg)</h3>
@@ -100,6 +108,7 @@
       </div>
     </section>
 
+    <!-- 設定 -->
     <section id="tab-settings" class="tab">
       <div class="card">
         <h3>種目管理</h3>
@@ -109,6 +118,7 @@
         </div>
         <ul id="exList" class="list"></ul>
       </div>
+
       <div class="card">
         <h3>通知 / データ</h3>
         <div class="row">
@@ -117,36 +127,36 @@
         </div>
         <small>※ OSの通知設定でオフにしている場合は通知は表示されません。</small>
       </div>
+
       <div class="card">
         <h3>表示</h3>
         <div class="row">
           <label>ダークモード</label>
           <input id="darkToggle" type="checkbox">
         </div>
-        <!-- ▼ バックアップ（JSON） -->
-<div class="card">
-  <h3>バックアップ</h3>
-  <div class="row">
-    <button id="btnExportJson" class="ghost">JSON書き出し</button>
-
-    <!-- 見た目はボタン、実体はファイル選択 -->
-    <label for="jsonIn" class="ghost" style="display:inline-block; padding:12px 16px; border-radius:12px; cursor:pointer;">
-      JSON読み込み
-    </label>
-    <input id="jsonIn" type="file" accept="application/json" style="display:none">
-  </div>
-  <small>書き出しは端末に保存、読み込みはファイル選択で復元できます。</small>
-</div>
-<!-- ▲ バックアップ（JSON） -->
       </div>
+
+      <!-- バックアップ（JSON） -->
+      <div class="card">
+        <h3>バックアップ</h3>
+        <div class="row">
+          <button id="btnExportJson" class="ghost">JSON書き出し</button>
+          <!-- 見た目はボタン、実体はファイル選択 -->
+          <label for="jsonIn" class="ghost" style="display:inline-block; padding:12px 16px; border-radius:12px; cursor:pointer;">JSON読み込み</label>
+          <input id="jsonIn" type="file" accept="application/json" style="display:none">
+        </div>
+        <small>書き出しは端末に保存、読み込みはファイル選択で復元できます。</small>
+      </div>
+
       <div class="card">
         <h3>情報</h3>
         <div class="kv">
-          <div>バージョン</div><div>1.1.1</div>
+          <div>バージョン</div><div>1.1.9</div>
           <div>プライバシー</div><div><a target="_blank" href="privacy.html">プライバシーポリシー</a></div>
-          <div>サポート</div><div><a href="mailto:toreninguguanli53@gmail.com?subject=Train%20Punch%20サポート">
-  toreninguguanli53@gmail.com
-</a></div>
+          <div>サポート</div>
+          <div>
+            <a href="mailto:toreninguguanli53@gmail.com?subject=Train%20Punch%20サポート">toreninguguanli53@gmail.com</a>
+          </div>
         </div>
         <small>当アプリはトレーニング記録を目的としたツールです。医療情報や効果を保証するものではありません。安全に配慮し、体調に異変があれば医療機関に相談してください。</small>
       </div>
@@ -154,7 +164,7 @@
   </main>
 
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=1.1.8"></script>
+  <script src="app.js?v=1.1.9"></script>
   <script src="sw-register.js"></script>
 </body>
 </html>
