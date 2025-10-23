@@ -1,4 +1,4 @@
-// Train Punch SW (v1.3.3) — cache bust + SPA nav fallback + SWR for CSS/JS
+// Train Punch SW (v1.3.3) — cache bust + SPA nav fallback
 const CACHE = 'trainpunch-1.3.3';
 const ASSETS = [
   './',
@@ -14,74 +14,58 @@ const ASSETS = [
   './icons/icon-512.png'
 ];
 
-self.addEventListener('install', (event) => {
+self.addEventListener('install', (e)=>{
   self.skipWaiting();
-  event.waitUntil((async () => {
+  e.waitUntil((async ()=>{
     const cache = await caches.open(CACHE);
-    await Promise.all(
-      ASSETS.map(u => cache.add(new Request(u, { cache: 'reload' })).catch(() => {}))
-    );
+    await Promise.all(ASSETS.map(url =>
+      cache.add(new Request(url, {cache:'reload'})).catch(()=>{})
+    ));
   })());
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil((async () => {
+self.addEventListener('activate', (e)=>{
+  e.waitUntil((async ()=>{
     const keys = await caches.keys();
     await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
-    if (self.registration.navigationPreload) {
-      await self.registration.navigationPreload.enable();
-    }
     await self.clients.claim();
   })());
 });
 
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  const url = new URL(req.url);
+// 任意: waiting を即時有効化できるように
+self.addEventListener('message', (e)=>{
+  if(e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
 
-  // --- SPA navigation: network (or preload) -> cache fallback ---
-  if (req.mode === 'navigate' && req.method === 'GET') {
-    event.respondWith((async () => {
-      try {
-        const preload = await event.preloadResponse;
-        return preload || await fetch(req);
-      } catch {
+self.addEventListener('fetch', (e)=>{
+  const req = e.request;
+
+  // SPAナビ: 失敗時は index.html
+  if (req.mode === 'navigate' && req.method === 'GET'){
+    e.respondWith((async ()=>{
+      try { return await fetch(req); }
+      catch(_){
         const cache = await caches.open(CACHE);
         return (await cache.match('./index.html')) ||
-               new Response('', { status: 200, headers: { 'Content-Type': 'text/html' } });
+               new Response('', {status:200, headers:{'Content-Type':'text/html'}});
       }
     })());
     return;
   }
 
-  // --- SWR for same-origin CSS/JS ---
-  const isStatic = url.origin === self.location.origin && /\.(?:css|js)$/.test(url.pathname);
-  if (isStatic) {
-    event.respondWith((async () => {
-      const cache = await caches.open(CACHE);
-      const cached = await cache.match(req);
-      const fetching = fetch(req).then(res => {
-        if (res && res.ok) cache.put(req, res.clone());
-        return res;
-      }).catch(() => null);
-      return cached || (await fetching) || Response.error();
-    })());
-    return;
-  }
-
-  // --- Default: cache-first, then network; on success, add to cache ---
-  event.respondWith((async () => {
+  // 通常: まずキャッシュ、なければネット→成功したら保存
+  e.respondWith((async ()=>{
     const cache = await caches.open(CACHE);
-    const cached = await cache.match(req);
-    if (cached) return cached;
-    try {
+    const hit = await cache.match(req);
+    if (hit) return hit;
+    try{
       const res = await fetch(req);
-      if (res && res.ok && req.method === 'GET' && url.origin === self.location.origin) {
+      if(res && res.ok && req.method==='GET' && req.url.startsWith(self.location.origin)){
         cache.put(req, res.clone());
       }
       return res;
-    } catch {
-      return cached || Response.error();
+    }catch(_){
+      return hit || Response.error();
     }
   })());
 });
