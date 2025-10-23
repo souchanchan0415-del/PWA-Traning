@@ -138,7 +138,8 @@ button.danger{ background:var(--danger); border-color:transparent; color:#fff; }
 .grid > * { min-width: 0; }          /* grid 子要素も同様 */
 .grid-3 input,
 .grid-3 select { width: 100%; }      /* 列幅にきっちり収める */
-
+.grid-2 input,
+.grid-2 select { width: 100%; }
 /* 狭い画面では「＋追加」を改行してセレクトに幅を譲る */
 @media (max-width: 560px){
   #btnAddEx{ flex-basis: 100%; }     /* 種目行でボタンが次行に回る */
