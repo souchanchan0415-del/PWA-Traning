@@ -1,10 +1,9 @@
-// sw.js
-const CACHE = 'trainpunch-1.2.2';
+const CACHE = 'trainpunch-1.3.0';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=1.2.2',
-  './app.js?v=1.2.2',
+  './styles.css?v=1.3.0',
+  './app.js?v=1.3.0',
   './sw-register.js',
   './manifest.webmanifest',
   './privacy.html',
@@ -14,17 +13,16 @@ const ASSETS = [
   './icons/icon-512.png'
 ];
 
-// 1) インストール時：HTTPキャッシュをバイパスして確実に最新を取得
 self.addEventListener('install', (e) => {
-  self.skipWaiting(); // 新SWを即時アクティブ化
+  self.skipWaiting();
   e.waitUntil(
-    caches.open(CACHE).then(cache =>
-      cache.addAll(ASSETS.map(u => new Request(u, { cache: 'reload' })))
-    )
+    caches.open(CACHE).then(async (c) => {
+      // 1) HTTPキャッシュをバイパスして常に最新を取る
+      await c.addAll(ASSETS.map((url) => new Request(url, { cache: 'reload' })));
+    })
   );
 });
 
-// 有効化：旧キャッシュを掃除して既存タブも新SWに切替
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then(keys =>
@@ -33,28 +31,30 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// 2) SPAナビゲーション：オンラインならネット優先、オフラインなら index.html をフォールバック
+// 2) SPAナビゲーションでも index.html を返す（オフライン許容）
 self.addEventListener('fetch', (e) => {
   const req = e.request;
 
+  // navigation requests → app shell
   if (req.mode === 'navigate') {
-    e.respondWith((async () => {
-      try {
-        // 最新を取りにいく
-        return await fetch(req);
-      } catch {
-        // オフライン時はキャッシュ済みの App Shell
-        const cached = await caches.match('./index.html');
-        return cached || Response.error();
-      }
-    })());
+    e.respondWith(
+      (async () => {
+        const cache = await caches.open(CACHE);
+        try {
+          const fresh = await fetch(new Request('./index.html', { cache: 'reload' }));
+          cache.put('./index.html', fresh.clone());
+          return fresh;
+        } catch {
+          const cached = await cache.match('./index.html');
+          return cached || new Response('offline', { status: 503, statusText: 'Offline' });
+        }
+      })()
+    );
     return;
   }
 
-  // 静的アセット等：キャッシュ優先＋ネットフォールバック
+  // asset: cache-first → network fallback
   e.respondWith(
-    caches.match(req).then(cached =>
-      cached || fetch(req).catch(() => cached)
-    )
+    caches.match(req).then(cached => cached || fetch(req).catch(() => caches.match('./index.html')))
   );
 });
