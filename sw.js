@@ -1,10 +1,10 @@
-// Train Punch SW (v1.3.2) — cache bust + SPA nav fallback + SWR for CSS/JS
-const CACHE = 'trainpunch-1.3.2';
+// Train Punch SW (v1.3.3) — cache bust + SPA nav fallback + SWR for CSS/JS
+const CACHE = 'trainpunch-1.3.3';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=1.3.2',
-  './app.js?v=1.3.2',
+  './styles.css?v=1.3.3',
+  './app.js?v=1.3.3',
   './sw-register.js',
   './manifest.webmanifest',
   './privacy.html',
