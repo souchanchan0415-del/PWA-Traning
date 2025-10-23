@@ -9,7 +9,6 @@ const $$ = s => Array.from(document.querySelectorAll(s));
 
 function showToast(msg){
   const t = $('#toast');
-  if(!t) return;
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 1400);
@@ -84,8 +83,9 @@ async function ensureInitialExercises(){
 
 // ---- UI state ----
 let currentSession = { date: todayStr(), note:'', sets: [] };
-let selectedPart = '胸';           // セッション用
-let selectedPartCustom = '胸';     // カスタム投入用（独立）
+let selectedPart = '胸';
+// ★ カスタム投入用（独立して選べる）
+let tplSelectedPart = '胸';
 
 // =================== Init ===================
 async function init(){
@@ -99,16 +99,18 @@ async function init(){
   $('#sessDate').value = todayStr();
   bindSessionUI();
 
+  // Custom insert（部位チップ独立）
+  bindCustomInsertUI();
+  renderTplPartChips();
+  await renderTplExSelect();
+
   // History & Settings
   bindHistoryUI();
   bindSettingsUI();
 
-  // 初期レンダリング
-  renderPartChips('#partChips', selectedPart);
-  await ensureCustomChips();                 // カスタム投入に部位チップを自動挿入
-  renderPartChips('#partChipsCustom', selectedPartCustom);
-
-  await renderExSelect();          // セッション/カスタム両方のセレクトを更新
+  // Initial renders
+  renderPartChips();
+  await renderExSelect();          // part フィルタ反映（メイン）
   renderTodaySets();
   renderHistory();
   renderAnalytics();
@@ -116,8 +118,7 @@ async function init(){
 
   // Theme
   const dark = (await get('prefs','dark'))?.value || false;
-  const tgl = $('#darkToggle');
-  if(tgl){ tgl.checked = dark; }
+  $('#darkToggle').checked = dark;
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
 }
 
@@ -140,55 +141,41 @@ function bindTabs(){
 }
 
 // =================== Session ===================
-function renderPartChips(containerSel, current){
-  const box = $(containerSel);
-  if(!box) return;
-  // 中身を再構築（念のため）
-  box.innerHTML = PARTS.map(p=>`<button type="button" class="chip" data-part="${p}">${p}</button>`).join('');
-  $$(containerSel+' .chip').forEach(ch=>{
-    ch.classList.toggle('active', ch.dataset.part === current);
+function renderPartChips(){
+  $$('#partChips .chip').forEach(ch=>{
+    ch.classList.toggle('active', ch.dataset.part === selectedPart);
   });
 }
+
 function bindSessionUI(){
-  // セッション: 部位チップ
-  const partBox = $('#partChips');
-  if(partBox){
-    partBox.addEventListener('click', async (e)=>{
-      const b = e.target.closest('.chip'); if(!b) return;
+  // part chips（メイン）
+  const chips = $('#partChips');
+  if (chips){
+    chips.addEventListener('click', async (e)=>{
+      const b = e.target.closest('.chip');
+      if(!b) return;
       selectedPart = b.dataset.part;
-      renderPartChips('#partChips', selectedPart);
+      renderPartChips();
       await renderExSelect();
     });
   }
 
-  // カスタム投入: 部位チップ
-  document.addEventListener('click', async (e)=>{
-    const b = e.target.closest('#partChipsCustom .chip');
-    if(!b) return;
-    selectedPartCustom = b.dataset.part;
-    renderPartChips('#partChipsCustom', selectedPartCustom);
-    await renderExSelect(); // カスタム側のセレクトだけでなく、全体再構築（速い）
+  // add custom exercise (bind to current part)
+  $('#btnAddEx')?.addEventListener('click', async ()=>{
+    const name = prompt('種目名を入力（例：懸垂）');
+    if(!name) return;
+    try{
+      await put('exercises', {name, group:selectedPart});
+      await renderExSelect();
+      await renderExList();
+      showToast('種目を追加しました');
+    }catch(e){
+      showToast('同名の種目があります');
+    }
   });
 
-  // 追加（セッション）
-  const addBtn = $('#btnAddEx');
-  if(addBtn){
-    addBtn.addEventListener('click', async ()=>{
-      const name = prompt('種目名を入力（例：懸垂）');
-      if(!name) return;
-      try{
-        await put('exercises', {name, group:selectedPart});
-        await renderExSelect();
-        await renderExList();
-        showToast('種目を追加しました');
-      }catch(e){
-        showToast('同名の種目があります');
-      }
-    });
-  }
-
-  // セット追加
-  $('#btnAddSet').addEventListener('click', ()=>{
+  // set add
+  $('#btnAddSet')?.addEventListener('click', ()=>{
     const exId = Number($('#exSelect').value);
     const weight = Number($('#weight').value);
     const reps   = Number($('#reps').value);
@@ -204,9 +191,9 @@ function bindSessionUI(){
     renderTodaySets();
   });
 
-  $('#btnTimer').addEventListener('click', ()=>startRestTimer(60));
+  $('#btnTimer')?.addEventListener('click', ()=>startRestTimer(60));
 
-  $('#btnSaveSession').addEventListener('click', async ()=>{
+  $('#btnSaveSession')?.addEventListener('click', async ()=>{
     if(!currentSession.sets.length){ showToast('セットがありません'); return; }
     const date = $('#sessDate').value;
     const note = $('#sessNote').value;
@@ -221,45 +208,47 @@ function bindSessionUI(){
   });
 
   // Quick insert & custom insert
-  $('#btnTplApply').addEventListener('click', applyQuickInsert);
-  $('#btnTplCustom').addEventListener('click', applyCustomInsert);
+  $('#btnTplApply')?.addEventListener('click', applyQuickInsert);
+  $('#btnTplCustom')?.addEventListener('click', applyCustomInsert);
 
   // 初回の履歴テンプレ描画
   buildHistoryTemplates();
 }
 
-// カスタム投入の部位チップを自動挿入（HTML変更不要）
-async function ensureCustomChips(){
-  const sel = $('#tplExCustom');
-  if(!sel) return;
-  if($('#partChipsCustom')) return; // すでにある
-
-  const box = document.createElement('div');
-  box.id = 'partChipsCustom';
-  box.className = 'chipset';
-  // 先に配置してから描画
-  sel.parentElement.insertAdjacentElement('beforebegin', box);
+// ======== Custom insert (独立した部位チップ) ========
+function renderTplPartChips(){
+  $$('#tplPartChips .chip').forEach(ch=>{
+    ch.classList.toggle('active', ch.dataset.part === tplSelectedPart);
+  });
+}
+function bindCustomInsertUI(){
+  const chips = $('#tplPartChips');
+  if (!chips) return; // HTMLが未適用でも落ちないように
+  chips.addEventListener('click', async (e)=>{
+    const b = e.target.closest('.chip'); if(!b) return;
+    tplSelectedPart = b.dataset.part;
+    renderTplPartChips();
+    await renderTplExSelect();
+  });
+}
+async function renderTplExSelect(){
+  const sel = $('#tplExCustom'); if(!sel) return;
+  let exs = await getAll('exercises');
+  exs = exs.filter(e=>e.group===tplSelectedPart).sort((a,b)=>a.name.localeCompare(b.name,'ja'));
+  sel.innerHTML = exs.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('') || '<option>オプションなし</option>';
 }
 
-// 種目セレクト（セッション/カスタム両方）を更新
 async function renderExSelect(){
-  const all = await getAll('exercises');
+  // 種目は「選択中の部位」だけを列挙（メイン）
+  let exs = await getAll('exercises');
+  exs = exs.filter(e=>e.group===selectedPart).sort((a,b)=> a.name.localeCompare(b.name, 'ja'));
 
-  // セッション側
-  const exsSess = all.filter(e=>e.group===selectedPart).sort((a,b)=> a.name.localeCompare(b.name,'ja'));
   const sel = $('#exSelect');
-  if(sel) sel.innerHTML = exsSess.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('') || '<option>オプションなし</option>';
+  if (sel){
+    sel.innerHTML = exs.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('') || '<option>オプションなし</option>';
+  }
 
-  // カスタム側
-  const exsCustom = all
-    .filter(e=>e.group===selectedPartCustom)
-    .sort((a,b)=> a.name.localeCompare(b.name,'ja'));
-  const sel2 = $('#tplExCustom');
-  if(sel2) sel2.innerHTML = exsCustom.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('') || '<option>オプションなし</option>';
-
-  // 履歴テンプレ用は buildHistoryTemplates() で別管理
-  renderPartChips('#partChips', selectedPart);
-  renderPartChips('#partChipsCustom', selectedPartCustom);
+  // 履歴テンプレ用の種目は buildHistoryTemplates() が別で描く
 }
 
 // ---- today list ----
@@ -284,6 +273,7 @@ function renderTodaySets(){
     });
   });
 }
+
 function exNameById(id){
   const opt = $('#tplExCustom')?.querySelector(`option[value="${id}"]`) || $('#exSelect')?.querySelector(`option[value="${id}"]`);
   return opt ? opt.textContent : '種目';
@@ -299,10 +289,12 @@ async function buildHistoryTemplates(){
   const used = [...new Set(sets.map(s=>s.exercise_id))].map(id=>({id, name:nameById[id] || `#${id}`})).filter(x=>x.name);
   used.sort((a,b)=> a.name.localeCompare(b.name,'ja'));
 
-  const histSel = $('#tplExFromHist');
-  if(histSel) histSel.innerHTML = used.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('') || '<option>履歴がありません</option>';
+  const sel = $('#tplExFromHist');
+  if (sel){
+    sel.innerHTML = used.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('') || '<option>履歴がありません</option>';
+  }
 
-  // patterns map: reps（セット数は見やすさのため 5 を付与）
+  // patterns map: "sets×reps"
   const freq = {};
   sets.forEach(s=>{
     const key = `${s.reps}`;
@@ -314,7 +306,9 @@ async function buildHistoryTemplates(){
     .map(([reps])=>`5×${reps}`);
 
   const pattSel = $('#tplPattern');
-  if(pattSel) pattSel.innerHTML = patterns.map(p=>`<option>${p}</option>`).join('') || '<option>パターンなし</option>';
+  if (pattSel){
+    pattSel.innerHTML = patterns.map(p=>`<option>${p}</option>`).join('') || '<option>パターンなし</option>';
+  }
 }
 
 async function applyQuickInsert(){
@@ -384,14 +378,15 @@ function startRestTimer(sec){
 
 // =================== History ===================
 function bindHistoryUI(){
-  $('#historyCount').addEventListener('change', renderHistory);
-  $('#btnExport').addEventListener('click', exportCSV);
-  $('#importFile').addEventListener('change', importCSV);
+  $('#historyCount')?.addEventListener('change', renderHistory);
+  $('#btnExport')?.addEventListener('click', exportCSV);
+  $('#importFile')?.addEventListener('change', importCSV);
 }
 async function renderHistory(){
-  const count = Number($('#historyCount').value || 20);
+  const count = Number($('#historyCount')?.value || 20);
   const sessions = (await getAll('sessions')).sort((a,b)=>b.created_at-a.created_at).slice(0,count);
-  const ul = $('#historyList'); if(!ul) return; ul.innerHTML = '';
+  const ul = $('#historyList'); if(!ul) return;
+  ul.innerHTML = '';
 
   for(const s of sessions){
     const sets = await indexGetAll('sets','by_session', s.id);
@@ -429,7 +424,6 @@ async function renderHistory(){
 
 // =================== Analytics ===================
 // レスポンシブなバー表示（直近7日合計）
-
 function _resizeCanvas(canvas, targetHeight = 260){
   const dpr  = Math.max(1, window.devicePixelRatio || 1);
   const rect = canvas.getBoundingClientRect();
@@ -586,95 +580,76 @@ async function renderAnalytics(){
 // =================== Settings ===================
 function bindSettingsUI(){
   // theme
-  const tog = $('#darkToggle');
-  if(tog){
-    tog.addEventListener('change', async (e)=>{
-      const on = e.target.checked;
-      document.documentElement.dataset.theme = on ? 'dark' : 'light';
-      await put('prefs',{key:'dark', value:on});
-    });
-  }
+  $('#darkToggle')?.addEventListener('change', async (e)=>{
+    const on = e.target.checked;
+    document.documentElement.dataset.theme = on ? 'dark' : 'light';
+    await put('prefs',{key:'dark', value:on});
+  });
 
   // notifications
-  const notif = $('#btnNotif');
-  if(notif){
-    notif.addEventListener('click', async ()=>{
-      if(!('Notification' in window)){ showToast('この端末は通知に未対応'); return; }
-      const perm = await Notification.requestPermission();
-      showToast(perm==='granted' ? '通知を許可しました' : '通知は許可されていません');
-    });
-  }
+  $('#btnNotif')?.addEventListener('click', async ()=>{
+    if(!('Notification' in window)){ showToast('この端末は通知に未対応'); return; }
+    const perm = await Notification.requestPermission();
+    showToast(perm==='granted' ? '通知を許可しました' : '通知は許可されていません');
+  });
 
   // add exercise (with part)
-  const create = $('#btnCreateEx');
-  if(create){
-    create.addEventListener('click', async ()=>{
-      const name = $('#newExName').value.trim();
-      const part = $('#newExPart').value || undefined;
-      if(!name) return;
-      try{
-        await put('exercises',{name, group:part});
-        $('#newExName').value='';
-        await renderExList();
-        await renderExSelect();    // セッション/カスタム両方反映
-        showToast('追加しました');
-      }catch(e){
-        showToast('同名の種目があります');
-      }
-    });
-  }
+  $('#btnCreateEx')?.addEventListener('click', async ()=>{
+    const name = $('#newExName').value.trim();
+    const part = $('#newExPart').value || undefined;
+    if(!name) return;
+    try{
+      await put('exercises',{name, group:part});
+      $('#newExName').value='';
+      await renderExList();
+      await renderExSelect();
+      showToast('追加しました');
+    }catch(e){
+      showToast('同名の種目があります');
+    }
+  });
 
   // filter
-  const filter = $('#filterPart');
-  if(filter) filter.addEventListener('change', renderExList);
+  $('#filterPart')?.addEventListener('change', renderExList);
 
   // wipe
-  const wipe = $('#btnWipe');
-  if(wipe){
-    wipe.addEventListener('click', async ()=>{
-      if(!confirm('本当に全データを削除しますか？')) return;
-      for(const s of ['sessions','sets','exercises']){
-        await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
-      }
-      await ensureInitialExercises();
-      await renderExList(); await renderExSelect(); renderHistory(); renderAnalytics(); renderTodaySets();
-      showToast('全データを削除しました');
-    });
-  }
+  $('#btnWipe')?.addEventListener('click', async ()=>{
+    if(!confirm('本当に全データを削除しますか？')) return;
+    for(const s of ['sessions','sets','exercises']){
+      await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+    }
+    await ensureInitialExercises();
+    await renderExList(); await renderExSelect(); renderHistory(); renderAnalytics(); renderTodaySets();
+    showToast('全データを削除しました');
+  });
 
   // JSON backup
-  const exJson = $('#btnExportJson');
-  if(exJson){
-    exJson.addEventListener('click', async ()=>{
-      const data = {
-        sessions: await getAll('sessions'),
-        sets: await getAll('sets'),
-        exercises: await getAll('exercises'),
-        prefs: await getAll('prefs')
-      };
-      const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'train_punch_backup.json'; a.click();
-      URL.revokeObjectURL(url);
-    });
-  }
-  const jsonIn = $('#jsonIn');
-  if(jsonIn){
-    jsonIn.addEventListener('change', async (e)=>{
-      const file = e.target.files[0]; if(!file) return;
-      const data = JSON.parse(await file.text());
-      for(const s of ['sessions','sets','exercises','prefs']){
-        await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
-      }
-      for(const x of (data.exercises||[])) await put('exercises', x);
-      for(const x of (data.sessions ||[])) await put('sessions', x);
-      for(const x of (data.sets     ||[])) await put('sets', x);
-      for(const x of (data.prefs    ||[])) await put('prefs', x);
-      await renderExList(); await renderExSelect(); renderHistory(); renderAnalytics(); renderTodaySets();
-      showToast('復元しました');
-      e.target.value='';
-    });
-  }
+  $('#btnExportJson')?.addEventListener('click', async ()=>{
+    const data = {
+      sessions: await getAll('sessions'),
+      sets: await getAll('sets'),
+      exercises: await getAll('exercises'),
+      prefs: await getAll('prefs')
+    };
+    const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'train_punch_backup.json'; a.click();
+    URL.revokeObjectURL(url);
+  });
+  $('#jsonIn')?.addEventListener('change', async (e)=>{
+    const file = e.target.files[0]; if(!file) return;
+    const data = JSON.parse(await file.text());
+    for(const s of ['sessions','sets','exercises','prefs']){
+      await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+    }
+    for(const x of (data.exercises||[])) await put('exercises', x);
+    for(const x of (data.sessions ||[])) await put('sessions', x);
+    for(const x of (data.sets     ||[])) await put('sets', x);
+    for(const x of (data.prefs    ||[])) await put('prefs', x);
+    await renderExList(); await renderExSelect(); renderHistory(); renderAnalytics(); renderTodaySets();
+    showToast('復元しました');
+    e.target.value='';
+  });
 }
 
 async function renderExList(){
@@ -683,8 +658,7 @@ async function renderExList(){
   if(filt !== 'all') exs = exs.filter(e=>e.group===filt);
   exs.sort((a,b)=> (a.group||'').localeCompare(b.group||'','ja') || a.name.localeCompare(b.name,'ja'));
 
-  const ul = $('#exList');
-  if(!ul) return;
+  const ul = $('#exList'); if(!ul) return;
   ul.innerHTML = exs.map(e=>{
     const tag = e.group ? `<span class="badge" style="margin-right:8px">${esc(e.group)}</span>` : '';
     return `<li><span>${tag}${esc(e.name)}</span><button class="ghost" data-id="${e.id}">削除</button></li>`;
