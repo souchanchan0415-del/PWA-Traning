@@ -78,6 +78,7 @@ function bindSessionUI(){
     try{ await put('exercises',{name}); renderExSelect(); showToast('種目を追加'); }
     catch(e){ showToast('同名の種目があります'); }
   });
+
   $('#btnAddSet').addEventListener('click', async ()=>{
     const exId = Number($('#exSelect').value);
     const weight = Number($('#weight').value);
@@ -87,14 +88,17 @@ function bindSessionUI(){
     const set = { temp_id: crypto.randomUUID(), exercise_id: exId, weight, reps, rpe, ts: Date.now(), date: $('#sessDate').value };
     currentSession.sets.push(set);
     $('#weight').value=''; $('#reps').value=''; $('#rpe').value='';
-    renderTodaySets();
+    renderTodaySets();        // ← ここまででOK（余計な追記は不要）
   });
+
   $('#btnTimer').addEventListener('click', ()=>startRestTimer(60));
-  // 既存の bindSessionUI() 内に追加
+
+  // ▼ テンプレ投入（クリック→選択値→関数呼び出し）の3行だけ
   $('#btnApplyTpl').addEventListener('click', async ()=>{
-  const kind = $('#tplSelect').value;
-  await applyTemplate(kind);
-});
+    const kind = $('#tplSelect').value;
+    await applyTemplate(kind);
+  });
+
   $('#btnSaveSession').addEventListener('click', async ()=>{
     const date = $('#sessDate').value;
     const note = $('#sessNote').value;
@@ -132,22 +136,33 @@ function renderTodaySets(){
     });
   });
 }
+
+// ▼ テンプレ投入：確認→ボタン無効化→セット追加→描画→スクロール→再有効化
 async function applyTemplate(kind){
-  // 種目名 → id 変換用
+  // 1) 既存セットがあるなら確認
+  if (currentSession.sets.length > 0){
+    const ok = confirm('既存のセットに追加します。よろしいですか？');
+    if (!ok) return;
+  }
+
+  // 2) 投入ボタンを一時的に無効化
+  const _btnTpl = document.getElementById('btnApplyTpl');
+  if (_btnTpl) _btnTpl.disabled = true;
+
+  // 3) 種目名→id マップ
   const exs = await getAll('exercises');
   const byName = Object.fromEntries(exs.map(e => [e.name, e.id]));
-
   const date = $('#sessDate').value;
   const now  = Date.now();
 
-  // 1セットを currentSession に積むヘルパ
+  // 4) 1セット追加のヘルパ
   function pushSet(name, reps){
     const exId = byName[name];
-    if(!exId) return; // 種目が見つからなければスキップ
+    if(!exId) return; // 未登録種目はスキップ
     currentSession.sets.push({
       temp_id: crypto.randomUUID(),
       exercise_id: exId,
-      weight: 0,         // 重量はあとで自分の数値に書き換える
+      weight: 0,   // あとで自分の重量に書き換える
       reps,
       rpe: null,
       ts: now,
@@ -155,20 +170,27 @@ async function applyTemplate(kind){
     });
   }
 
-  // ▼ テンプレ定義（初期3種目で完結）
-  if(kind === '5x5'){
-    for(let i=0;i<5;i++){ pushSet('スクワット',5); }
-    for(let i=0;i<5;i++){ pushSet('ベンチプレス',5); }
-    for(let i=0;i<5;i++){ pushSet('デッドリフト',5); }
-  }else if(kind === 'ppl-push'){
-    for(let i=0;i<5;i++){ pushSet('ベンチプレス',5); }
-  }else if(kind === 'ppl-pull'){
-    for(let i=0;i<5;i++){ pushSet('デッドリフト',5); }
-  }else if(kind === 'ppl-legs'){
-    for(let i=0;i<5;i++){ pushSet('スクワット',5); }
+  // 5) テンプレ定義
+  if (kind === '5x5'){
+    for(let i=0;i<5;i++) pushSet('スクワット',5);
+    for(let i=0;i<5;i++) pushSet('ベンチプレス',5);
+    for(let i=0;i<5;i++) pushSet('デッドリフト',5);
+  } else if (kind === 'ppl-push'){
+    for(let i=0;i<5;i++) pushSet('ベンチプレス',5);
+  } else if (kind === 'ppl-pull'){
+    for(let i=0;i<5;i++) pushSet('デッドリフト',5);
+  } else if (kind === 'ppl-legs'){
+    for(let i=0;i<5;i++) pushSet('スクワット',5);
   }
-  // ▲ テンプレ定義おわり
+
+  // 6) 描画更新＆フィードバック
+  renderTodaySets();
+  const list = document.getElementById('todaySets');
+  if (list) list.scrollIntoView({ behavior:'smooth', block:'start' });
+  showToast('テンプレを追加しました');
+  if (_btnTpl) _btnTpl.disabled = false;
 }
+
 // Timer with notification fallback
 let timerHandle=null, timerLeft=0;
 function startRestTimer(sec){
@@ -216,7 +238,7 @@ async function renderHistory(){
     const vol  = sets.reduce((sum,x)=> sum + x.weight * x.reps, 0);
     const est  = sets.length ? Math.max(...sets.map(x => x.weight * (1 + x.reps/30))) : 0;
 
-    const li = document.createElement('li');   // ← ここは1回だけ
+    const li = document.createElement('li');
     li.innerHTML = `
       <div>
         <strong>${s.date}</strong>
@@ -237,7 +259,6 @@ async function renderHistory(){
     ul.innerHTML = '<li>まだありません</li>';
   }
 
-  // ▼ クリック処理（委譲）— ここが「②③」の部分
   if (!ul._bound){
     ul.addEventListener('click', async (e)=>{
       const b = e.target.closest('button'); if (!b) return;
@@ -252,7 +273,7 @@ async function renderHistory(){
         await duplicateSessionToToday(id);
       }
     });
-    ul._bound = true; // 重複バインド防止
+    ul._bound = true;
   }
 }
 
@@ -355,10 +376,10 @@ async function renderExList(){
 async function exportCSV(){
   const sessions = await getAll('sessions');
   const sets = await getAll('sets');
-  const header1 = '##SESSIONS\\nid,date,note\\n';
-  const lines1 = sessions.map(s=> `${s.id},${s.date},${csvEscape(s.note||'')}`).join('\\n');
-  const header2 = '\\n##SETS\\nid,session_id,exercise_id,weight,reps,rpe,ts,date\\n';
-  const lines2 = sets.map(s=> [s.id,s.session_id,s.exercise_id,s.weight,s.reps,(s.rpe??''),s.ts,s.date].join(',')).join('\\n');
+  const header1 = '##SESSIONS\nid,date,note\n';
+  const lines1 = sessions.map(s=> `${s.id},${s.date},${csvEscape(s.note||'')}`).join('\n');
+  const header2 = '\n##SETS\nid,session_id,exercise_id,weight,reps,rpe,ts,date\n';
+  const lines2 = sets.map(s=> [s.id,s.session_id,s.exercise_id,s.weight,s.reps,(s.rpe??''),s.ts,s.date].join(',')).join('\n');
   const blob = new Blob([header1+lines1+header2+lines2], {type:'text/csv'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -371,8 +392,8 @@ async function importCSV(ev){
   const [_, sBlock, setBlock] = text.split('##SESSIONS');
   if(!setBlock){ showToast('形式が違います'); ev.target.value=''; return; }
   const [sessionsPart, setsPart] = ('##SESSIONS'+setBlock).split('##SETS');
-  const sLines = sessionsPart.split(/\\r?\\n/).slice(2).filter(Boolean);
-  const setLines = setsPart.split(/\\r?\\n/).slice(2).filter(Boolean);
+  const sLines = sessionsPart.split(/\r?\n/).slice(2).filter(Boolean);
+  const setLines = setsPart.split(/\r?\n/).slice(2).filter(Boolean);
   await clearAll();
   for(const line of sLines){
     const [id,date,note] = parseCSVRow(line);
@@ -397,7 +418,7 @@ async function clearAll(){
   await put('exercises',{id:2,name:'スクワット'});
   await put('exercises',{id:3,name:'デッドリフト'});
 }
-function csvEscape(s){ const needs = /[",\\n]/.test(s); return needs ? '"' + String(s).replace(/"/g,'""') + '"' : s; }
+function csvEscape(s){ const needs = /[",\n]/.test(s); return needs ? '"' + String(s).replace(/"/g,'""') + '"' : s; }
 function parseCSVRow(row){
   const out = []; let cur='', inQ=false;
   for(let i=0;i<row.length;i++){
@@ -413,7 +434,6 @@ async function deleteSession(id){
   renderHistory(); renderAnalytics();
   showToast('セッションを削除しました');
 }
-
 async function editSessionNote(id){
   const s = await get('sessions', id);
   const next = prompt('メモを編集', s?.note || '');
@@ -423,7 +443,6 @@ async function editSessionNote(id){
   renderHistory();
   showToast('メモを更新しました');
 }
-
 async function duplicateSessionToToday(id){
   const src = await get('sessions', id);
   const today = todayStr();
@@ -435,66 +454,5 @@ async function duplicateSessionToToday(id){
   renderHistory(); renderAnalytics();
   showToast('今日に複製しました');
 }
-// 名前から種目IDを取得。なければ作成してIDを返す
-async function ensureExerciseId(name){
-  const all = await getAll('exercises');
-  let ex = all.find(e => e.name === name);
-  if (!ex){
-    await put('exercises', { name });
-    const all2 = await getAll('exercises');
-    ex = all2.find(e => e.name === name);
-  }
-  return ex.id;
-}
-// テンプレ定義（重量は目安：あとで自由に編集）
-const TEMPLATES = {
-  '5x5': [
-    ['スクワット',     40, 5, 5],
-    ['ベンチプレス',   30, 5, 5],
-    ['デッドリフト',   50, 5, 5],
-  ],
-  'ppl-push': [
-    ['ベンチプレス',           30, 4, 8],
-    ['ショルダープレス',       20, 3, 10],
-    ['ディップス/プッシュアップ', 0, 3, 12],
-    ['トライセプスエクステンション', 10, 3, 12],
-  ],
-  'ppl-pull': [
-    ['ベントオーバーロー', 30, 4, 8],
-    ['懸垂/ラットプル',    0,  3, 10],
-    ['フェイスプル',      8,  3, 15],
-    ['アームカール',     10,  3, 12],
-  ],
-  'ppl-legs': [
-    ['スクワット',     40, 4, 6],
-    ['ルーマニアンDL', 30, 3, 8],
-    ['レッグプレス',   80, 3, 12],
-    ['カーフレイズ',   40, 3, 15],
-  ],
-};
 
-// テンプレ投入：選んだテンプレの種目/セットを今日のセットに一括追加
-async function applyTemplate(kind){
-  const tpl = TEMPLATES[kind];
-  if (!tpl){ showToast('テンプレが見つかりません'); return; }
-  const date = $('#sessDate').value;
-  for (const [name, weight, sets, reps] of tpl){
-    const exId = await ensureExerciseId(name);
-    for (let i=0; i<sets; i++){
-      currentSession.sets.push({
-        temp_id: crypto.randomUUID(),
-        exercise_id: exId,
-        weight: Number(weight),
-        reps: Number(reps),
-        rpe: null,
-        ts: Date.now(),
-        date
-      });
-    }
-  }
-  // UI更新
-  await renderExSelect();
-  renderTodaySets();
-  showToast('テンプレを追加しました');
-}
-init(); // ← これは元からある行（消さない）
+init(); // ← 消さない
