@@ -2,7 +2,7 @@
 <html lang="ja" data-theme="light">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
   <title>Train Punch — 筋トレロガー</title>
 
   <meta name="description" content="サクッと記録できる筋トレロガー。オフライン対応・PWA。" />
@@ -16,7 +16,7 @@
   <meta name="apple-mobile-web-app-title" content="Train Punch" />
 
   <link rel="preload" href="beep.wav" as="audio" />
-  <link rel="stylesheet" href="styles.css?v=1.4.0" />
+  <link rel="stylesheet" href="styles.css?v=1.4.2" />
 </head>
 <body>
   <noscript>
@@ -66,15 +66,15 @@
           <label for="exSelect">種目</label>
           <!-- 初期はプレースホルダー -->
           <select id="exSelect" aria-label="種目を選択">
-            <option value="">（選択する）</option>
+            <option value="" selected disabled>（選択する）</option>
           </select>
           <button id="btnAddEx" class="ghost" type="button">＋追加</button>
         </div>
 
         <div class="grid grid-3">
-          <input id="weight" inputmode="decimal" placeholder="重量(kg)" autocomplete="off" />
-          <input id="reps"   inputmode="numeric" placeholder="回数"     autocomplete="off" />
-          <input id="rpe"    inputmode="decimal" placeholder="RPE(任意)"autocomplete="off" />
+          <input id="weight" inputmode="decimal" placeholder="重量(kg)" autocomplete="off" enterkeyhint="next" />
+          <input id="reps"   inputmode="numeric" placeholder="回数"     autocomplete="off" enterkeyhint="next" />
+          <input id="rpe"    inputmode="decimal" placeholder="RPE(任意)"autocomplete="off" enterkeyhint="done" />
         </div>
 
         <div class="row">
@@ -88,7 +88,7 @@
         <div class="row">
           <label for="tplExFromHist">種目</label>
           <select id="tplExFromHist">
-            <option value="">（選択する）</option>
+            <option value="" selected disabled>（選択する）</option>
           </select>
         </div>
         <div class="row">
@@ -126,7 +126,7 @@
         <div class="row">
           <label for="tplExCustom">種目</label>
           <select id="tplExCustom">
-            <option value="">（選択する）</option>
+            <option value="" selected disabled>（選択する）</option>
           </select>
           <button id="btnTplCustom" type="button">投入</button>
         </div>
@@ -170,8 +170,8 @@
         <h3>e1RM 推移</h3>
         <div class="row">
           <label for="exTrendSelect">種目</label>
-          <select id="exTrendSelect" aria-label="ウォッチ種目から選択">
-            <option value="">（選択する）</option>
+          <select id="exTrendSelect" aria-label="ウォッチ種目から選択" aria-describedby="trendHint">
+            <option value="" selected disabled>（選択する）</option>
           </select>
           <select id="trendRange" aria-label="表示範囲">
             <option value="10" selected>最近10回</option>
@@ -227,7 +227,7 @@
         <div class="row">
           <label for="watchExSelect">追加</label>
           <select id="watchExSelect">
-            <option value="">（選択する）</option>
+            <option value="" selected disabled>（選択する）</option>
           </select>
           <button id="btnWatchAdd" type="button">追加</button>
         </div>
@@ -266,7 +266,7 @@
       <div class="card">
         <h3>情報</h3>
         <div class="kv">
-          <div>バージョン</div><div>1.4.0</div>
+          <div>バージョン</div><div>1.4.2</div>
           <div>プライバシー</div><div><a target="_blank" href="privacy.html" rel="noopener">プライバシーポリシー</a></div>
           <div>サポート</div>
           <div><a href="mailto:toreninguguanli53@gmail.com?subject=Train%20Punch%20サポート">toreninguguanli53@gmail.com</a></div>
@@ -278,7 +278,7 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="app.js?v=1.4.0"></script>
+  <script src="app.js?v=1.4.2"></script>
   <script src="sw-register.js"></script>
 </body>
 </html>
