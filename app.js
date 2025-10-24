@@ -1,4 +1,4 @@
-// Train Punch — v1.4.1 (watch-part filter, placeholders, strict PR, e1RM trend)
+// Train Punch — v1.4.2 (watch-only PR, watch-part filter, placeholders, e1RM trend)
 
 const DB_NAME = 'trainpunch_v3';
 const DB_VER  = 3;
@@ -92,6 +92,9 @@ let watchlist = [];                  // [exercise_id]
 let watchSelectedPart = '胸';        // ウォッチ追加用の部位
 let _watchChipsBound = false;
 let _trendEventsBound = false;
+
+// ウォッチ対象か判定
+const isWatched = (id) => Array.isArray(watchlist) && watchlist.includes(id);
 
 // =================== Init ===================
 async function init(){
@@ -201,7 +204,7 @@ function bindSessionUI(){
     }catch{ showToast('同名の種目があります'); }
   });
 
-  // セット追加（PR判定は保存済み履歴+未保存の当日分を含めて判定）
+  // セット追加（PR判定は保存済み履歴+未保存の当日分を含めて判定、ウォッチ種目のみ通知）
   $('#btnAddSet')?.addEventListener('click', async ()=>{
     const exId = Number($('#exSelect').value);
     const weight = Number($('#weight').value);
@@ -209,11 +212,16 @@ function bindSessionUI(){
     const rpeStr = $('#rpe').value;
     if(!exId || !weight || !reps){ showToast('種目・重量・回数は必須です'); return; }
 
-    const curE1 = e1rm(weight,reps);
-    const hist = (await getAll('sets')).filter(s=>s.exercise_id===exId);
-    const histBest = Math.max(0, ...hist.map(s=>e1rm(s.weight,s.reps)));
-    const sessBest = Math.max(0, ...currentSession.sets.filter(s=>s.exercise_id===exId).map(s=>e1rm(s.weight,s.reps)));
-    const bestSoFar = Math.max(histBest, sessBest);
+    // 追加前にPR判定
+    let willPR = false;
+    if (isWatched(exId)) {
+      const curE1 = e1rm(weight,reps);
+      const hist = (await getAll('sets')).filter(s=>s.exercise_id===exId);
+      const histBest = Math.max(0, ...hist.map(s=>e1rm(s.weight,s.reps)));
+      const sessBest = Math.max(0, ...currentSession.sets.filter(s=>s.exercise_id===exId).map(s=>e1rm(s.weight,s.reps)));
+      const bestSoFar = Math.max(histBest, sessBest);
+      willPR = curE1 > bestSoFar;   // strict: 上回った時だけ
+    }
 
     // 追加
     currentSession.sets.push({
@@ -223,8 +231,8 @@ function bindSessionUI(){
       ts: Date.now(), date: $('#sessDate').value
     });
 
-    if(curE1 > bestSoFar){
-      showToast('e1RM更新！');
+    if(willPR){
+      showToast('e1RM更新！（ウォッチ）');
       if('vibrate' in navigator) navigator.vibrate([60,40,60]);
     }
 
