@@ -1,4 +1,4 @@
-// Train Punch — v1.4.0 (e1RM trend + watchlist)
+// Train Punch — v1.4.1 (watch-part filter, placeholders, strict PR, e1RM trend)
 
 const DB_NAME = 'trainpunch_v3';
 const DB_VER  = 3;
@@ -89,6 +89,8 @@ let tplSelectedPart= '胸';
 
 // watchlist（設定で選ぶ / 分析で使用）
 let watchlist = [];                  // [exercise_id]
+let watchSelectedPart = '胸';        // ウォッチ追加用の部位
+let _watchChipsBound = false;
 let _trendEventsBound = false;
 
 // =================== Init ===================
@@ -122,15 +124,15 @@ async function init(){
   // History & Settings
   bindHistoryUI();
   bindSettingsUI();
-  await renderWatchUI();      // ← 追加
-  await renderTrendSelect();  // ← 追加
+  await renderWatchUI();      // ウォッチ追加UI
+  await renderTrendSelect();  // 分析セレクト
 
   // Initial renders
   renderPartChips();
   await renderExSelect();
   renderTodaySets();
   renderHistory();
-  renderAnalytics();          // volume + trend 両方描く
+  renderAnalytics();          // volume + trend
   renderExList();
 
   // Theme
@@ -184,6 +186,8 @@ function bindSessionUI(){
       selectedPart = b.dataset.part;
       renderPartChips();
       await renderExSelect();
+      // 部位切替時はフィールドもリセット
+      $('#weight').value=''; $('#reps').value=''; $('#rpe').value='';
     });
   }
 
@@ -197,14 +201,21 @@ function bindSessionUI(){
     }catch{ showToast('同名の種目があります'); }
   });
 
-  // セット追加
-  $('#btnAddSet')?.addEventListener('click', ()=>{
+  // セット追加（PR判定は保存済み履歴+未保存の当日分を含めて判定）
+  $('#btnAddSet')?.addEventListener('click', async ()=>{
     const exId = Number($('#exSelect').value);
     const weight = Number($('#weight').value);
     const reps   = Number($('#reps').value);
     const rpeStr = $('#rpe').value;
     if(!exId || !weight || !reps){ showToast('種目・重量・回数は必須です'); return; }
 
+    const curE1 = e1rm(weight,reps);
+    const hist = (await getAll('sets')).filter(s=>s.exercise_id===exId);
+    const histBest = Math.max(0, ...hist.map(s=>e1rm(s.weight,s.reps)));
+    const sessBest = Math.max(0, ...currentSession.sets.filter(s=>s.exercise_id===exId).map(s=>e1rm(s.weight,s.reps)));
+    const bestSoFar = Math.max(histBest, sessBest);
+
+    // 追加
     currentSession.sets.push({
       temp_id: crypto.randomUUID(),
       exercise_id: exId, weight, reps,
@@ -212,10 +223,7 @@ function bindSessionUI(){
       ts: Date.now(), date: $('#sessDate').value
     });
 
-    // e1RM PR 速報（同一種目の今日中暫定）
-    const curE1 = e1rm(weight,reps);
-    const prevMax = Math.max(0, ...currentSession.sets.filter(s=>s.exercise_id===exId).map(s=>e1rm(s.weight,s.reps)));
-    if(curE1 >= prevMax){
+    if(curE1 > bestSoFar){
       showToast('e1RM更新！');
       if('vibrate' in navigator) navigator.vibrate([60,40,60]);
     }
@@ -250,6 +258,7 @@ function bindSessionUI(){
   // 種目切り替え時、前回値プリフィル
   $('#exSelect')?.addEventListener('change', async ()=>{
     const exId = Number($('#exSelect').value);
+    if(!exId){ $('#weight').value=''; $('#reps').value=''; $('#rpe').value=''; return; }
     const sets = (await getAll('sets')).filter(s=>s.exercise_id===exId).sort((a,b)=>b.ts-a.ts);
     if(sets[0]){ $('#weight').value = sets[0].weight; $('#reps').value = sets[0].reps; $('#rpe').value = sets[0].rpe ?? ''; }
     else { $('#weight').value=''; $('#reps').value=''; $('#rpe').value=''; }
@@ -276,14 +285,22 @@ async function renderTplExSelect(){
   const sel = $('#tplExCustom'); if(!sel) return;
   let exs = await getAll('exercises');
   exs = exs.filter(e=>e.group===tplSelectedPart).sort((a,b)=>a.name.localeCompare(b.name,'ja'));
-  sel.innerHTML = exs.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('') || '<option>オプションなし</option>';
+  sel.innerHTML = `<option value="">（選択する）</option>` +
+    (exs.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('') || '<option>オプションなし</option>');
+  sel.value = '';
 }
 
 async function renderExSelect(){
   let exs = await getAll('exercises');
   exs = exs.filter(e=>e.group===selectedPart).sort((a,b)=> a.name.localeCompare(b.name, 'ja'));
   const sel = $('#exSelect');
-  if (sel){ sel.innerHTML = exs.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('') || '<option>オプションなし</option>'; }
+  if (sel){
+    const prev = sel.value || '';
+    sel.innerHTML = `<option value="">（選択する）</option>` +
+      (exs.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('') || '<option>オプションなし</option>');
+    // 以前の選択が有効なら維持、なければプレースホルダ
+    if(prev && exs.some(e=>String(e.id)===prev)) sel.value = prev; else sel.value = '';
+  }
 }
 
 // ---- today list ----
@@ -317,7 +334,12 @@ async function buildHistoryTemplates(){
 
   const used = [...new Set(sets.map(s=>s.exercise_id))].map(id=>({id, name:nameById[id] || `#${id}`})).filter(x=>x.name);
   used.sort((a,b)=> a.name.localeCompare(b.name,'ja'));
-  const sel = $('#tplExFromHist'); if (sel){ sel.innerHTML = used.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('') || '<option>履歴がありません</option>'; }
+  const sel = $('#tplExFromHist');
+  if (sel){
+    sel.innerHTML = `<option value="">（選択する）</option>` +
+      (used.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('') || '<option>履歴がありません</option>');
+    sel.value = '';
+  }
 
   const freq = {};
   sets.forEach(s=>{ const key = `${s.reps}`; freq[key] = (freq[key]||0)+1; });
@@ -516,19 +538,18 @@ function _drawLineChart(canvas, labels, values, hoverIndex=-1){
   const span = Math.max(1, maxV - minV);
   const yFor = v => (H-B) - ((v - minV) / span) * (H-B-T);
 
-  // grid + labels (x は間引き)
+  // grid + labels
   ctx.fillStyle='#9aa4b2'; ctx.font='12px system-ui'; ctx.textAlign='center';
   const tickN = Math.min(6, labels.length);
   for(let i=0;i<labels.length;i++){
-    if(tickN<=0) break;
-    if(i===0 || i===labels.length-1 || i % Math.ceil(labels.length/tickN)===0){
+    if(i===0 || i===labels.length-1 || i % Math.ceil(labels.length/(tickN||1))===0){
       const x = L + i*step; ctx.fillText(labels[i], x, H-8);
     }
   }
   ctx.strokeStyle='#9992';
   for(let g=1; g<=4; g++){ const y = T + (H-B-T)*(g/4); ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(W-R,y); ctx.stroke(); }
 
-  if(values.every(v=>!isFinite(v))){
+  if(values.length===0){
     ctx.fillStyle='#9aa4b2'; ctx.textAlign='center'; ctx.font='14px system-ui';
     ctx.fillText('まだデータがありません。', W/2, (H-B+T)/2);
     canvas._trendDims = {L, step, W, H, T, B, minV, maxV}; canvas._labels=labels; canvas._values=values;
@@ -781,16 +802,38 @@ async function renderExList(){
 }
 
 // ---- Watchlist UI (settings) ----
+function renderWatchPartChips(){
+  $$('#watchPartChips .chip').forEach(ch=>{
+    ch.classList.toggle('active', ch.dataset.part === watchSelectedPart);
+  });
+}
+function bindWatchPartChips(){
+  const chips = $('#watchPartChips');
+  if(!chips || _watchChipsBound) return;
+  chips.addEventListener('click', (e)=>{
+    const b = e.target.closest('.chip'); if(!b) return;
+    watchSelectedPart = b.dataset.part;
+    renderWatchPartChips();
+    renderWatchUI();
+  });
+  _watchChipsBound = true;
+}
+
 async function renderWatchUI(){
+  bindWatchPartChips();
+  renderWatchPartChips();
+
   const sel = $('#watchExSelect'); const list = $('#watchList');
-  const exs = await getAll('exercises');
-  exs.sort((a,b)=> a.name.localeCompare(b.name,'ja'));
+  let exs = await getAll('exercises');
+  exs = exs.filter(e=>e.group===watchSelectedPart).sort((a,b)=> a.name.localeCompare(b.name,'ja'));
 
   if(sel){
-    sel.innerHTML = exs.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
+    sel.innerHTML = `<option value="">（選択する）</option>` +
+      (exs.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('') || '<option>オプションなし</option>');
+    sel.value = '';
   }
   if(list){
-    const nameById = Object.fromEntries(exs.map(e=>[e.id,e.name]));
+    const nameById = Object.fromEntries((await getAll('exercises')).map(e=>[e.id,e.name]));
     list.innerHTML = watchlist.length
       ? watchlist.filter(id=>nameById[id]).map(id=>`<li><span>${esc(nameById[id])}</span><button class="ghost" data-id="${id}">削除</button></li>`).join('')
       : '<li>まだありません</li>';
@@ -803,13 +846,17 @@ async function renderWatchUI(){
       });
     });
   }
-  $('#btnWatchAdd')?.addEventListener('click', async ()=>{
-    const id = Number($('#watchExSelect').value); if(!id) return;
-    if(!watchlist.includes(id)) watchlist.push(id);
-    await put('prefs',{key:'watchlist', value:watchlist});
-    await renderWatchUI(); await renderTrendSelect(); await renderTrendChart();
-    showToast('ウォッチに追加しました');
-  }, {once:false});
+  const addBtn = $('#btnWatchAdd');
+  if(addBtn && !addBtn._bound){
+    addBtn.addEventListener('click', async ()=>{
+      const id = Number($('#watchExSelect').value); if(!id){ showToast('種目を選んでください'); return; }
+      if(!watchlist.includes(id)) watchlist.push(id);
+      await put('prefs',{key:'watchlist', value:watchlist});
+      await renderWatchUI(); await renderTrendSelect(); await renderTrendChart();
+      showToast('ウォッチに追加しました');
+    });
+    addBtn._bound = true;
+  }
 }
 
 // =================== CSV ===================
