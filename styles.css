@@ -32,34 +32,41 @@ body{
         "Hiragino Kaku Gothic ProN", "Yu Gothic", "Helvetica Neue", Arial,
         "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol", sans-serif;
 }
+a{ color: var(--primary); text-decoration: none; }
+a:hover{ text-decoration: underline; }
 
 /* ===== Appbar / Tabs ===== */
 .appbar{
-  position:sticky; top:0; z-index:10;
+  position:sticky; top:0; z-index:10; isolation:isolate;
   backdrop-filter:saturate(180%) blur(10px);
   background:linear-gradient(to bottom, rgba(0,0,0,.35), transparent), var(--bg);
   padding:12px 16px 8px;
+  padding-top: calc(12px + env(safe-area-inset-top));
 }
 .logo{ margin:0 0 10px; font-size:28px; font-weight:800; letter-spacing:.2px; }
-.tabs{ display:flex; gap:12px; flex-wrap:wrap; }
+.tabs{ display:flex; gap:12px; flex-wrap:wrap; position:relative; z-index:2; }
 .tabs button{
-  appearance:none; border:none; cursor:pointer; padding:10px 16px; border-radius:999px;
-  background:var(--card); color:var(--text); box-shadow:var(--shadow); border:1px solid var(--line);
+  appearance:none; border:1px solid var(--line); cursor:pointer;
+  padding:10px 16px; border-radius:999px;
+  background:var(--card); color:var(--text); box-shadow:var(--shadow);
+  transition: transform .02s ease-in-out, background .15s, border-color .15s;
 }
+.tabs button:hover{ border-color: color-mix(in oklab, var(--primary), #000 50%); }
+.tabs button:active{ transform: translateY(1px); }
 .tabs button.active{ background:var(--primary); color:#fff; border-color:transparent; }
 
 /* ===== Layout ===== */
 .container{ max-width:1000px; margin:20px auto 80px; padding:0 16px; }
 .card{
   background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px;
-  box-shadow:var(--shadow); margin:20px 0;
+  box-shadow:var(--shadow); margin:20px 0; position:relative; z-index:0;
 }
 h3{ margin:0 0 12px; font-size:18px; }
 
 .row{ display:flex; gap:12px; align-items:center; margin:10px 0; flex-wrap:wrap; }
 .grid{ display:grid; gap:12px; }
 .grid-2{ grid-template-columns: 1fr 160px; }
-/* minmax(0,1fr) で Safari の shrink 問題を根こそぎ回避 */
+/* minmax(0,1fr) で Safari の shrink 問題を回避 */
 .grid-3{ grid-template-columns: repeat(3, minmax(0,1fr)); }
 .end{ justify-content:flex-end; }
 
@@ -68,25 +75,42 @@ input, select, textarea, button{ font:inherit; color:inherit; }
 input, select{
   background:color-mix(in oklab, var(--card), #000 5%); color:var(--text);
   border:1px solid var(--line); border-radius:12px; padding:12px 14px; min-height:44px;
-  flex:1 1 220px;
+  flex:1 1 220px; transition:border-color .15s, box-shadow .15s;
 }
 select{ padding-right:40px; }
 label{ min-width:56px; color:var(--muted); }
 
+/* プレースホルダー（disabled option が選択されている間）は文字色を薄く */
+@supports(selector(:has(*))){
+  select:has(option[disabled]:checked){ color: var(--muted); }
+}
+
 button{
   appearance:none; border:1px solid var(--line); background:var(--primary); color:#fff;
   padding:12px 16px; border-radius:12px; cursor:pointer; min-height:44px;
+  transition: filter .12s ease, transform .02s ease-in-out, background .15s, border-color .15s;
 }
-button.ghost{ background:transparent; color:var(--text); }
+button:hover{ filter: brightness(1.02); }
+button:active{ transform: translateY(1px); }
+button:disabled{ opacity:.55; cursor:not-allowed; filter:none; }
+button.ghost{
+  background:transparent; color:var(--text);
+}
+button.ghost:hover{ border-color: color-mix(in oklab, var(--primary), #000 45%); }
 button.danger{ background:var(--danger); border-color:transparent; color:#fff; }
-.btnlike{ display:inline-block; padding:12px 16px; border:1px solid var(--line); border-radius:12px; cursor:pointer; }
+.btnlike{
+  display:inline-block; padding:12px 16px; border:1px solid var(--line); border-radius:12px; cursor:pointer;
+}
 
 /* ===== Chipset (部位) ===== */
-.chipset{ display:flex; gap:10px; flex-wrap:wrap; }
+.chipset{ display:flex; gap:10px; flex-wrap:wrap; position:relative; z-index:2; }
 .chip{
   padding:10px 14px; border-radius:999px; border:1px solid var(--line);
   background:color-mix(in oklab, var(--card), #000 6%); color:var(--text); cursor:pointer;
+  transition: background .15s, border-color .15s, transform .02s;
 }
+.chip:hover{ border-color: color-mix(in oklab, var(--primary), #000 40%); }
+.chip:active{ transform: translateY(1px); }
 .chip.active{ background:var(--primary); color:#fff; border-color:transparent; }
 
 /* ===== Lists ===== */
@@ -95,11 +119,16 @@ button.danger{ background:var(--danger); border-color:transparent; color:#fff; }
   display:flex; align-items:center; justify-content:space-between; gap:12px;
   border-top:1px dashed var(--line); padding:12px 4px;
 }
-.badge{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px;
-  background:color-mix(in oklab, var(--card), #000 8%); border:1px solid var(--line); font-size:12px; }
+.list li > span{ overflow-wrap:anywhere; }
+.badge{
+  display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px;
+  background:color-mix(in oklab, var(--card), #000 8%); border:1px solid var(--line); font-size:12px;
+  font-variant-numeric: tabular-nums;
+}
 .legend{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
 .legend .chip{ padding:6px 10px; }
 .kv{ display:grid; grid-template-columns: 140px 1fr; gap:8px; }
+small{ color: var(--muted); }
 
 /* Switch / checkbox */
 .switch{ display:flex; align-items:center; gap:10px; }
@@ -107,113 +136,38 @@ button.danger{ background:var(--danger); border-color:transparent; color:#fff; }
 
 /* Toast */
 .toast{
-  position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+  position:fixed; left:50%; bottom: calc(18px + env(safe-area-inset-bottom));
+  transform:translateX(-50%);
   background:#111c; color:#fff; padding:10px 14px; border-radius:999px; opacity:0;
-  pointer-events:none; transition:opacity .2s, transform .2s;
+  pointer-events:none; transition:opacity .18s ease, transform .18s ease;
 }
 .toast.show{ opacity:1; transform:translateX(-50%) translateY(-4px); }
 
-/* Tabs content */
+/* Tabs content（非表示はクリックも禁止） */
 .tab{ display:none; }
 .tab.active{ display:block; }
 
-/* ===== Responsive tweaks ===== */
-@media (max-width: 700px){
-  .grid-2{ grid-template-columns:1fr; }
-  .grid-3{ grid-template-columns:1fr 1fr; }
-  /* 3つ目（RPE）を次の行で全幅にして、切れを完全阻止 */
-  .grid-3 > :nth-child(3){ grid-column: 1 / -1; }
-}
-/* さらに狭い端末では縦一列 */
-@media (max-width: 360px){
-  .grid-3{ grid-template-columns:1fr; }
-}
-
-@media (min-width: 1100px){
-  .logo{ font-size:32px; }
-}
-
-/* --- iOS Safari ではみ出す問題を総合対策 --- */
-.row > * { min-width: 0; }           /* flex 子要素を縮められるように */
-.grid > * { min-width: 0; }          /* grid 子要素も同様 */
-.grid-3 input,
-.grid-3 select { width: 100%; }      /* 列幅にきっちり収める */
-.grid-2 input,
-.grid-2 select { width: 100%; }
-/* 狭い画面では「＋追加」を改行してセレクトに幅を譲る */
-@media (max-width: 560px){
-  #btnAddEx{ flex-basis: 100%; }     /* 種目行でボタンが次行に回る */
-}
-
-/* 種目セレクトの行と次の行が重なって見えないように余白を確保 */
-#exSelect { margin-bottom: 6px; }    /* 必要なら値は好みで微調整 */
-
-/* アクセシビリティ：フォーカスリング */
-:focus-visible{
-  outline:2px solid color-mix(in oklab, var(--primary), #fff 20%);
-  outline-offset:2px; border-radius:12px;
-}
 /* ===== Chart ===== */
-#chart{
+#chart, #trendChart{
   width:100%;
-  height:260px;          /* 高さは好みで調整可 */
+  height:260px;
   display:block;
-  touch-action:none;     /* iOS/Safariでのホバー計算が安定 */
+  touch-action:none; /* iOS/Safariでホバー計算が安定 */
 }
+
 /* === Custom Insert spacing tweaks === */
-/* 部位チップの上下余白とチップ同士の間隔を調整 */
-#tplPartChips{
-  margin: 8px 0 10px;   /* 上下の余白を足す */
-  gap: 12px;            /* チップ同士の間隔を少し広げる */
-}
-/* チップのタップしやすさを少しだけアップ */
-#tplPartChips .chip{
-  padding: 9px 14px;    /* ほんの少し大きく */
-}
+#tplPartChips{ margin: 8px 0 10px; gap: 12px; }
+#tplPartChips .chip{ padding: 9px 14px; }
+#tplExCustom{ margin-top: 6px; }
 
-/* チップの直後の種目セレクトに上マージンを付けて密着感を解消 */
-#tplExCustom{
-  margin-top: 6px;
-}
+/* レイアウトの安定化（iOS/Safari shrink対策） */
+.row > *, .grid > *{ min-width: 0; }
+.grid-3 input, .grid-3 select,
+.grid-2 input, .grid-2 select{ width: 100%; }
 
-/* カード内で “チップ行” だけは他の行より余白を気持ち広く */
-#tplPartChips.closest-row,
-#tplPartChips{ /* Safari対策で念のため両方指定 */
-  /* 何もしないがセレクタの優先度確保用 */
-}
+/* 種目セレクト行の密着緩和 */
+#exSelect { margin-bottom: 6px; }
 
-/* モバイルでは若干コンパクトに（はみ出し防止） */
-@media (max-width: 560px){
-  #tplPartChips{ gap: 10px; margin: 6px 0 8px; }
-  #tplPartChips .chip{ padding: 8px 12px; }
-}
-/* 非表示タブがタップを奪わない */
-.tab { display: none; }
-.tab.active { display: block; }
-
-/* 飾りレイヤ・トーストは貫通タップにする */
-.appbar::before, .appbar::after,
-.card::before, .card::after,
-#toast { pointer-events: none; }
-
-/* 解析タブのキャンバスが重ならない保険 */
-#tab-analytics, #tab-session, #tab-history, #tab-settings {
-  position: relative; z-index: 0;
-}
-
-/* iOS WebView 安全策：フォーム親に transform を掛けない */
-.container, .card, .chipset { transform: none !important; }
-
-/* iOSのタップ反応を素直に */
-button, select, input { touch-action: manipulation; }
-/* iOS で装飾レイヤがタップをブロックしないように */
-.appbar { position: sticky; top: 0; z-index: 10; isolation: isolate; }
-.appbar::before,
-.appbar::after { pointer-events: none !important; }
-
-/* 念のためタブとチップを前面に */
-.tabs { position: relative; z-index: 2; }
-.chipset { position: relative; z-index: 2; }
 /* ヘッダー右上の丸アイコン */
 .iconbtn{
   position:absolute; right:16px; top:12px;
@@ -222,21 +176,50 @@ button, select, input { touch-action: manipulation; }
   background:var(--card); color:var(--text);
   border:1px solid var(--line); box-shadow:var(--shadow);
   font-size:18px; line-height:1; cursor:pointer;
-  z-index:3;           /* タブより前面 */
-  touch-action:manipulation;
+  z-index:3; touch-action:manipulation;
+  transition: transform .02s, border-color .15s, background .15s;
 }
+.iconbtn:hover{ border-color: color-mix(in oklab, var(--primary), #000 45%); }
 .iconbtn:active{ transform:translateY(1px); }
-/* e1RM ラインチャート */
-#e1rmChart{
-  width:100%;
-  height:260px;
-  display:block;
-  touch-action:none;
+
+/* アクセシビリティ：フォーカスリング */
+:focus-visible{
+  outline:2px solid color-mix(in oklab, var(--primary), #fff 20%);
+  outline-offset:2px; border-radius:12px;
 }
-/* 両チャートを同じ見た目に */
-#chart, #trendChart{
-  width:100%;
-  height:260px;
-  display:block;
-  touch-action:none;
+
+/* ===== Responsive tweaks ===== */
+@media (max-width: 700px){
+  .grid-2{ grid-template-columns:1fr; }
+  .grid-3{ grid-template-columns:1fr 1fr; }
+  /* 3つ目（RPE）を次の行で全幅に */
+  .grid-3 > :nth-child(3){ grid-column: 1 / -1; }
+}
+@media (max-width: 560px){
+  #tplPartChips{ gap: 10px; margin: 6px 0 8px; }
+  #tplPartChips .chip{ padding: 8px 12px; }
+  /* 種目行で「＋追加」を改行してセレクトに幅を譲る */
+  #btnAddEx{ flex-basis: 100%; }
+}
+@media (max-width: 360px){
+  .grid-3{ grid-template-columns:1fr; }
+}
+
+/* iOS WebView 安全策 */
+.container, .card, .chipset { transform: none !important; }
+button, select, input { touch-action: manipulation; }
+
+/* デコレーション層はタップをブロックしない */
+.appbar::before, .appbar::after,
+.card::before, .card::after,
+#toast { pointer-events: none; }
+
+/* 解析/各タブのスタッキング保険 */
+#tab-analytics, #tab-session, #tab-history, #tab-settings {
+  position: relative; z-index: 0;
+}
+
+/* 低モーション派生（お好みで） */
+@media (prefers-reduced-motion: reduce){
+  *{ transition:none !important; animation:none !important; }
 }
