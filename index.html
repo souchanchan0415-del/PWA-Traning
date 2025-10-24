@@ -64,7 +64,10 @@
 
         <div class="row">
           <label for="exSelect">種目</label>
-          <select id="exSelect" aria-label="種目を選択"></select>
+          <!-- 初期はプレースホルダー -->
+          <select id="exSelect" aria-label="種目を選択">
+            <option value="">（選択する）</option>
+          </select>
           <button id="btnAddEx" class="ghost" type="button">＋追加</button>
         </div>
 
@@ -84,7 +87,9 @@
         <h3>クイック投入（履歴）</h3>
         <div class="row">
           <label for="tplExFromHist">種目</label>
-          <select id="tplExFromHist"></select>
+          <select id="tplExFromHist">
+            <option value="">（選択する）</option>
+          </select>
         </div>
         <div class="row">
           <label for="tplPattern">パターン</label>
@@ -120,7 +125,9 @@
         </div>
         <div class="row">
           <label for="tplExCustom">種目</label>
-          <select id="tplExCustom"></select>
+          <select id="tplExCustom">
+            <option value="">（選択する）</option>
+          </select>
           <button id="btnTplCustom" type="button">投入</button>
         </div>
       </div>
@@ -163,7 +170,9 @@
         <h3>e1RM 推移</h3>
         <div class="row">
           <label for="exTrendSelect">種目</label>
-          <select id="exTrendSelect" aria-label="ウォッチ種目から選択"></select>
+          <select id="exTrendSelect" aria-label="ウォッチ種目から選択">
+            <option value="">（選択する）</option>
+          </select>
           <select id="trendRange" aria-label="表示範囲">
             <option value="10" selected>最近10回</option>
             <option value="20">最近20回</option>
@@ -200,14 +209,29 @@
         <ul id="exList" class="list"></ul>
       </div>
 
-      <!-- 追加：ウォッチ種目 -->
+      <!-- 追加：ウォッチ種目（部位→種目で追加） -->
       <div class="card">
         <h3>ウォッチ種目（分析の e1RM で選択）</h3>
+
+        <div class="row">
+          <label>部位</label>
+          <div id="watchPartChips" class="chipset" aria-label="ウォッチする部位">
+            <button class="chip" data-part="胸"   type="button">胸</button>
+            <button class="chip" data-part="背中" type="button">背中</button>
+            <button class="chip" data-part="肩"   type="button">肩</button>
+            <button class="chip" data-part="脚"   type="button">脚</button>
+            <button class="chip" data-part="腕"   type="button">腕</button>
+          </div>
+        </div>
+
         <div class="row">
           <label for="watchExSelect">追加</label>
-          <select id="watchExSelect"></select>
+          <select id="watchExSelect">
+            <option value="">（選択する）</option>
+          </select>
           <button id="btnWatchAdd" type="button">追加</button>
         </div>
+
         <ul id="watchList" class="list"></ul>
         <small>ここで選んだ種目が、分析タブの「e1RM推移」で選択できます。</small>
       </div>
