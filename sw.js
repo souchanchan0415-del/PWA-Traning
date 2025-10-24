@@ -1,10 +1,10 @@
-// Train Punch SW (v1.3.3) — cache bust + SPA nav fallback
-const CACHE = 'trainpunch-1.3.3';
+// Train Punch SW (v1.4.2) — cache bust + SPA nav fallback (+ignoreSearch)
+const CACHE = 'trainpunch-1.4.2';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=1.3.3',
-  './app.js?v=1.3.3',
+  './styles.css?v=1.4.2',
+  './app.js?v=1.4.2',
   './sw-register.js',
   './manifest.webmanifest',
   './privacy.html',
@@ -32,22 +32,22 @@ self.addEventListener('activate', (e)=>{
   })());
 });
 
-// 任意: waiting を即時有効化できるように
 self.addEventListener('message', (e)=>{
-  if(e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', (e)=>{
   const req = e.request;
 
-  // SPAナビ: 失敗時は index.html
+  // SPAナビ: 失敗時は index.html を ignoreSearch でフォールバック
   if (req.mode === 'navigate' && req.method === 'GET'){
     e.respondWith((async ()=>{
-      try { return await fetch(req); }
-      catch(_){
+      try {
+        return await fetch(req);
+      } catch (_){
         const cache = await caches.open(CACHE);
-        return (await cache.match('./index.html')) ||
-               new Response('', {status:200, headers:{'Content-Type':'text/html'}});
+        return (await cache.match('./index.html', { ignoreSearch: true })) ||
+               new Response('', { status: 200, headers: { 'Content-Type': 'text/html' } });
       }
     })());
     return;
@@ -60,7 +60,7 @@ self.addEventListener('fetch', (e)=>{
     if (hit) return hit;
     try{
       const res = await fetch(req);
-      if(res && res.ok && req.method==='GET' && req.url.startsWith(self.location.origin)){
+      if (res && res.ok && req.method === 'GET' && req.url.startsWith(self.location.origin)){
         cache.put(req, res.clone());
       }
       return res;
