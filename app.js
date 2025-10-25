@@ -1,4 +1,9 @@
-// Train Punch — v1.4.2 (watch-only PR, watch-part filter, placeholders, e1RM trend)
+// Train Punch — v1.4.3
+// - watch-only PR toast
+// - smart input (e.g. "40x8@8")
+// - edit & undo for today's sets
+// - rest timer default sec + auto start (prefs)
+// - watch-part filter, placeholders, e1RM trend
 
 const DB_NAME = 'trainpunch_v3';
 const DB_VER  = 3;
@@ -93,6 +98,14 @@ let watchSelectedPart = '胸';        // ウォッチ追加用の部位
 let _watchChipsBound = false;
 let _trendEventsBound = false;
 
+// prefs: timer + auto
+let prefTimerSec = 60;
+let prefAutoTimer = false;
+
+// undo stack
+let undoStack = [];
+const updateUndoBtn = ()=>{ const b = $('#btnUndo'); if(b) b.disabled = undoStack.length===0; };
+
 // ウォッチ対象か判定
 const isWatched = (id) => Array.isArray(watchlist) && watchlist.includes(id);
 
@@ -110,7 +123,9 @@ async function init(){
   await ensureInitialExercises();
 
   // load prefs
-  watchlist = (await get('prefs','watchlist'))?.value || [];
+  watchlist     = (await get('prefs','watchlist'))?.value || [];
+  prefTimerSec  = Number((await get('prefs','timer_sec'))?.value ?? 60) || 60;
+  prefAutoTimer = !!((await get('prefs','auto_timer'))?.value);
 
   // Tabs
   bindTabs();
@@ -142,6 +157,13 @@ async function init(){
   const dark = (await get('prefs','dark'))?.value || false;
   $('#darkToggle').checked = dark;
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+
+  // 初期タイマーラベル
+  const tb = $('#btnTimer'); if(tb) tb.textContent = `休憩${prefTimerSec}s`;
+  updateUndoBtn();
+
+  // スマート入力（貼り付け/変更で自動パース）
+  bindSmartInput();
 }
 
 async function ensureInitialExercises(){
@@ -206,6 +228,9 @@ function bindSessionUI(){
 
   // セット追加（PR判定は保存済み履歴+未保存の当日分を含めて判定、ウォッチ種目のみ通知）
   $('#btnAddSet')?.addEventListener('click', async ()=>{
+    // スマート入力最終チェック（x/@ を含むならパースしてフィールドに反映）
+    maybeSmartFillFromFields();
+
     const exId = Number($('#exSelect').value);
     const weight = Number($('#weight').value);
     const reps   = Number($('#reps').value);
@@ -224,41 +249,53 @@ function bindSessionUI(){
     }
 
     // 追加
-    currentSession.sets.push({
+    const newSet = {
       temp_id: crypto.randomUUID(),
       exercise_id: exId, weight, reps,
       rpe: rpeStr ? Number(rpeStr) : null,
       ts: Date.now(), date: $('#sessDate').value
-    });
+    };
+    currentSession.sets.push(newSet);
+    undoStack.push({type:'add', id:newSet.temp_id});
+    updateUndoBtn();
 
     if(willPR){
       showToast('e1RM更新！（ウォッチ）');
       if('vibrate' in navigator) navigator.vibrate([60,40,60]);
     }
 
+    // 自動タイマー
+    if(prefAutoTimer){ startRestTimer(prefTimerSec); }
+
+    // クリア
     $('#weight').value=''; $('#reps').value=''; $('#rpe').value='';
     renderTodaySets();
   });
 
-  $('#btnTimer')?.addEventListener('click', ()=>startRestTimer(60));
+  // タイマー：既定秒数で開始
+  $('#btnTimer')?.addEventListener('click', ()=>startRestTimer(prefTimerSec));
 
-  $('#btnSaveSession')?.addEventListener('click', async ()=>{
-    if(!currentSession.sets.length){ showToast('セットがありません'); return; }
-    const date = $('#sessDate').value;
-    const note = $('#sessNote').value;
-    const sessionId = await put('sessions',{date, note, created_at: Date.now()});
-    for(const s of currentSession.sets){
-      await put('sets',{session_id:sessionId, exercise_id:s.exercise_id, weight:s.weight, reps:s.reps, rpe:s.rpe, ts:s.ts, date});
+  // Undo
+  $('#btnUndo')?.addEventListener('click', ()=>{
+    if(!undoStack.length) return;
+    const act = undoStack.pop();
+    if(act.type==='add'){
+      const idx = currentSession.sets.findIndex(s=>s.temp_id===act.id);
+      if(idx>=0) currentSession.sets.splice(idx,1);
+    }else if(act.type==='delete'){
+      currentSession.sets.splice(act.index, 0, act.set);
+    }else if(act.type==='edit'){
+      // 位置が入れ替わっている可能性は低いので index 優先
+      if(currentSession.sets[act.index]?.temp_id === act.prev.temp_id){
+        currentSession.sets[act.index] = act.prev;
+      }else{
+        const idx = currentSession.sets.findIndex(s=>s.temp_id===act.prev.temp_id);
+        if(idx>=0) currentSession.sets[idx] = act.prev;
+      }
     }
-    currentSession = { date: todayStr(), note:'', sets: [] };
-    $('#sessDate').value = todayStr(); $('#sessNote').value = '';
-    renderTodaySets(); renderHistory(); renderAnalytics();
-    showToast('セッションを保存しました');
+    renderTodaySets();
+    updateUndoBtn();
   });
-
-  // クイック & カスタム
-  $('#btnTplApply')?.addEventListener('click', applyQuickInsert);
-  $('#btnTplCustom')?.addEventListener('click', applyCustomInsert);
 
   // 初回テンプレ構築
   buildHistoryTemplates();
@@ -271,6 +308,55 @@ function bindSessionUI(){
     if(sets[0]){ $('#weight').value = sets[0].weight; $('#reps').value = sets[0].reps; $('#rpe').value = sets[0].rpe ?? ''; }
     else { $('#weight').value=''; $('#reps').value=''; $('#rpe').value=''; }
   });
+
+  // Enterキー運用
+  $('#weight')?.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); $('#reps')?.focus(); }});
+  $('#reps')  ?.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); $('#rpe')?.focus(); }});
+  $('#rpe')   ?.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); $('#btnAddSet')?.click(); }});
+}
+
+// ======== Smart Input ========
+function normalizeSmart(s){
+  return String(s||'')
+    .replace(/[＊×ｘＸ]/g,'x')
+    .replace(/[＠]/g,'@')
+    .replace(/[，、]/g,',')
+    .replace(/ＲＰＥ|ｒｐｅ/gi,'rpe')
+    .trim();
+}
+function parseSmartTriple(s){
+  s = normalizeSmart(s);
+  if(!s) return null;
+  // 1) 40x8@8 or 40x8 or 40×8@8
+  let m = s.match(/(\d+(?:\.\d+)?)\s*x\s*(\d+)(?:\s*(?:@|rpe)\s*(\d+(?:\.\d+)?))?/i);
+  if(m) return {w:parseFloat(m[1]), r:parseInt(m[2],10), e: m[3]!=null? parseFloat(m[3]) : null};
+  // 2) 40,8,8 / 40 8 8
+  const nums = s.match(/\d+(?:\.\d+)?/g);
+  if(nums && (nums.length===2 || nums.length===3)){
+    return {w:parseFloat(nums[0]), r:parseInt(nums[1],10), e: nums[2]!=null? parseFloat(nums[2]) : null};
+  }
+  return null;
+}
+function maybeSmartFillFromFields(show=false){
+  const w = $('#weight')?.value?.trim() || '';
+  const r = $('#reps')?.value?.trim()   || '';
+  const e = $('#rpe')?.value?.trim()    || '';
+  const joined = [w,r,e].filter(Boolean).join(' ');
+  if(!/[x×@]|rpe/i.test(joined)) return false;
+  const p = parseSmartTriple(joined);
+  if(!p) return false;
+  $('#weight').value = isFinite(p.w)? String(p.w) : '';
+  $('#reps').value   = isFinite(p.r)? String(p.r) : '';
+  $('#rpe').value    = (p.e!=null && isFinite(p.e)) ? String(p.e) : '';
+  if(show) showToast(`スマート入力: ${p.w}kg × ${p.r}${p.e!=null?` @${p.e}`:''}`);
+  return true;
+}
+function bindSmartInput(){
+  const hook = (el)=>{
+    el?.addEventListener('paste', ()=> setTimeout(()=> maybeSmartFillFromFields(true), 0));
+    el?.addEventListener('change', ()=> maybeSmartFillFromFields(false));
+  };
+  hook($('#weight')); hook($('#reps')); hook($('#rpe'));
 }
 
 // ======== Custom insert ========
@@ -314,20 +400,52 @@ async function renderExSelect(){
 // ---- today list ----
 function renderTodaySets(){
   const ul = $('#todaySets'); if(!ul) return;
-  if(!currentSession.sets.length){ ul.innerHTML = '<li>まだありません</li>'; return; }
+  if(!currentSession.sets.length){
+    ul.innerHTML = '<li>まだありません</li>';
+    return;
+  }
   ul.innerHTML = currentSession.sets.map(s=>{
+    const text = `<strong>${esc(exNameById(s.exercise_id))}</strong> ${s.weight}kg × ${s.reps}${s.rpe?` RPE${s.rpe}`:''}`;
     return `<li>
-      <span><strong>${esc(exNameById(s.exercise_id))}</strong> ${s.weight}kg × ${s.reps}${s.rpe?` RPE${s.rpe}`:''}</span>
-      <button class="ghost" data-id="${s.temp_id}">削除</button>
+      <span>${text}</span>
+      <span style="display:flex; gap:6px">
+        <button class="ghost" data-act="edit" data-id="${s.temp_id}">編集</button>
+        <button class="ghost" data-act="del"  data-id="${s.temp_id}">削除</button>
+      </span>
     </li>`;
   }).join('');
-  ul.querySelectorAll('button').forEach(b=>{
-    b.addEventListener('click', ()=>{
-      const id = b.dataset.id;
-      currentSession.sets = currentSession.sets.filter(x=>x.temp_id !== id);
-      renderTodaySets();
+
+  if(!ul._bound){
+    ul.addEventListener('click', (e)=>{
+      const b = e.target.closest('button'); if(!b) return;
+      const id = b.dataset.id, act = b.dataset.act;
+      const idx = currentSession.sets.findIndex(x=>x.temp_id===id);
+      if(idx<0) return;
+      const s = currentSession.sets[idx];
+
+      if(act==='del'){
+        undoStack.push({type:'delete', set:{...s}, index:idx});
+        currentSession.sets.splice(idx,1);
+        renderTodaySets(); updateUndoBtn();
+      }
+      if(act==='edit'){
+        const seed = `${s.weight}x${s.reps}${s.rpe!=null?`@${s.rpe}`:''}`;
+        const next = prompt('編集（例: 40x8@8 もOK）', seed);
+        if(next===null) return;
+        const prev = {...s};
+        let w= s.weight, r=s.reps, rp=s.rpe;
+        const p = parseSmartTriple(next) || {};
+        if(isFinite(p.w)) w = p.w;
+        if(isFinite(p.r)) r = p.r;
+        if(p.e==null || !isFinite(p.e)) rp = null; else rp = p.e;
+
+        currentSession.sets[idx] = {...s, weight:w, reps:r, rpe:rp};
+        undoStack.push({type:'edit', prev, index:idx});
+        renderTodaySets(); updateUndoBtn();
+      }
     });
-  });
+    ul._bound = true;
+  }
 }
 function exNameById(id){
   const opt = $('#tplExCustom')?.querySelector(`option[value="${id}"]`) || $('#exSelect')?.querySelector(`option[value="${id}"]`);
@@ -394,14 +512,17 @@ async function applyCustomInsert(){
 let timerHandle=null, timerLeft=0;
 function startRestTimer(sec){
   clearInterval(timerHandle);
-  timerLeft = sec;
+  timerLeft = sec|0;
   const btn = $('#btnTimer');
   btn.disabled = true;
+  // すぐに現在値表示
+  btn.textContent = `休憩${timerLeft}s`;
   timerHandle = setInterval(()=>{
-    btn.textContent = `休憩${--timerLeft}s`;
+    timerLeft -= 1;
+    btn.textContent = `休憩${Math.max(0,timerLeft)}s`;
     if(timerLeft<=0){
       clearInterval(timerHandle);
-      btn.textContent='休憩60s';
+      btn.textContent=`休憩${prefTimerSec}s`;
       btn.disabled=false;
       if('vibrate' in navigator) navigator.vibrate([120,80,120]);
       try{ new Audio('beep.wav').play().catch(()=>{}); }catch(e){}
@@ -619,12 +740,15 @@ async function renderAnalytics(){
       _chartEventsBound = true;
     }
 
-    // metrics
-    const recentKeys = new Set(days.map(d=>d.key));
-    const recentSets = sets.filter(s => recentKeys.has(s.date));
-    const total7     = totals.reduce((a,b)=>a+b,0);
-    const uniqEx     = new Set(recentSets.map(s=>s.exercise_id)).size;
-    $('#metrics').innerHTML = `<div>直近7日ボリューム</div><div>${Math.round(total7)} kg</div><div>種目数</div><div>${uniqEx} 種目</div>`;
+    // metrics（存在すれば更新）
+    const metrics = $('#metrics');
+    if(metrics){
+      const recentKeys = new Set(days.map(d=>d.key));
+      const recentSets = sets.filter(s => recentKeys.has(s.date));
+      const total7     = totals.reduce((a,b)=>a+b,0);
+      const uniqEx     = new Set(recentSets.map(s=>s.exercise_id)).size;
+      metrics.innerHTML = `<div>直近7日ボリューム</div><div>${Math.round(total7)} kg</div><div>種目数</div><div>${uniqEx} 種目</div>`;
+    }
     const legend = $('#legend'); if (legend) legend.innerHTML = '';
   }
 
@@ -750,6 +874,23 @@ function bindSettingsUI(){
 
   $('#filterPart')?.addEventListener('change', renderExList);
 
+  // タイマー設定
+  const secSel = $('#timerSec');
+  const autoCb = $('#autoTimer');
+  if(secSel){ secSel.value = String(prefTimerSec); }
+  if(autoCb){ autoCb.checked = !!prefAutoTimer; }
+  secSel?.addEventListener('change', async ()=>{
+    prefTimerSec = Number($('#timerSec').value)||60;
+    await put('prefs',{key:'timer_sec', value:prefTimerSec});
+    const tb = $('#btnTimer'); if(tb && !tb.disabled) tb.textContent = `休憩${prefTimerSec}s`;
+    showToast(`既定 ${prefTimerSec}s に設定`);
+  });
+  autoCb?.addEventListener('change', async (e)=>{
+    prefAutoTimer = !!e.target.checked;
+    await put('prefs',{key:'auto_timer', value:prefAutoTimer});
+    showToast(prefAutoTimer?'セット追加後にタイマー開始':'自動開始オフ');
+  });
+
   $('#btnWipe')?.addEventListener('click', async ()=>{
     if(!confirm('本当に全データを削除しますか？')) return;
     for(const s of ['sessions','sets','exercises']){
@@ -783,8 +924,11 @@ function bindSettingsUI(){
     for(const x of (data.sessions ||[])) await put('sessions', x);
     for(const x of (data.sets     ||[])) await put('sets', x);
     for(const x of (data.prefs    ||[])) await put('prefs', x);
-    watchlist = (await get('prefs','watchlist'))?.value || [];
+    watchlist     = (await get('prefs','watchlist'))?.value || [];
+    prefTimerSec  = Number((await get('prefs','timer_sec'))?.value ?? 60) || 60;
+    prefAutoTimer = !!((await get('prefs','auto_timer'))?.value);
     await renderExList(); await renderExSelect(); await renderTplExSelect(); renderHistory(); renderAnalytics(); renderTodaySets(); await renderWatchUI(); await renderTrendSelect();
+    const tb = $('#btnTimer'); if(tb) tb.textContent = `休憩${prefTimerSec}s`;
     showToast('復元しました'); e.target.value='';
   });
 }
