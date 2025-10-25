@@ -1,3 +1,5 @@
+/* Train Punch styles — v1.4.3 (+perf tweaks) */
+
 /* ===== Design tokens ===== */
 :root{
   --bg: #0e1116;
@@ -10,6 +12,9 @@
 
   --radius:16px;
   --shadow: 0 6px 24px rgba(0,0,0,.25);
+
+  /* OS にダークUI指示（フォームUIなどの既定色が馴染む） */
+  color-scheme: dark;
 }
 
 html[data-theme="light"]{
@@ -19,6 +24,8 @@ html[data-theme="light"]{
   --muted:#5b6a79;
   --line:#e7ebf2;
   --shadow:0 6px 20px rgba(27,36,48,.08);
+
+  color-scheme: light;
 }
 
 *{ box-sizing:border-box; }
@@ -45,7 +52,7 @@ a:hover{ text-decoration: underline; }
 /* ===== Appbar / Tabs ===== */
 .appbar{
   position:sticky; top:0; z-index:10; isolation:isolate;
-  /* blur は高コストなので軽めに＆モバイルでは無効化（下のメディアクエリ） */
+  /* blur は高コストなので軽めに＆モバイルやスクロール中は無効化（下のルール） */
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   background:linear-gradient(to bottom, rgba(0,0,0,.28), transparent), var(--bg);
@@ -60,6 +67,7 @@ a:hover{ text-decoration: underline; }
   padding:10px 16px; border-radius:999px;
   background:var(--card); color:var(--text); box-shadow:var(--shadow);
   transition: transform .02s ease-in-out, background .15s, border-color .15s;
+  -webkit-tap-highlight-color: transparent;
 }
 .tabs button:hover{ border-color: color-mix(in oklab, var(--primary), #000 50%); }
 .tabs button:active{ transform: translateY(1px); }
@@ -182,6 +190,7 @@ small{ color: var(--muted); }
   height:260px;
   display:block;
   touch-action:none; /* iOS/Safariでホバー計算が安定 */
+  user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
 }
 
 /* === Custom Insert spacing tweaks === */
@@ -264,4 +273,12 @@ button, select, input { touch-action: manipulation; }
 /* 低モーション派生 */
 @media (prefers-reduced-motion: reduce){
   *{ transition:none !important; animation:none !important; }
+}
+
+/* === 追加: スクロール中は blur を殺して jank を抑える（app.js が .scrolling を付与） === */
+body.scrolling .appbar{
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background:linear-gradient(to bottom, rgba(0,0,0,.18), transparent), var(--bg);
+  transition: none;
 }
