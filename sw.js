@@ -1,16 +1,14 @@
-// Train Punch SW (v1.4.3-1)
-// cache bust + SPA nav fallback (+ignoreSearch, support.html offline, no auto skipWaiting)
-
-const CACHE = 'trainpunch-1.4.3-1';
+// 例: v1.4.3-2 に上げる
+const CACHE = 'trainpunch-1.4.3-2';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=1.4.3b',
+  './styles.css?v=1.4.3b',   // ← index と合わせる
   './app.js?v=1.4.3',
   './sw-register.js',
   './manifest.webmanifest',
   './privacy.html',
-  './support.html',          // ← オフライン対応
+  './support.html',
   './beep.wav',
   './icons/icon-180.png',
   './icons/icon-192.png',
