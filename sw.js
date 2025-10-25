@@ -1,4 +1,4 @@
-// Train Punch SW (v1.4.3) — cache bust + SPA nav fallback (+ignoreSearch)
+// Train Punch SW (v1.4.3) — cache bust + SPA nav fallback (+ignoreSearch, no auto skipWaiting)
 const CACHE = 'trainpunch-1.4.3';
 const ASSETS = [
   './',
@@ -15,7 +15,7 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e)=>{
-  self.skipWaiting();
+  // 自動の skipWaiting はしない（待機 → 次回リロードで適用）
   e.waitUntil((async ()=>{
     const cache = await caches.open(CACHE);
     await Promise.all(ASSETS.map(url =>
@@ -32,6 +32,7 @@ self.addEventListener('activate', (e)=>{
   })());
 });
 
+// 明示メッセージでのみ即時有効化したい場合のフック（任意）
 self.addEventListener('message', (e)=>{
   if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
@@ -53,7 +54,7 @@ self.addEventListener('fetch', (e)=>{
     return;
   }
 
-  // 通常リクエスト: 先にキャッシュ、なければネット→成功したら保存
+  // 通常リクエスト: 先にキャッシュ、なければネット→成功したら保存（同一オリジンのみ）
   e.respondWith((async ()=>{
     const cache = await caches.open(CACHE);
     const hit = await cache.match(req);
