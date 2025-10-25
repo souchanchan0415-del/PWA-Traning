@@ -1,9 +1,11 @@
-// 例: v1.4.3-2 に上げる
+// Train Punch SW (v1.4.3-2) — cache bust + SPA nav fallback
+// (+ignoreSearch, support.html offline, no auto skipWaiting)
+
 const CACHE = 'trainpunch-1.4.3-2';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=1.4.3b',   // ← index と合わせる
+  './styles.css?v=1.4.3b',   // ← index と同じクエリに統一
   './app.js?v=1.4.3',
   './sw-register.js',
   './manifest.webmanifest',
@@ -62,7 +64,7 @@ self.addEventListener('fetch', (e) => {
         return res;
       } catch (_) {
         const cache = await caches.open(CACHE);
-        // 1) まず“そのページ自身”のキャッシュ（support.html等）を試す
+        // 1) まず“そのページ自身”のキャッシュ（support.html 等）
         const cachedPage = await cache.match(req, { ignoreSearch: true });
         if (cachedPage) return cachedPage;
         // 2) ダメなら SPA 用に index.html を返す
