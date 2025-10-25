@@ -1,10 +1,10 @@
-// Train Punch SW (v1.4.2) — cache bust + SPA nav fallback (+ignoreSearch)
-const CACHE = 'trainpunch-1.4.2';
+// Train Punch SW (v1.4.3) — cache bust + SPA nav fallback (+ignoreSearch)
+const CACHE = 'trainpunch-1.4.3';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=1.4.2',
-  './app.js?v=1.4.2',
+  './styles.css?v=1.4.3',
+  './app.js?v=1.4.3',
   './sw-register.js',
   './manifest.webmanifest',
   './privacy.html',
@@ -19,7 +19,7 @@ self.addEventListener('install', (e)=>{
   e.waitUntil((async ()=>{
     const cache = await caches.open(CACHE);
     await Promise.all(ASSETS.map(url =>
-      cache.add(new Request(url, {cache:'reload'})).catch(()=>{})
+      cache.add(new Request(url, { cache:'reload' })).catch(()=>{})
     ));
   })());
 });
@@ -39,7 +39,7 @@ self.addEventListener('message', (e)=>{
 self.addEventListener('fetch', (e)=>{
   const req = e.request;
 
-  // SPAナビ: 失敗時は index.html を ignoreSearch でフォールバック
+  // SPA ナビ: オフライン時は index.html にフォールバック（ignoreSearch 付き）
   if (req.mode === 'navigate' && req.method === 'GET'){
     e.respondWith((async ()=>{
       try {
@@ -53,7 +53,7 @@ self.addEventListener('fetch', (e)=>{
     return;
   }
 
-  // 通常: まずキャッシュ、なければネット→成功したら保存
+  // 通常リクエスト: 先にキャッシュ、なければネット→成功したら保存
   e.respondWith((async ()=>{
     const cache = await caches.open(CACHE);
     const hit = await cache.match(req);
