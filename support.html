@@ -1,94 +1,51 @@
-// Train Punch SW (v1.4.3-1)
-// cache bust + SPA nav fallback (+ignoreSearch, support.html offline, no auto skipWaiting)
+<!DOCTYPE html>
+<html lang="ja" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>サポート ＆ お知らせ — Train Punch</title>
+  <meta name="theme-color" content="#111111" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css?v=1.4.3b" />
+</head>
+<body>
+  <header class="appbar">
+    <h1 class="logo">サポート ＆ お知らせ</h1>
+  </header>
 
-const CACHE = 'trainpunch-1.4.3-1';
-const ASSETS = [
-  './',
-  './index.html',
-  './styles.css?v=1.4.3',
-  './app.js?v=1.4.3',
-  './sw-register.js',
-  './manifest.webmanifest',
-  './privacy.html',
-  './support.html',          // ← オフライン対応
-  './beep.wav',
-  './icons/icon-180.png',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
-];
+  <main class="container">
+    <div class="card">
+      <p>いつもご利用ありがとうございます。以下の広告・紹介リンクからのご支援は、開発継続に充てられます🙏</p>
+      <a class="btnlike ghost" href="./" rel="noopener">← アプリに戻る</a>
+    </div>
 
-self.addEventListener('install', (e) => {
-  // 次回リロードで切替（自動 skipWaiting はしない）
-  e.waitUntil((async () => {
-    const cache = await caches.open(CACHE);
-    await Promise.all(
-      ASSETS.map((url) =>
-        cache.add(new Request(url, { cache: 'reload' })).catch(() => {})
-      )
-    );
-  })());
-});
+    <div class="card">
+      <h3>スポンサー枠</h3>
+      <!-- AdSense（承認後に有効化。今は空のままでOK）
+      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXX" crossorigin="anonymous"></script>
+      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXX" data-ad-slot="YYYY" data-ad-format="auto" data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+      -->
+      <small>※ 承認されるまで空白です。承認後に広告が表示されます。</small>
+    </div>
 
-self.addEventListener('activate', (e) => {
-  e.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
-    await self.clients.claim();
-  })());
-});
+    <div class="card">
+      <h3>おすすめ器具・サプリ</h3>
+      <ul class="list">
+        <li><span>可変式ダンベル</span><a class="btnlike ghost" target="_blank" href="#">見る</a></li>
+        <li><span>リストラップ</span><a class="btnlike ghost" target="_blank" href="#">見る</a></li>
+      </ul>
+      <small>リンクにはアフィリエイト（広告）を含みます。</small>
+    </div>
 
-// 必要時のみ即時有効化
-self.addEventListener('message', (e) => {
-  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
-});
-
-self.addEventListener('fetch', (e) => {
-  const req = e.request;
-
-  // ---- HTMLナビ（Safari対策で Accept 判定も含める）----
-  const isHTMLNav =
-    req.method === 'GET' &&
-    (req.mode === 'navigate' ||
-     (req.headers.get('accept') || '').includes('text/html'));
-
-  if (isHTMLNav) {
-    e.respondWith((async () => {
-      try {
-        // なるべく最新を取得
-        const res = await fetch(req);
-        // 成功したら同一オリジンのみキャッシュ更新（任意）
-        if (res && res.ok && req.url.startsWith(self.location.origin)) {
-          const cache = await caches.open(CACHE);
-          cache.put(req, res.clone());
-        }
-        return res;
-      } catch (_) {
-        const cache = await caches.open(CACHE);
-        // 1) まず“そのページ自身”のキャッシュ（support.html等）を試す
-        const cachedPage = await cache.match(req, { ignoreSearch: true });
-        if (cachedPage) return cachedPage;
-        // 2) ダメなら SPA 用に index.html を返す
-        const index = await cache.match('./index.html', { ignoreSearch: true });
-        return index || new Response('', { status: 200, headers: { 'Content-Type': 'text/html' } });
-      }
-    })());
-    return;
-  }
-
-  // ---- 通常リクエスト：キャッシュ優先 → ネット → 成功したら保存 ----
-  e.respondWith((async () => {
-    const cache = await caches.open(CACHE);
-    const hit = await cache.match(req);
-    if (hit) return hit;
-
-    try {
-      const res = await fetch(req);
-      if (res && res.ok && req.method === 'GET' && req.url.startsWith(self.location.origin)) {
-        cache.put(req, res.clone());
-      }
-      return res;
-    } catch (_) {
-      return hit || Response.error();
-    }
-  })());
-});
+    <div class="card">
+      <h3>その他のサポート</h3>
+      <div class="chipset">
+        <a class="btnlike ghost" target="_blank" rel="noopener" href="https://github.com/sponsors/">GitHub Sponsors</a>
+        <a class="btnlike ghost" target="_blank" rel="noopener" href="https://ko-fi.com/">Ko-fi</a>
+        <a class="btnlike ghost" target="_blank" rel="noopener" href="https://www.buymeacoffee.com/">Buy Me a Coffee</a>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
