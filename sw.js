@@ -5,7 +5,7 @@ const CACHE = 'trainpunch-1.4.3-1';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=1.4.3',
+  './styles.css?v=1.4.3b',
   './app.js?v=1.4.3',
   './sw-register.js',
   './manifest.webmanifest',
