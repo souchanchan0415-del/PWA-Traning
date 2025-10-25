@@ -18,7 +18,8 @@
   <link rel="preload" href="beep.wav" as="audio" />
   <!-- 支援ページを事前取得（任意。外してもOK） -->
   <link rel="prefetch" href="support.html" />
-  <link rel="stylesheet" href="styles.css?v=1.4.3" />
+  <!-- ★ CSS キャッシュ確実化のためクエリを更新 -->
+  <link rel="stylesheet" href="styles.css?v=1.4.3b" />
 </head>
 <body>
   <noscript>
@@ -295,7 +296,13 @@
           <div>バージョン</div><div>1.4.3</div>
           <div>プライバシー</div><div><a target="_blank" href="privacy.html" rel="noopener">プライバシーポリシー</a></div>
           <div>サポート</div>
-          <div><a href="mailto:toreninguguanli53@gmail.com?subject=Train%20Punch%20サポート">toreninguguanli53@gmail.com</a></div>
+          <div>
+            <!-- ★ メールの折返し対策を明示（はみ出し防止） -->
+            <a href="mailto:toreninguguanli53@gmail.com?subject=Train%20Punch%20サポート"
+               style="overflow-wrap:anywhere; word-break:break-word;">
+              toreninguguanli53@gmail.com
+            </a>
+          </div>
         </div>
         <small>当アプリはトレーニング記録を目的としたツールです。医療情報や効果を保証するものではありません。安全に配慮し、体調に異変があれば医療機関に相談してください。</small>
       </div>
