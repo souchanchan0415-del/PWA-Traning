@@ -1,5 +1,4 @@
-// Train Punch SW (v1.4.3) — cache bust + SPA nav fallback (+ignoreSearch, no auto skipWaiting)
-const CACHE = 'trainpunch-1.4.3';
+const CACHE = 'trainpunch-1.4.3-1'; // ← ついでに名前も少し変えると確実
 const ASSETS = [
   './',
   './index.html',
@@ -8,6 +7,7 @@ const ASSETS = [
   './sw-register.js',
   './manifest.webmanifest',
   './privacy.html',
+  './support.html',          // ★ これを追加
   './beep.wav',
   './icons/icon-180.png',
   './icons/icon-192.png',
