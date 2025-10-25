@@ -1,5 +1,5 @@
 // Train Punch SW (v1.4.3-1) — cache bust + SPA nav fallback (+ignoreSearch, support.html cached, no auto skipWaiting)
-const CACHE = 'trainpunch-1.4.3-1'; // ← ついでに名前も少し変えると確実
+const CACHE = 'trainpunch-1.4.3-1';
 const ASSETS = [
   './',
   './index.html',
@@ -8,7 +8,7 @@ const ASSETS = [
   './sw-register.js',
   './manifest.webmanifest',
   './privacy.html',
-  './support.html',          // ★ これを追加
+  './support.html',          // ★ オフラインでも開けるように追加
   './beep.wav',
   './icons/icon-180.png',
   './icons/icon-192.png',
@@ -16,7 +16,7 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e)=>{
-  // 自動の skipWaiting はしない（待機 → 次回リロードで適用）
+  // 自動 skipWaiting はしない（次回リロードで切替）
   e.waitUntil((async ()=>{
     const cache = await caches.open(CACHE);
     await Promise.all(ASSETS.map(url =>
@@ -33,7 +33,7 @@ self.addEventListener('activate', (e)=>{
   })());
 });
 
-// 明示メッセージでのみ即時有効化したい場合のフック（任意）
+// 明示メッセージを受けたときだけ即時有効化したい場合用
 self.addEventListener('message', (e)=>{
   if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
@@ -41,12 +41,12 @@ self.addEventListener('message', (e)=>{
 self.addEventListener('fetch', (e)=>{
   const req = e.request;
 
-  // SPA ナビ: オフライン時は index.html にフォールバック（ignoreSearch 付き）
+  // SPA ナビゲーション：オフライン時は index.html にフォールバック（ignoreSearch 付き）
   if (req.mode === 'navigate' && req.method === 'GET'){
     e.respondWith((async ()=>{
-      try {
+      try{
         return await fetch(req);
-      } catch (_){
+      }catch(_){
         const cache = await caches.open(CACHE);
         return (await cache.match('./index.html', { ignoreSearch: true })) ||
                new Response('', { status: 200, headers: { 'Content-Type': 'text/html' } });
@@ -55,7 +55,7 @@ self.addEventListener('fetch', (e)=>{
     return;
   }
 
-  // 通常リクエスト: 先にキャッシュ、なければネット→成功したら保存（同一オリジンのみ）
+  // 通常リクエスト：キャッシュ優先 → なければネット → 成功したら保存（同一オリジンのみ）
   e.respondWith((async ()=>{
     const cache = await caches.open(CACHE);
     const hit = await cache.match(req);
