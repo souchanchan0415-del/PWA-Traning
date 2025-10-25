@@ -1,5 +1,6 @@
-// Train Punch — v1.4.3
+// Train Punch — v1.4.3 (+ perf fixes)
 // (auto-timer default + smart input "40x8@8" + today edit & undo + watch-only PR + e1RM trend)
+// 追加: スクロール中はヘッダーのブラー無効化 / チャートのresizeデバウンス / 最後に開いたタブの復元
 
 const DB_NAME = 'trainpunch_v3';
 const DB_VER  = 3;
@@ -17,6 +18,10 @@ function showToast(msg){
 const todayStr = () => new Date().toISOString().slice(0,10);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const e1rm = (w,r) => w * (1 + (r||0)/30);
+
+// --- small utils ---
+const debounce = (fn, wait=150)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), wait); }; };
+try{ if('scrollRestoration' in history) history.scrollRestoration='manual'; }catch(_){}
 
 // ---- Hard Refresh ----
 async function hardRefresh(){
@@ -119,6 +124,16 @@ function doUndo(){
 
 // =================== Init ===================
 async function init(){
+  // スクロール中はヘッダーブラーを切って描画負荷を軽減
+  (function(){
+    let _t;
+    window.addEventListener('scroll', ()=>{
+      document.body.classList.add('scrolling');
+      clearTimeout(_t);
+      _t = setTimeout(()=> document.body.classList.remove('scrolling'), 150);
+    }, {passive:true});
+  })();
+
   // ↻
   $('#btnHardRefresh')?.addEventListener('click', async ()=>{
     const b = $('#btnHardRefresh'); const old = b.textContent;
@@ -138,6 +153,13 @@ async function init(){
   // Tabs
   bindTabs();
 
+  // 最後に開いたタブの復元（あれば）
+  const lastTab = (await get('prefs','last_tab'))?.value;
+  if(lastTab){
+    const btn = document.querySelector(`.tabs button[data-tab="${lastTab}"]`);
+    if(btn && !btn.classList.contains('active')) btn.click();
+  }
+
   // Session
   $('#sessDate').value = todayStr();
   bindSessionUI();
@@ -149,16 +171,16 @@ async function init(){
 
   // History & Settings
   bindHistoryUI();
-  bindSettingsUI();       // ← ここでUIへ prefs を反映
-  await renderWatchUI();  // ウォッチ追加UI
-  await renderTrendSelect();  // 分析セレクト
+  bindSettingsUI();
+  await renderWatchUI();
+  await renderTrendSelect();
 
   // Initial renders
   renderPartChips();
   await renderExSelect();
   renderTodaySets();
   renderHistory();
-  renderAnalytics();          // volume + trend
+  renderAnalytics();
   renderExList();
 
   // Theme
@@ -184,13 +206,16 @@ async function ensureInitialExercises(){
 // =================== Tabs ===================
 function bindTabs(){
   $$('.tabs button').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
+    btn.addEventListener('click', async ()=>{
       $$('.tabs button').forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
       btn.classList.add('active'); btn.setAttribute('aria-selected','true');
 
       const tab = btn.dataset.tab;
       $$('.tab').forEach(s=>s.classList.remove('active'));
       $('#tab-'+tab).classList.add('active');
+
+      // 最後に開いたタブを保存
+      put('prefs', {key:'last_tab', value:tab}).catch(()=>{});
 
       if(tab==='history') renderHistory();
       if(tab==='analytics') renderAnalytics();
@@ -214,12 +239,11 @@ function bindSessionUI(){
       selectedPart = b.dataset.part;
       renderPartChips();
       await renderExSelect();
-      // 部位切替時はフィールドもリセット
       $('#weight').value=''; $('#reps').value=''; $('#rpe').value='';
     });
   }
 
-  // スマート入力（40x8@8 など）: weight / reps / rpe いずれに打っても解析
+  // スマート入力
   ['weight','reps','rpe'].forEach(id=>{
     const el = $('#'+id);
     el?.addEventListener('input', handleSmartInput, {passive:true});
@@ -227,12 +251,12 @@ function bindSessionUI(){
     el?.addEventListener('paste', ()=> setTimeout(handleSmartInput, 0));
   });
 
-  // 追加：Enterで投入（RPE入力中）
+  // Enter で投入
   $('#rpe')?.addEventListener('keydown', (e)=>{
     if(e.key==='Enter'){ e.preventDefault(); $('#btnAddSet')?.click(); }
   });
 
-  // カスタム種目追加（現在の部位）
+  // カスタム種目追加
   $('#btnAddEx')?.addEventListener('click', async ()=>{
     const name = prompt('種目名を入力（例：懸垂）'); if(!name) return;
     try{
@@ -258,7 +282,7 @@ function bindSessionUI(){
       const histBest = Math.max(0, ...hist.map(s=>e1rm(s.weight,s.reps)));
       const sessBest = Math.max(0, ...currentSession.sets.filter(s=>s.exercise_id===exId).map(s=>e1rm(s.weight,s.reps)));
       const bestSoFar = Math.max(histBest, sessBest);
-      willPR = curE1 > bestSoFar;   // strict: 上回った時だけ
+      willPR = curE1 > bestSoFar;
     }
 
     // undo用スナップショット
@@ -296,7 +320,6 @@ function bindSessionUI(){
     const date = $('#sessDate').value;
     const note = $('#sessNote').value;
 
-    // undo用スナップショット
     pushUndo();
 
     const sessionId = await put('sessions',{date, note, created_at: Date.now()});
@@ -316,7 +339,7 @@ function bindSessionUI(){
   // 初回テンプレ構築
   buildHistoryTemplates();
 
-  // 種目切り替え時、前回値プリフィル
+  // 種目切替時、前回値プリフィル
   $('#exSelect')?.addEventListener('change', async ()=>{
     const exId = Number($('#exSelect').value);
     if(!exId){ $('#weight').value=''; $('#reps').value=''; $('#rpe').value=''; return; }
@@ -330,7 +353,6 @@ function bindSessionUI(){
 function parseSmart(s){
   if(!s || typeof s!=='string') return null;
   const str = s.trim().replace(/＊/g,'*').replace(/×/g,'x').toLowerCase();
-  // 例: 40x8@8 / 40x8 / 40*8@7.5 など
   const m = str.match(/^(\d+(?:\.\d+)?)\s*[x\*]\s*(\d+)(?:\s*@\s*(\d+(?:\.\d+)?))?$/);
   if(!m) return null;
   return {w: Number(m[1]), r: Number(m[2]), p: m[3]!==undefined ? Number(m[3]) : null};
@@ -410,24 +432,20 @@ function renderTodaySets(){
       }
       if(act==='edit'){
         pushUndo();
-        // セットを一旦外す
         currentSession.sets = currentSession.sets.filter(x=>x.temp_id !== id);
         renderTodaySets();
 
-        // 種目の部位に切替 → セレクトを出す
         const ex = (await getAll('exercises')).find(e=>e.id===item.exercise_id);
         if(ex && ex.group && ex.group !== selectedPart){
           selectedPart = ex.group;
           renderPartChips();
           await renderExSelect();
         }
-        // 値をフォームへ
         $('#exSelect').value = String(item.exercise_id);
         $('#weight').value   = String(item.weight);
         $('#reps').value     = String(item.reps);
         $('#rpe').value      = item.rpe ?? '';
         showToast('編集用に読み込みました');
-        // スクロール上に
         window.scrollTo({top:0, behavior:'smooth'});
       }
     });
@@ -728,15 +746,16 @@ async function renderAnalytics(){
         return (i>=0 && i<(canvas._days?.length||0)) ? i : -1;
       };
       const redraw = (i=-1)=> _drawBarChart(canvas, canvas._days||[], canvas._totals||[], i);
+      const onResize = debounce(()=> redraw(-1), 120);
       canvas.addEventListener('mousemove', (e)=> redraw(pickIndex(e)));
       canvas.addEventListener('mouseleave', ()=> redraw(-1));
       canvas.addEventListener('touchstart', (e)=> redraw(pickIndex(e)), {passive:true});
       canvas.addEventListener('touchmove',  (e)=> redraw(pickIndex(e)), {passive:true});
-      window.addEventListener('resize', ()=> redraw(-1));
+      window.addEventListener('resize', onResize);
       _chartEventsBound = true;
     }
 
-    // metrics（任意の場所に #metrics があれば埋める）
+    // metrics
     const recentKeys = new Set(days.map(d=>d.key));
     const recentSets = sets.filter(s => recentKeys.has(s.date));
     const total7     = totals.reduce((a,b)=>a+b,0);
@@ -787,7 +806,6 @@ async function renderTrendChart(){
 
   const sets = await getAll('sets');
   const rows = sets.filter(s=>s.exercise_id===exId);
-  // dateごとに最大e1RM
   const byDate = {};
   rows.forEach(s=>{
     const v = e1rm(s.weight, s.reps);
@@ -803,14 +821,11 @@ async function renderTrendChart(){
     data = points.slice(-n);
   }
 
-  const labels = data.map(p=>{
-    const d = new Date(p.ts); return `${d.getMonth()+1}/${d.getDate()}`;
-  });
+  const labels = data.map(p=>{ const d = new Date(p.ts); return `${d.getMonth()+1}/${d.getDate()}`; });
   const values = data.map(p=>p.v);
 
   _drawLineChart(canvas, labels, values, -1);
 
-  // hover など
   if(!_trendEventsBound){
     const pickIndex = (evt)=>{
       const r = canvas.getBoundingClientRect();
@@ -820,15 +835,15 @@ async function renderTrendChart(){
       return (i>=0 && i<(canvas._labels?.length||0)) ? i : -1;
     };
     const redraw = (i=-1)=> _drawLineChart(canvas, canvas._labels||[], canvas._values||[], i);
+    const onResize = debounce(()=> redraw(-1), 120);
     canvas.addEventListener('mousemove', (e)=> redraw(pickIndex(e)));
     canvas.addEventListener('mouseleave', ()=> redraw(-1));
     canvas.addEventListener('touchstart', (e)=> redraw(pickIndex(e)), {passive:true});
     canvas.addEventListener('touchmove',  (e)=> redraw(pickIndex(e)), {passive:true});
-    window.addEventListener('resize', ()=> redraw(-1));
+    window.addEventListener('resize', onResize);
     _trendEventsBound = true;
   }
 
-  // info
   const latest = values.at(-1)||0;
   const best   = Math.max(0, ...values);
   if(info){
@@ -842,13 +857,11 @@ async function renderTrendChart(){
 
 // =================== Settings ===================
 function bindSettingsUI(){
-  // 既定秒数/自動開始の初期反映
   const timerSel = $('#timerSec');
   if(timerSel){ timerSel.value = String(defaultTimerSec); }
   const autoCk = $('#autoTimer');
   if(autoCk){ autoCk.checked = !!autoTimerOn; }
 
-  // 変更を保存
   $('#timerSec')?.addEventListener('change', async (e)=>{
     defaultTimerSec = Number(e.target.value) || 60;
     await put('prefs',{key:'timer_sec', value:defaultTimerSec});
