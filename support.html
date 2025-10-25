@@ -2,9 +2,11 @@
 <html lang="ja" data-theme="light">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
   <title>サポート ＆ お知らせ — Train Punch</title>
+  <meta name="description" content="Train Punch の開発を支援できます。広告・紹介リンク、投げ銭など。" />
   <meta name="theme-color" content="#111111" />
+  <meta name="format-detection" content="telephone=no, email=no, address=no" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css?v=1.4.3b" />
 </head>
@@ -14,36 +16,60 @@
   </header>
 
   <main class="container">
+    <!-- 概要 -->
     <div class="card">
       <p>いつもご利用ありがとうございます。以下の広告・紹介リンクからのご支援は、開発継続に充てられます🙏</p>
-      <a class="btnlike ghost" href="./" rel="noopener">← アプリに戻る</a>
+      <!-- 可能なら履歴で戻り、無ければトップへ -->
+      <a class="btnlike ghost" href="./" onclick="if(history.length>1){history.back();return false;}" rel="noopener">← アプリに戻る</a>
     </div>
 
+    <!-- スポンサー枠（AdSense等：承認後に有効化） -->
     <div class="card">
       <h3>スポンサー枠</h3>
-      <!-- AdSense（承認後に有効化。今は空のままでOK）
-      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXX" crossorigin="anonymous"></script>
-      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXX" data-ad-slot="YYYY" data-ad-format="auto" data-full-width-responsive="true"></ins>
+      <!--
+      ↓ AdSense 承認後に client/slot を本番値に置き換えてコメント解除してください
+      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-XXXXXXXXXXXXXXX"
+           data-ad-slot="YYYYYYYYYY"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
       <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
       -->
       <small>※ 承認されるまで空白です。承認後に広告が表示されます。</small>
     </div>
 
+    <!-- おすすめ器具・サプリ：アフィリエイトリンク -->
     <div class="card">
       <h3>おすすめ器具・サプリ</h3>
       <ul class="list">
-        <li><span>可変式ダンベル</span><a class="btnlike ghost" target="_blank" href="#">見る</a></li>
-        <li><span>リストラップ</span><a class="btnlike ghost" target="_blank" href="#">見る</a></li>
+        <li>
+          <span>可変式ダンベル</span>
+          <a class="btnlike ghost" target="_blank"
+             href="https://example.com/your-affiliate-link-dumbbell"
+             rel="sponsored nofollow noopener">見る</a>
+        </li>
+        <li>
+          <span>リストラップ</span>
+          <a class="btnlike ghost" target="_blank"
+             href="https://example.com/your-affiliate-link-wristwrap"
+             rel="sponsored nofollow noopener">見る</a>
+        </li>
       </ul>
-      <small>リンクにはアフィリエイト（広告）を含みます。</small>
+      <small>※ リンクにはアフィリエイト（広告）を含みます。</small>
     </div>
 
+    <!-- 投げ銭など他の支援 -->
     <div class="card">
       <h3>その他のサポート</h3>
       <div class="chipset">
-        <a class="btnlike ghost" target="_blank" rel="noopener" href="https://github.com/sponsors/">GitHub Sponsors</a>
-        <a class="btnlike ghost" target="_blank" rel="noopener" href="https://ko-fi.com/">Ko-fi</a>
-        <a class="btnlike ghost" target="_blank" rel="noopener" href="https://www.buymeacoffee.com/">Buy Me a Coffee</a>
+        <a class="btnlike ghost" target="_blank" rel="noopener"
+           href="https://github.com/sponsors/">GitHub Sponsors</a>
+        <a class="btnlike ghost" target="_blank" rel="noopener"
+           href="https://ko-fi.com/">Ko-fi</a>
+        <a class="btnlike ghost" target="_blank" rel="noopener"
+           href="https://www.buymeacoffee.com/">Buy Me a Coffee</a>
       </div>
     </div>
   </main>
