@@ -23,6 +23,11 @@ html[data-theme="light"]{
 
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
+html{
+  /* スクロールの安定化（デスクトップでスクロールバーによる横ズレ防止） */
+  scrollbar-gutter: stable both-edges;
+  overscroll-behavior-y: contain;
+}
 body{
   margin:0; color:var(--text);
   background:
@@ -31,6 +36,8 @@ body{
   font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP",
         "Hiragino Kaku Gothic ProN", "Yu Gothic", "Helvetica Neue", Arial,
         "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 a{ color: var(--primary); text-decoration: none; }
 a:hover{ text-decoration: underline; }
@@ -38,10 +45,13 @@ a:hover{ text-decoration: underline; }
 /* ===== Appbar / Tabs ===== */
 .appbar{
   position:sticky; top:0; z-index:10; isolation:isolate;
-  backdrop-filter:saturate(180%) blur(10px);
-  background:linear-gradient(to bottom, rgba(0,0,0,.35), transparent), var(--bg);
+  /* blur は高コストなので軽めに＆モバイルでは無効化（下のメディアクエリ） */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background:linear-gradient(to bottom, rgba(0,0,0,.28), transparent), var(--bg);
   padding:12px 16px 8px;
   padding-top: calc(12px + env(safe-area-inset-top));
+  contain: layout paint; /* スクロール中の再描画を局所化 */
 }
 .logo{ margin:0 0 10px; font-size:28px; font-weight:800; letter-spacing:.2px; }
 .tabs{ display:flex; gap:12px; flex-wrap:wrap; position:relative; z-index:2; }
@@ -75,12 +85,13 @@ input, select, textarea, button{ font:inherit; color:inherit; }
 input, select{
   background:color-mix(in oklab, var(--card), #000 5%); color:var(--text);
   border:1px solid var(--line); border-radius:12px; padding:12px 14px; min-height:44px;
-  flex:1 1 220px; transition:border-color .15s, box-shadow .15s;
+  flex:1 1 220px; transition:border-color .12s, box-shadow .12s;
 }
 input::placeholder{ color: color-mix(in oklab, var(--muted), #000 10%); }
 input:focus, select:focus{
-  border-color: color-mix(in oklab, var(--primary), #000 25%);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary), transparent 85%);
+  border-color: color-mix(in oklab, var(--primary), #000 20%);
+  /* 影を少し軽く（描画負荷を下げる） */
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary), transparent 84%);
   outline: none;
 }
 select{ padding-right:40px; }
@@ -97,7 +108,7 @@ input[type="checkbox"], input[type="radio"]{ accent-color: var(--primary); }
 button{
   appearance:none; border:1px solid var(--line); background:var(--primary); color:#fff;
   padding:12px 16px; border-radius:12px; cursor:pointer; min-height:44px;
-  transition: filter .12s ease, transform .02s ease-in-out, background .15s, border-color .15s;
+  transition: filter .1s ease, transform .02s ease-in-out, background .15s, border-color .15s;
 }
 button:hover{ filter: brightness(1.02); }
 button:active{ transform: translateY(1px); }
@@ -213,6 +224,19 @@ small{ color: var(--muted); }
   /* 3つ目（RPE）を次の行で全幅に */
   .grid-3 > :nth-child(3){ grid-column: 1 / -1; }
 }
+
+/* モバイル最適化：高コスト描画を抑制 */
+@media (max-width: 600px){
+  /* ヘッダーの高コストな blur をオフ */
+  .appbar{
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background:linear-gradient(to bottom, rgba(0,0,0,.18), transparent), var(--bg);
+  }
+  /* 背景の巨大グラデをオフ（スクロールの引っかかり回避） */
+  body{ background: var(--bg); }
+}
+
 @media (max-width: 560px){
   #tplPartChips{ gap: 10px; margin: 6px 0 8px; }
   #tplPartChips .chip{ padding: 8px 12px; }
@@ -237,7 +261,7 @@ button, select, input { touch-action: manipulation; }
   position: relative; z-index: 0;
 }
 
-/* 低モーション派生（お好みで） */
+/* 低モーション派生 */
 @media (prefers-reduced-motion: reduce){
   *{ transition:none !important; animation:none !important; }
 }
