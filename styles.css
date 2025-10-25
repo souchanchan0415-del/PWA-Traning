@@ -31,7 +31,6 @@ html[data-theme="light"]{
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
 html{
-  /* スクロールの安定化（デスクトップでスクロールバーによる横ズレ防止） */
   scrollbar-gutter: stable both-edges;
   overscroll-behavior-y: contain;
 }
@@ -52,13 +51,12 @@ a:hover{ text-decoration: underline; }
 /* ===== Appbar / Tabs ===== */
 .appbar{
   position:sticky; top:0; z-index:10; isolation:isolate;
-  /* blur は高コストなので軽めに＆モバイルやスクロール中は無効化（下のルール） */
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   background:linear-gradient(to bottom, rgba(0,0,0,.28), transparent), var(--bg);
   padding:12px 16px 8px;
   padding-top: calc(12px + env(safe-area-inset-top));
-  contain: layout paint; /* スクロール中の再描画を局所化 */
+  contain: layout paint;
 }
 .logo{ margin:0 0 10px; font-size:28px; font-weight:800; letter-spacing:.2px; }
 .tabs{ display:flex; gap:12px; flex-wrap:wrap; position:relative; z-index:2; }
@@ -90,25 +88,28 @@ h3{ margin:0 0 12px; font-size:18px; }
 
 /* ===== Inputs ===== */
 input, select, textarea, button{ font:inherit; color:inherit; }
-input, select{
+
+/* ← チェック/ラジオは除外してテキスト系だけ装飾 */
+input:not([type="checkbox"]):not([type="radio"]), select{
   background:color-mix(in oklab, var(--card), #000 5%); color:var(--text);
   border:1px solid var(--line); border-radius:12px; padding:12px 14px; min-height:44px;
   flex:1 1 220px; transition:border-color .12s, box-shadow .12s;
 }
 input::placeholder{ color: color-mix(in oklab, var(--muted), #000 10%); }
-input:focus, select:focus{
+
+/* ← フォーカス影もチェック/ラジオを除外 */
+input:not([type="checkbox"]):not([type="radio"]):focus, select:focus{
   border-color: color-mix(in oklab, var(--primary), #000 20%);
-  /* 影を少し軽く（描画負荷を下げる） */
   box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary), transparent 84%);
   outline: none;
 }
 select{ padding-right:40px; }
 label{ min-width:56px; color:var(--muted); }
 
-/* チェックボックス/ラジオのアクセント色を統一 */
+/* アクセント色の統一 */
 input[type="checkbox"], input[type="radio"]{ accent-color: var(--primary); }
 
-/* プレースホルダー（disabled option が選択されている間）は文字色を薄く */
+/* disabled option が選択されている間の見た目 */
 @supports(selector(:has(*))){
   select:has(option[disabled]:checked){ color: var(--muted); }
 }
@@ -121,9 +122,7 @@ button{
 button:hover{ filter: brightness(1.02); }
 button:active{ transform: translateY(1px); }
 button:disabled{ opacity:.55; cursor:not-allowed; filter:none; }
-button.ghost{
-  background:transparent; color:var(--text);
-}
+button.ghost{ background:transparent; color:var(--text); }
 button.ghost:hover{ border-color: color-mix(in oklab, var(--primary), #000 45%); }
 button.danger{ background:var(--danger); border-color:transparent; color:#fff; }
 .btnlike{
@@ -158,10 +157,17 @@ button.danger{ background:var(--danger); border-color:transparent; color:#fff; }
 }
 .legend{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
 .legend .chip{ padding:6px 10px; }
+
+/* 情報テーブル */
 .kv{ display:grid; grid-template-columns: 140px 1fr; gap:8px; }
+.kv > *{ min-width: 0; }                    /* 右カラムのはみ出し防止 */
+.kv a, .kv div:nth-child(2n){
+  overflow-wrap: anywhere; word-break: break-word;
+}
+
 small{ color: var(--muted); }
 
-/* メトリクス（直近7日など）の見た目 */
+/* メトリクス（直近7日など） */
 #metrics{
   display:grid; grid-template-columns: auto 1fr; gap:6px 12px;
   align-items:center; margin-top:8px; color:var(--muted);
@@ -180,7 +186,7 @@ small{ color: var(--muted); }
 }
 .toast.show{ opacity:1; transform:translateX(-50%) translateY(-4px); }
 
-/* Tabs content（非表示はクリックも禁止） */
+/* Tabs content */
 .tab{ display:none; }
 .tab.active{ display:block; }
 
@@ -189,7 +195,7 @@ small{ color: var(--muted); }
   width:100%;
   height:260px;
   display:block;
-  touch-action:none; /* iOS/Safariでホバー計算が安定 */
+  touch-action:none;
   user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
 }
 
@@ -200,8 +206,10 @@ small{ color: var(--muted); }
 
 /* レイアウトの安定化（iOS/Safari shrink対策） */
 .row > *, .grid > *{ min-width: 0; }
-.grid-3 input, .grid-3 select,
-.grid-2 input, .grid-2 select{ width: 100%; }
+
+/* ← 幅指定もチェック/ラジオを除外 */
+.grid-3 input:not([type="checkbox"]):not([type="radio"]), .grid-3 select,
+.grid-2 input:not([type="checkbox"]):not([type="radio"]), .grid-2 select{ width: 100%; }
 
 /* 種目セレクト行の密着緩和 */
 #exSelect { margin-bottom: 6px; }
@@ -230,26 +238,22 @@ small{ color: var(--muted); }
 @media (max-width: 700px){
   .grid-2{ grid-template-columns:1fr; }
   .grid-3{ grid-template-columns:1fr 1fr; }
-  /* 3つ目（RPE）を次の行で全幅に */
   .grid-3 > :nth-child(3){ grid-column: 1 / -1; }
 }
 
 /* モバイル最適化：高コスト描画を抑制 */
 @media (max-width: 600px){
-  /* ヘッダーの高コストな blur をオフ */
   .appbar{
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     background:linear-gradient(to bottom, rgba(0,0,0,.18), transparent), var(--bg);
   }
-  /* 背景の巨大グラデをオフ（スクロールの引っかかり回避） */
   body{ background: var(--bg); }
 }
 
 @media (max-width: 560px){
   #tplPartChips{ gap: 10px; margin: 6px 0 8px; }
   #tplPartChips .chip{ padding: 8px 12px; }
-  /* 種目行で「＋追加」を改行してセレクトに幅を譲る */
   #btnAddEx{ flex-basis: 100%; }
 }
 @media (max-width: 360px){
