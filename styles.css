@@ -286,3 +286,17 @@ body.scrolling .appbar{
   background:linear-gradient(to bottom, rgba(0,0,0,.18), transparent), var(--bg);
   transition: none;
 }
+/* --- 追加: ↻ に「更新あり」ドット（低コスト） --- */
+.iconbtn.update{ border-color: color-mix(in oklab, var(--primary), #000 35%); }
+.iconbtn.update::after{
+  content:""; position:absolute; right:6px; top:6px;
+  width:8px; height:8px; border-radius:999px;
+  background:var(--primary);
+  pointer-events:none;
+}
+
+/* おまけ：軽い点滅。低モーション設定の人には無効 */
+@media (prefers-reduced-motion: no-preference){
+  @keyframes tp-blink { 0%, 55% { opacity:1 } 56%, 100% { opacity:.3 } }
+  .iconbtn.update::after{ animation: tp-blink 1.6s infinite; }
+}
