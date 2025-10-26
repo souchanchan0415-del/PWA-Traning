@@ -1,14 +1,16 @@
-// sw-register.js (safe: no auto reload, user-triggered apply)
+// sw-register.js — v1.4.3-2（サブパス対応 / ユーザー主導アップデート）
 (() => {
   if (!('serviceWorker' in navigator)) return;
+
+  const SW_URL   = 'sw.js?v=1.4.3-2'; // ← キャッシュバスト用クエリ
+  const SW_SCOPE = './';              // ← /PWA-Traning/ 配下だけを制御
 
   const markUpdate = () => {
     const btn = document.getElementById('btnHardRefresh');
     if (btn) {
-      btn.classList.add('update');              // 視覚ヒント（CSS下に記載）
+      btn.classList.add('update');
       btn.title = '新しいバージョンがあります。押して更新';
     }
-    // 可能ならトーストも
     if (typeof window.showToast === 'function') {
       try { showToast('新しいバージョンがあります。↻で更新'); } catch (_) {}
     }
@@ -16,36 +18,42 @@
 
   window.addEventListener('load', async () => {
     try {
-      // 重要：'none' にしてHTTPキャッシュ越しの古いSWを避ける
-      const reg = await navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' });
+      const reg = await navigator.serviceWorker.register(SW_URL, {
+        scope: SW_SCOPE,
+        updateViaCache: 'none'
+      });
 
-      // 既に waiting なら「更新あり」を示す
+      // 既に waiting がいれば「更新あり」を表示
       if (reg.waiting) markUpdate();
 
-      // 新しいSW検知 → install完了（installed）で通知
+      // 新 SW を検知 → install 完了時（旧コントローラがいる＝バックグラウンド更新完了）に表示
       reg.addEventListener('updatefound', () => {
         const sw = reg.installing;
         sw?.addEventListener('statechange', () => {
-          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-            // 旧コントローラがいる＝バックグラウンド更新完了
-            markUpdate();
-          }
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) markUpdate();
         });
       });
 
-      // ↻ボタンで「今すぐ更新」を適用（ユーザー主導）
+      // ↻ クリックで即時適用（ユーザー主導のみ）
+      let userRequestedReload = false;
       document.getElementById('btnHardRefresh')?.addEventListener('click', () => {
-        // 新SWが待機中なら即時有効化を要求
-        reg.waiting?.postMessage({ type: 'SKIP_WAITING' });
-        // あとは app.js の hardRefresh() が SW unregister + cache clear + reload を実行
-        // （app.js の既存ハンドラでOK。ここでは何もしない）
+        if (reg.waiting) {
+          userRequestedReload = true;
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' }); // sw.js 側の message で skipWaiting
+        } else if (typeof window.hardRefresh === 'function') {
+          window.hardRefresh(); // 既存のハードリフレッシュがあるなら利用
+        } else {
+          location.reload();
+        }
       });
 
-      // ★自動リロードはしない（不安定化の元）
-      // navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+      // 自動リロードはしない。↻クリックで適用したときだけリロード
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (userRequestedReload) location.reload();
+      });
 
       // 起動直後の軽い更新チェック
-      reg.update().catch(()=>{});
+      reg.update().catch(() => {});
     } catch (e) {
       console.warn('SW register failed:', e);
     }
