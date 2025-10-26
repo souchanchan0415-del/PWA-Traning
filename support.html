@@ -10,10 +10,30 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css?v=1.4.3b" />
 
+  <!-- パフォーマンス（任意だが推奨） -->
+  <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin>
+  <link rel="preconnect" href="https://googleads.g.doubleclick.net" crossorigin>
+  <link rel="preconnect" href="https://tpc.googlesyndication.com" crossorigin>
+
   <!-- ★ AdSense ベースコード（審査中でも入れてOK / 表示は出ません） -->
   <script async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6494792718518447"
           crossorigin="anonymous"></script>
+
+  <!-- （任意）自動広告を将来使うならメタを付けてもOK
+  <meta name="google-adsense-account" content="ca-pub-6494792718518447">
+  -->
+  <style>
+    /* 広告エリアのCLS（レイアウトシフト）対策：最低高を確保 */
+    .ad-placeholder{
+      border:1px dashed var(--line);
+      border-radius:12px;
+      min-height: 120px;  /* 狭い端末想定の最小値 */
+      display:flex; align-items:center; justify-content:center;
+      color:var(--muted);
+      font-size:14px;
+    }
+  </style>
 </head>
 <body>
   <header class="appbar">
@@ -21,30 +41,39 @@
   </header>
 
   <main class="container">
+    <!-- 概要 -->
     <div class="card">
       <p>いつもご利用ありがとうございます。以下の広告・紹介リンクからのご支援は、開発継続に充てられます🙏</p>
+      <!-- 可能なら履歴で戻り、無ければトップへ -->
       <a class="btnlike ghost" href="./"
          onclick="if(history.length>1){history.back();return false;}"
          rel="noopener">← アプリに戻る</a>
     </div>
 
+    <!-- スポンサー枠（AdSense：承認後に有効化） -->
     <div class="card">
       <h3>スポンサー枠</h3>
-      <!--
-      ▼審査通過後の手順
-        1) AdSenseで「ディスプレイ（レスポンシブ）」ユニットを作成して Slot ID を取得
-        2) 下の data-ad-client（そのまま）/ data-ad-slot（取得した値）に置換し、コメント解除
+
+      <!-- 審査中はプレースホルダーだけ表示（レイアウト安定のため） -->
+      <div class="ad-placeholder">スポンサー枠（審査通過後に広告が表示されます）</div>
+
+      <!-- ▼審査通過後の手順
+        1) AdSenseで「ディスプレイ広告（レスポンシブ）」ユニットを作成して Slot ID を取得
+        2) 下のコードをコメント解除し、data-ad-slot に取得した数値を設定
+        3) プレースホルダーを削除（または非表示）してOK
       <ins class="adsbygoogle"
            style="display:block"
            data-ad-client="ca-pub-6494792718518447"
-           data-ad-slot="YYYYYYYYYY"
+           data-ad-slot="YYYYYYYYYY"  <!-- ← ここを置き換え -->
            data-ad-format="auto"
            data-full-width-responsive="true"></ins>
       <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
       -->
-      <small>※ 承認されるまで空白です。承認後に広告が表示されます。</small>
+
+      <small>※ 審査中は空白のままです。通過後に広告が表示されます。</small>
     </div>
 
+    <!-- おすすめ器具・サプリ：アフィリエイトリンク -->
     <div class="card">
       <h3>おすすめ器具・サプリ</h3>
       <ul class="list">
@@ -64,12 +93,16 @@
       <small>※ リンクにはアフィリエイト（広告）を含みます。</small>
     </div>
 
+    <!-- 投げ銭など他の支援 -->
     <div class="card">
       <h3>その他のサポート</h3>
       <div class="chipset">
-        <a class="btnlike ghost" target="_blank" rel="noopener" href="https://github.com/sponsors/">GitHub Sponsors</a>
-        <a class="btnlike ghost" target="_blank" rel="noopener" href="https://ko-fi.com/">Ko-fi</a>
-        <a class="btnlike ghost" target="_blank" rel="noopener" href="https://www.buymeacoffee.com/">Buy Me a Coffee</a>
+        <a class="btnlike ghost" target="_blank" rel="noopener"
+           href="https://github.com/sponsors/">GitHub Sponsors</a>
+        <a class="btnlike ghost" target="_blank" rel="noopener"
+           href="https://ko-fi.com/">Ko-fi</a>
+        <a class="btnlike ghost" target="_blank" rel="noopener"
+           href="https://www.buymeacoffee.com/">Buy Me a Coffee</a>
       </div>
     </div>
   </main>
