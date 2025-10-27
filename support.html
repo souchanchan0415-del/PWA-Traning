@@ -15,10 +15,10 @@
   <link rel="preconnect" href="https://googleads.g.doubleclick.net" crossorigin>
   <link rel="preconnect" href="https://tpc.googlesyndication.com" crossorigin>
 
-  <!-- ★ AdSense ベースコード（審査中でも入れてOK / 表示は出ません） -->
+  <!-- AdSense ベースコード（審査中でもOK） -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6494792718518447" crossorigin="anonymous"></script>
 
-  <!-- （任意）自動広告を将来使うなら有効化
+  <!-- （任意）将来 自動広告を使うなら有効化
   <meta name="google-adsense-account" content="ca-pub-6494792718518447">
   -->
 
@@ -49,12 +49,12 @@
     <div class="card">
       <h3>スポンサー枠</h3>
 
-      <!-- 審査中はプレースホルダーだけ表示（レイアウト安定のため） -->
+      <!-- 審査中はプレースホルダーだけ表示（レイアウト安定） -->
       <div class="ad-placeholder">スポンサー枠（審査通過後に広告が表示されます）</div>
 
       <!-- ▼審査通過後の手順
-           1) AdSense で「ディスプレイ広告（レスポンシブ）」ユニットを作成して Slot ID を取得
-           2) 下のコメントを外し、data-ad-slot に取得した値（数値）を設定
+           1) AdSense で「ディスプレイ広告（レスポンシブ）」ユニットを作成し Slot ID を取得
+           2) 下のコメントを外し、data-ad-slot に取得した数値を設定
            3) 直上の .ad-placeholder を削除
       -->
       <!--
@@ -71,7 +71,7 @@
       <small>※ 審査中は空白のままです。通過後に広告が表示されます。</small>
     </div>
 
-    <!-- おすすめ器具・サプリ：アフィリエイトリンク -->
+    <!-- おすすめ器具・サプリ（例：アフィリエイト） -->
     <div class="card">
       <h3>おすすめ器具・サプリ</h3>
       <ul class="list">
@@ -91,14 +91,21 @@
       <small>※ リンクにはアフィリエイト（広告）を含みます。</small>
     </div>
 
-    <!-- 投げ銭など他の支援 -->
+    <!-- 投げ銭 / 月額サポート -->
     <div class="card">
       <h3>その他のサポート</h3>
       <div class="chipset">
-        <a class="btnlike ghost" target="_blank" rel="noopener" href="https://github.com/sponsors/">GitHub Sponsors</a>
-        <a class="btnlike ghost" target="_blank" rel="noopener" href="https://ko-fi.com/">Ko-fi</a>
-        <a class="btnlike ghost" target="_blank" rel="noopener" href="https://www.buymeacoffee.com/">Buy Me a Coffee</a>
+        <!-- 単発：Ko-fi -->
+        <a class="btnlike ghost" target="_blank"
+           href="https://ko-fi.com/YOUR_KOFI_ID"
+           rel="sponsored nofollow noopener">投げ銭する（Ko-fi）</a>
+
+        <!-- 月額：GitHub Sponsors -->
+        <a class="btnlike ghost" target="_blank"
+           href="https://github.com/sponsors/YOUR_GITHUB_USERNAME"
+           rel="sponsored nofollow noopener">月額で応援（GitHub Sponsors）</a>
       </div>
+      <small>※ 決済は各サービスで処理されます。カード情報が本アプリに保存されることはありません。</small>
     </div>
   </main>
 </body>
