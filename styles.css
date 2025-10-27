@@ -1,4 +1,4 @@
-/* Train Punch styles — v1.4.3 (+perf tweaks) */
+/* Train Punch styles — v1.4.3b (+perf tweaks) */
 
 /* ===== Design tokens ===== */
 :root{
@@ -13,7 +13,6 @@
   --radius:16px;
   --shadow: 0 6px 24px rgba(0,0,0,.25);
 
-  /* OS にダークUI指示（フォームUIなどの既定色が馴染む） */
   color-scheme: dark;
 }
 
@@ -160,10 +159,8 @@ button.danger{ background:var(--danger); border-color:transparent; color:#fff; }
 
 /* 情報テーブル */
 .kv{ display:grid; grid-template-columns: 140px 1fr; gap:8px; }
-.kv > *{ min-width: 0; }                    /* 右カラムのはみ出し防止 */
-.kv a, .kv div:nth-child(2n){
-  overflow-wrap: anywhere; word-break: break-word;
-}
+.kv > *{ min-width: 0; }
+.kv a, .kv div:nth-child(2n){ overflow-wrap:anywhere; word-break: break-word; }
 
 small{ color: var(--muted); }
 
@@ -228,10 +225,34 @@ small{ color: var(--muted); }
 .iconbtn:hover{ border-color: color-mix(in oklab, var(--primary), #000 45%); }
 .iconbtn:active{ transform:translateY(1px); }
 
+/* --- 追加: ↻ に「更新あり」ドット（低コスト） --- */
+.iconbtn.update{ border-color: color-mix(in oklab, var(--primary), #000 35%); }
+.iconbtn.update::after{
+  content:""; position:absolute; right:6px; top:6px;
+  width:8px; height:8px; border-radius:999px;
+  background:var(--primary);
+  pointer-events:none;
+}
+/* おまけ：軽い点滅（低モーションは無効） */
+@media (prefers-reduced-motion: no-preference){
+  @keyframes tp-blink { 0%, 55% { opacity:1 } 56%, 100% { opacity:.3 } }
+  .iconbtn.update::after{ animation: tp-blink 1.6s infinite; }
+}
+
 /* アクセシビリティ：フォーカスリング */
 :focus-visible{
   outline:2px solid color-mix(in oklab, var(--primary), #fff 20%);
   outline-offset:2px; border-radius:12px;
+}
+
+/* ===== Support page / Ads ===== */
+.ad-placeholder{
+  border:1px dashed var(--line);
+  border-radius:12px;
+  min-height:120px;
+  display:flex; align-items:center; justify-content:center;
+  color:var(--muted);
+  font-size:14px;
 }
 
 /* ===== Responsive tweaks ===== */
@@ -285,18 +306,4 @@ body.scrolling .appbar{
   -webkit-backdrop-filter: none;
   background:linear-gradient(to bottom, rgba(0,0,0,.18), transparent), var(--bg);
   transition: none;
-}
-/* --- 追加: ↻ に「更新あり」ドット（低コスト） --- */
-.iconbtn.update{ border-color: color-mix(in oklab, var(--primary), #000 35%); }
-.iconbtn.update::after{
-  content:""; position:absolute; right:6px; top:6px;
-  width:8px; height:8px; border-radius:999px;
-  background:var(--primary);
-  pointer-events:none;
-}
-
-/* おまけ：軽い点滅。低モーション設定の人には無効 */
-@media (prefers-reduced-motion: no-preference){
-  @keyframes tp-blink { 0%, 55% { opacity:1 } 56%, 100% { opacity:.3 } }
-  .iconbtn.update::after{ animation: tp-blink 1.6s infinite; }
 }
