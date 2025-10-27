@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
   <title>サポート ＆ お知らせ — Train Punch</title>
-  <meta name="description" content="Train Punch の開発を支援できます。広告・紹介リンク、投げ銭など。" />
+  <meta name="description" content="Train Punch の開発を支援できます。広告・紹介リンク、投げ銭、月額サポートなど。" />
   <meta name="theme-color" content="#111111" />
   <meta name="format-detection" content="telephone=no, email=no, address=no" />
   <link rel="manifest" href="manifest.webmanifest" />
@@ -15,23 +15,14 @@
   <link rel="preconnect" href="https://googleads.g.doubleclick.net" crossorigin>
   <link rel="preconnect" href="https://tpc.googlesyndication.com" crossorigin>
 
-  <!-- AdSense ベースコード（審査中でもOK） -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6494792718518447" crossorigin="anonymous"></script>
+  <!-- AdSense ベースコード（審査中でもOK / まだ表示は出ない） -->
+  <script async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6494792718518447"
+          crossorigin="anonymous"></script>
 
-  <!-- （任意）将来 自動広告を使うなら有効化
+  <!-- （任意）自動広告を将来使うなら有効化
   <meta name="google-adsense-account" content="ca-pub-6494792718518447">
   -->
-
-  <style>
-    /* 広告エリアのCLS対策：最低高を確保 */
-    .ad-placeholder{
-      border:1px dashed var(--line);
-      border-radius:12px;
-      min-height:120px;
-      display:flex; align-items:center; justify-content:center;
-      color:var(--muted); font-size:14px;
-    }
-  </style>
 </head>
 <body>
   <header class="appbar">
@@ -41,32 +32,33 @@
   <main class="container">
     <!-- 概要 -->
     <div class="card">
-      <p>いつもご利用ありがとうございます。以下の広告・紹介リンクからのご支援は、開発継続に充てられます🙏</p>
-      <a class="btnlike ghost" href="./" onclick="if(history.length>1){history.back();return false;}" rel="noopener">← アプリに戻る</a>
+      <p>いつもご利用ありがとうございます。以下の広告・紹介リンク／投げ銭からのご支援は、開発継続に充てられます🙏</p>
+      <!-- 可能なら履歴で戻り、無ければトップへ -->
+      <a class="btnlike ghost" href="./"
+         onclick="if(history.length>1){history.back();return false;}"
+         rel="noopener">← アプリに戻る</a>
     </div>
 
     <!-- スポンサー枠（AdSense：承認後に有効化） -->
-    <div class="card">
+    <div class="card" id="sponsor">
       <h3>スポンサー枠</h3>
 
-      <!-- 審査中はプレースホルダーだけ表示（レイアウト安定） -->
+      <!-- 審査中はプレースホルダーだけ表示（レイアウト安定のため） -->
       <div class="ad-placeholder">スポンサー枠（審査通過後に広告が表示されます）</div>
 
       <!-- ▼審査通過後の手順
            1) AdSense で「ディスプレイ広告（レスポンシブ）」ユニットを作成し Slot ID を取得
            2) 下のコメントを外し、data-ad-slot に取得した数値を設定
-           3) 直上の .ad-placeholder を削除
+           3) 上の .ad-placeholder を削除
       -->
       <!--
       <ins class="adsbygoogle"
            style="display:block"
            data-ad-client="ca-pub-6494792718518447"
-           data-ad-slot="1234567890"
+           data-ad-slot="YYYYYYYYYY"      <!-- ← あなたの Slot ID に置換 -->
            data-ad-format="auto"
            data-full-width-responsive="true"></ins>
-      <script>
-        (adsbygoogle = window.adsbygoogle || []).push({});
-      </script>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
       -->
       <small>※ 審査中は空白のままです。通過後に広告が表示されます。</small>
     </div>
@@ -79,31 +71,31 @@
           <span>可変式ダンベル</span>
           <a class="btnlike ghost" target="_blank"
              href="https://example.com/your-affiliate-link-dumbbell"
-             rel="sponsored nofollow noopener">見る</a>
+             rel="sponsored nofollow noopener noreferrer">見る</a>
         </li>
         <li>
           <span>リストラップ</span>
           <a class="btnlike ghost" target="_blank"
              href="https://example.com/your-affiliate-link-wristwrap"
-             rel="sponsored nofollow noopener">見る</a>
+             rel="sponsored nofollow noopener noreferrer">見る</a>
         </li>
       </ul>
       <small>※ リンクにはアフィリエイト（広告）を含みます。</small>
     </div>
 
     <!-- 投げ銭 / 月額サポート -->
-    <div class="card">
+    <div class="card" id="donation">
       <h3>その他のサポート</h3>
-      <div class="chipset">
-        <!-- 単発：Ko-fi -->
+      <div class="chipset" aria-label="支援リンク">
+        <!-- 単発：Ko-fi（YOUR_KOFI_ID を差し替え） -->
         <a class="btnlike ghost" target="_blank"
            href="https://ko-fi.com/YOUR_KOFI_ID"
-           rel="sponsored nofollow noopener">投げ銭する（Ko-fi）</a>
+           rel="nofollow noopener noreferrer">投げ銭する（Ko-fi）</a>
 
-        <!-- 月額：GitHub Sponsors -->
+        <!-- 月額：GitHub Sponsors（YOUR_GITHUB_USERNAME を差し替え） -->
         <a class="btnlike ghost" target="_blank"
            href="https://github.com/sponsors/YOUR_GITHUB_USERNAME"
-           rel="sponsored nofollow noopener">月額で応援（GitHub Sponsors）</a>
+           rel="nofollow noopener noreferrer">月額で応援（GitHub Sponsors）</a>
       </div>
       <small>※ 決済は各サービスで処理されます。カード情報が本アプリに保存されることはありません。</small>
     </div>
