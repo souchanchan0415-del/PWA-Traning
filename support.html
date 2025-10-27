@@ -16,13 +16,21 @@
   <link rel="preconnect" href="https://tpc.googlesyndication.com" crossorigin>
 
   <!-- AdSense ベースコード（審査中でもOK / まだ表示は出ない） -->
-  <script async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6494792718518447"
-          crossorigin="anonymous"></script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6494792718518447" crossorigin="anonymous"></script>
 
-  <!-- （任意）自動広告を将来使うなら有効化
-  <meta name="google-adsense-account" content="ca-pub-6494792718518447">
-  -->
+  <!-- （任意）将来 自動広告を使うなら有効化 -->
+  <!-- <meta name="google-adsense-account" content="ca-pub-6494792718518447"> -->
+
+  <!-- 追加：スポンサー枠のプレースホルダー見た目と最低高（CLS対策） -->
+  <style>
+    .ad-placeholder{
+      border:1px dashed var(--line);
+      border-radius:12px;
+      min-height:120px;
+      display:flex; align-items:center; justify-content:center;
+      color:var(--muted); font-size:14px;
+    }
+  </style>
 </head>
 <body>
   <header class="appbar">
@@ -33,7 +41,8 @@
     <!-- 概要 -->
     <div class="card">
       <p>いつもご利用ありがとうございます。以下の広告・紹介リンク／投げ銭からのご支援は、開発継続に充てられます🙏</p>
-      <!-- 可能なら履歴で戻り、無ければトップへ -->
+      <!-- 追加：Stripe向けの明記（販売はしていない） -->
+      <p><small>このページではアプリ開発の継続を目的とした支援（チップ／寄付）を受け付けています。物品やデジタル商品の販売は行っていません。</small></p>
       <a class="btnlike ghost" href="./"
          onclick="if(history.length>1){history.back();return false;}"
          rel="noopener">← アプリに戻る</a>
@@ -55,7 +64,7 @@
       <ins class="adsbygoogle"
            style="display:block"
            data-ad-client="ca-pub-6494792718518447"
-           data-ad-slot="YYYYYYYYYY"      <!-- ← あなたの Slot ID に置換 -->
+           data-ad-slot="YYYYYYYYYY"  -- あなたの Slot ID に置換 --
            data-ad-format="auto"
            data-full-width-responsive="true"></ins>
       <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
@@ -98,6 +107,14 @@
            rel="nofollow noopener noreferrer">月額で応援（GitHub Sponsors）</a>
       </div>
       <small>※ 決済は各サービスで処理されます。カード情報が本アプリに保存されることはありません。</small>
+    </div>
+
+    <!-- 追加：法定表示リンク（Stripeの要件を満たすため） -->
+    <div class="card">
+      <p><small>
+        <a href="./tokushoho.html">特定商取引法に基づく表記</a> ／
+        <a href="./privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>
+      </small></p>
     </div>
   </main>
 </body>
