@@ -69,6 +69,27 @@
           <input id="rpe" inputmode="decimal" placeholder="RPE（任意）">
         </div>
 
+        <!-- ★ ウォームアップ自動生成（新規ブロック） -->
+        <div class="row">
+          <label for="wuScheme">ウォームアップ</label>
+          <select id="wuScheme" title="自動…回数に応じて強度/筋肥大/持久を自動判定">
+            <option value="auto" selected>自動（回数から判定）</option>
+            <option value="strength">強度系（3–5回向け）</option>
+            <option value="hypertrophy">筋肥大系（6–10回向け）</option>
+            <option value="endurance">持久系（12回以上）</option>
+          </select>
+
+          <label for="wuRound">丸め</label>
+          <select id="wuRound" title="プレートに合わせた丸め">
+            <option value="2.5" selected>±2.5kg</option>
+            <option value="1">±1.0kg</option>
+            <option value="0.5">±0.5kg</option>
+          </select>
+
+          <button id="btnGenWarmup" class="ghost">↑からウォームアップ自動生成</button>
+        </div>
+        <!-- ／ウォームアップここまで -->
+
         <div class="row end">
           <button id="btnTimer" class="ghost">休憩60s</button>
           <button id="btnUndo" class="ghost">一手戻す</button>
