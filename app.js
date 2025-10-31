@@ -1,4 +1,4 @@
-// Train Punch — v1.5.1
+// Train Punch — v1.5.1 (+ Warm-up generator)
 // (auto-timer default + smart input "40x8@8" + today edit & undo + watch-only PR + e1RM trend)
 // 追加: ヘッダーブラー抑制 / チャートresizeデバウンス / 最後のタブ復元 / 週次サマリー
 // 修正: 日付をローカル基準（UTCズレ解消）
@@ -127,6 +127,42 @@ function doUndo(){
     renderTodaySets();
     showToast('戻しました');
   }catch{ showToast('戻せませんでした'); }
+}
+
+// =================== Warm-up generator helpers ===================
+function roundTo(x, step=2.5){
+  step = Number(step)||2.5;
+  return Math.round((Number(x)||0) / step) * step;
+}
+function guessSchemeByReps(reps){
+  const r = Number(reps)||0;
+  if(r <= 5) return 'strength';
+  if(r <= 10) return 'hypertrophy';
+  return 'endurance';
+}
+// 進行はトップセット重量からの割合で作成
+const WU_PLANS = {
+  strength:   [{p:0.40,r:5},{p:0.55,r:3},{p:0.70,r:2},{p:0.80,r:1}],
+  hypertrophy:[{p:0.50,r:8},{p:0.70,r:5},{p:0.85,r:2}],
+  endurance:  [{p:0.50,r:12},{p:0.65,r:8},{p:0.80,r:3}],
+};
+function suggestWarmupByTop(topW, topR, schemeSel='auto', roundStep=2.5){
+  const scheme = (schemeSel==='auto') ? guessSchemeByReps(topR) : schemeSel;
+  const plan   = WU_PLANS[scheme] || WU_PLANS.hypertrophy;
+  const out = [];
+  const seen = new Set();
+  for(const s of plan){
+    let w = roundTo(topW * s.p, roundStep);
+    w = Math.min(w, topW - roundStep);      // トップより軽く
+    if(w <= 0) continue;
+    const key = `${w}-${s.r}`;
+    if(seen.has(key)) continue;
+    seen.add(key);
+    out.push({weight:w, reps:s.r});
+  }
+  // 昇順で気持ちよく並ぶように
+  out.sort((a,b)=>a.weight - b.weight);
+  return out;
 }
 
 // =================== Init ===================
@@ -262,6 +298,38 @@ function bindSessionUI(){
   // Enter で投入
   $('#rpe')?.addEventListener('keydown', (e)=>{
     if(e.key==='Enter'){ e.preventDefault(); $('#btnAddSet')?.click(); }
+  });
+
+  // ★ ウォームアップ自動生成
+  $('#btnGenWarmup')?.addEventListener('click', async ()=>{
+    const exId = Number($('#exSelect').value);
+    const wTop = Number($('#weight').value);
+    const rTop = Number($('#reps').value);
+    if(!exId){ showToast('種目を選んでください'); return; }
+    if(!(wTop>0) || !(rTop>0)){ showToast('トップセットの重量と回数を入力'); return; }
+
+    const scheme = ($('#wuScheme')?.value)||'auto';
+    const step   = Number($('#wuRound')?.value||'2.5') || 2.5;
+    const plan   = suggestWarmupByTop(wTop, rTop, scheme, step);
+    if(!plan.length){ showToast('生成できるWUがありません'); return; }
+
+    pushUndo();
+    const date = $('#sessDate').value;
+    const now  = Date.now();
+    plan.forEach((s,i)=>{
+      currentSession.sets.push({
+        temp_id: crypto.randomUUID(),
+        exercise_id: exId,
+        weight: s.weight,
+        reps: s.reps,
+        rpe: null,
+        ts: now + i,
+        date,
+        wu: true
+      });
+    });
+    renderTodaySets();
+    showToast('ウォームアップを追加しました');
   });
 
   // カスタム種目追加
@@ -414,8 +482,9 @@ function renderTodaySets(){
   const ul = $('#todaySets'); if(!ul) return;
   if(!currentSession.sets.length){ ul.innerHTML = '<li>まだありません</li>'; return; }
   ul.innerHTML = currentSession.sets.map(s=>{
+    const wu = s.wu ? `<span class="badge">WU</span> ` : '';
     return `<li>
-      <span><strong>${esc(exNameById(s.exercise_id))}</strong> ${s.weight}kg × ${s.reps}${s.rpe?` RPE${s.rpe}`:''}</span>
+      <span>${wu}<strong>${esc(exNameById(s.exercise_id))}</strong> ${s.weight}kg × ${s.reps}${s.rpe?` RPE${s.rpe}`:''}</span>
       <span style="display:flex; gap:6px">
         <button class="ghost" data-act="edit" data-id="${s.temp_id}">編集</button>
         <button class="ghost" data-act="del"  data-id="${s.temp_id}">削除</button>
