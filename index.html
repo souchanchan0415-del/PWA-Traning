@@ -8,6 +8,7 @@
   <meta name="description" content="サクッと記録できる筋トレロガー。オフライン対応・PWA。" />
   <meta name="theme-color" content="#111111" />
   <meta name="format-detection" content="telephone=no, email=no, address=no" />
+  <meta name="color-scheme" content="light dark" />
 
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" />
@@ -16,9 +17,8 @@
   <meta name="apple-mobile-web-app-title" content="Train Punch" />
 
   <link rel="preload" href="beep.wav" as="audio" />
-  <!-- 支援ページを事前取得（任意。外してもOK） -->
   <link rel="prefetch" href="support.html" />
-  <!-- ★ CSS キャッシュ確実化のためクエリを v=1.4.3b に統一 -->
+  <!-- CSS のキャッシュバスターは 1.4.3b に統一 -->
   <link rel="stylesheet" href="styles.css?v=1.4.3b" />
 </head>
 <body>
@@ -162,6 +162,12 @@
 
     <!-- ===== 分析 ===== -->
     <section id="tab-analytics" class="tab" role="tabpanel" aria-labelledby="tabbtn-analytics">
+      <!-- 追加：最新週サマリー -->
+      <div class="card" id="weekly-summary" aria-live="polite">
+        <h3>最新週サマリー</h3>
+        <div id="weekly-summary-body">読み込み中…</div>
+      </div>
+
       <div class="card">
         <h3>直近7日：合計ボリューム(kg)</h3>
         <canvas id="chart"></canvas>
@@ -310,7 +316,108 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="app.js?v=1.4.3"></script>
-  <script src="sw-register.js"></script>
+  <script src="app.js?v=1.4.3" defer></script>
+  <script src="sw-register.js" defer></script>
+
+  <!-- 追加JS：最新週サマリー & ハードリロード -->
+  <script type="module">
+  // ====== 最新週サマリー ======
+  const STORAGE_CANDIDATES = ['tp_sessions','tp_logs','sessions'];
+  function loadEntries(){
+    for(const k of STORAGE_CANDIDATES){
+      try{ const raw = localStorage.getItem(k);
+           if(!raw) continue;
+           const arr = JSON.parse(raw);
+           if(Array.isArray(arr) && arr.length) return arr;
+      }catch{}
+    }
+    return [];
+  }
+  function toDate(x){
+    if(x instanceof Date) return x;
+    if(typeof x==='string'){
+      const t = x.trim();
+      const norm = t.includes('/') ? t : t.replaceAll('.','-').replaceAll('/','-');
+      return new Date(norm);
+    }
+    return new Date(x||Date.now());
+  }
+  function isoWeekKey(d){
+    const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const day = x.getUTCDay() || 7;
+    x.setUTCDate(x.getUTCDate() + 4 - day);
+    const yearStart = new Date(Date.UTC(x.getUTCFullYear(),0,1));
+    const week = Math.ceil((((x - yearStart)/86400000)+1)/7);
+    return `${x.getUTCFullYear()}-W${String(week).padStart(2,'0')}`;
+  }
+  const vol = e => typeof e.volume==='number' ? e.volume :
+                      Number(e.weight||0) * Number(e.reps||0) * Number(e.sets||1);
+  const fat = e => (typeof e.fatigue==='number' ? e.fatigue :
+                    (typeof e.rpe==='number' ? e.rpe : null));
+
+  function renderWeekly(){
+    const el = document.getElementById('weekly-summary-body');
+    if(!el) return;
+    const data = loadEntries();
+    if(!data.length){ el.textContent = '記録が見つかりません。入力するとここに今週の要約が出ます。'; return; }
+
+    // group by ISO week
+    const map = new Map();
+    for(const e of data){
+      const k = isoWeekKey(toDate(e.date));
+      (map.get(k) || map.set(k,[]).get(k)).push(e);
+    }
+    const latestKey = [...map.keys()].sort().pop();
+    const arr = map.get(latestKey);
+
+    const totalVol = arr.reduce((s,e)=>s+vol(e),0);
+    const fats = arr.map(fat).filter(v=>typeof v==='number');
+    const avgFat = fats.length ? (fats.reduce((a,b)=>a+b,0)/fats.length) : null;
+
+    // ★ しきい値はここを編集（=IF(B2<=1000,2, <=2000,4, <=3000,6, <=4000,8, 10)）
+    let score = 10;
+    if (totalVol <= 1000) score = 2;
+    else if (totalVol <= 2000) score = 4;
+    else if (totalVol <= 3000) score = 6;
+    else if (totalVol <= 4000) score = 8;
+
+    const comment =
+      score <= 3 ? '基礎づくり週。次週は+10〜20%を目安に。' :
+      score <= 6 ? '標準負荷。フォームと睡眠を重視。' :
+      score <= 8 ? 'やや高負荷。補助種目を整理して回復時間を。' :
+                   '高負荷。48–72hの回復と栄養を最優先。';
+
+    el.innerHTML = `
+      <div style="display:flex;gap:1rem;align-items:baseline;flex-wrap:wrap">
+        <strong>対象週：</strong><span>${latestKey}</span>
+        <strong>合計ボリューム：</strong><span>${Math.round(totalVol)}</span>
+        <strong>強度スコア：</strong><span style="font-size:1.25rem">${score}/10</span>
+        ${avgFat!=null ? `<strong>平均疲労度：</strong><span>${avgFat.toFixed(1)}</span>` : ''}
+      </div>
+      <p style="margin-top:.5rem">${comment}</p>
+    `;
+  }
+  renderWeekly();
+
+  // ====== ハードリロード（SW + Cache を全クリア） ======
+  document.getElementById('btnHardRefresh')?.addEventListener('click', async () => {
+    try {
+      // Cache Storage削除
+      if ('caches' in window) {
+        const names = await caches.keys();
+        await Promise.all(names.map(n => caches.delete(n)));
+      }
+      // Service Worker更新 & 待機中をスキップ
+      if (navigator.serviceWorker?.controller) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.update()));
+      }
+    } catch(e) {
+      console.warn('hard refresh failed', e);
+    } finally {
+      location.reload();
+    }
+  });
+  </script>
 </body>
 </html>
