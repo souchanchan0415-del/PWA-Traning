@@ -1,648 +1,119 @@
-<!DOCTYPE html>
-<html lang="ja" data-theme="light">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
-  <title>Train Punch — 筋トレロガー</title>
+// Train Punch SW (v1.5.1)
+// - 1ファイルのVERSIONでapp.js/styles.cssのクエリを統一
+// - SPAナビ: preload→network→同一ページ→index.html の順でフォールバック
+// - ignoreSearchはHTMLだけに適用（資産はクエリでバージョン固定）
+// - 旧キャッシュ掃除 / navigationPreload 有効化
+// - 自動 skipWaiting なし（message で任意反映）
 
-  <meta name="description" content="サクッと記録できる筋トレロガー。オフライン対応・PWA。" />
-  <meta name="theme-color" content="#111111" />
-  <meta name="format-detection" content="telephone=no, email=no, address=no" />
-  <meta name="color-scheme" content="light dark" />
+const VERSION = '1.5.1';
+const CACHE   = `trainpunch-${VERSION}`;
+const ORIGIN  = self.location.origin;
+const Q       = `?v=${VERSION}`;
 
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="icons/icon-180.png" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Train Punch" />
+const ASSETS = [
+  './',
+  './index.html',
+  `./styles.css${Q}`,
+  `./app.js${Q}`,
+  './sw-register.js',
+  './manifest.webmanifest',
+  './privacy.html',
+  './support.html',
+  './beep.wav',
+  './icons/icon-180.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
+];
 
-  <link rel="preload" href="beep.wav" as="audio" />
-  <link rel="prefetch" href="support.html" />
-  <link rel="stylesheet" href="styles.css?v=1.4.3b" />
-</head>
-<body>
-  <noscript>
-    <div style="padding:12px; background:#ffefc2; color:#5a4100; text-align:center;">
-      このアプリはJavaScriptが必要です。ブラウザ設定で有効にしてください。
-    </div>
-  </noscript>
+self.addEventListener('install', (e) => {
+  e.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await Promise.all(
+      ASSETS.map(url =>
+        cache.add(new Request(url, { cache: 'reload' })).catch(() => {})
+      )
+    );
+  })());
+});
 
-  <header class="appbar">
-    <h1 class="logo">Train Punch</h1>
-    <button id="btnHardRefresh" class="iconbtn" type="button"
-            aria-label="キャッシュをクリアして再読込" title="キャッシュをクリアして再読込">↻</button>
-
-    <nav class="tabs" role="tablist" aria-label="Main tabs">
-      <button id="tabbtn-session"  data-tab="session"  class="active" role="tab" aria-selected="true"  aria-controls="tab-session"  type="button">セッション</button>
-      <button id="tabbtn-history"  data-tab="history"  role="tab" aria-selected="false" aria-controls="tab-history"  type="button">履歴</button>
-      <button id="tabbtn-analytics"data-tab="analytics"role="tab" aria-selected="false" aria-controls="tab-analytics"type="button">分析</button>
-      <button id="tabbtn-settings" data-tab="settings" role="tab" aria-selected="false" aria-controls="tab-settings" type="button">設定</button>
-    </nav>
-  </header>
-
-  <main class="container">
-    <!-- ===== セッション ===== -->
-    <section id="tab-session" class="tab active" role="tabpanel" aria-labelledby="tabbtn-session">
-      <div class="card">
-        <div class="row">
-          <label for="sessDate">日付</label>
-          <input id="sessDate" type="date" autocomplete="off" />
-        </div>
-        <div class="row">
-          <label for="sessNote">メモ</label>
-          <input id="sessNote" placeholder="任意メモ" autocomplete="off" enterkeyhint="done" />
-        </div>
-
-        <div class="row">
-          <label>部位</label>
-          <div id="partChips" class="chipset" aria-label="部位の選択">
-            <button class="chip" data-part="胸" type="button">胸</button>
-            <button class="chip" data-part="背中" type="button">背中</button>
-            <button class="chip" data-part="肩" type="button">肩</button>
-            <button class="chip" data-part="脚" type="button">脚</button>
-            <button class="chip" data-part="腕" type="button">腕</button>
-          </div>
-        </div>
-
-        <div class="row">
-          <label for="exSelect">種目</label>
-          <select id="exSelect" aria-label="種目を選択">
-            <option value="" selected disabled>（選択する）</option>
-          </select>
-          <button id="btnAddEx" class="ghost" type="button">＋追加</button>
-        </div>
-
-        <div class="grid grid-3">
-          <input id="weight" inputmode="decimal" placeholder="重量(kg)" autocomplete="off" enterkeyhint="next" />
-          <input id="reps"   inputmode="numeric" placeholder="回数"     autocomplete="off" enterkeyhint="next" />
-          <input id="rpe"    inputmode="decimal" placeholder="RPE(任意)"autocomplete="off" enterkeyhint="done" />
-        </div>
-
-        <div class="row">
-          <button id="btnAddSet" type="button">セット追加</button>
-          <button id="btnTimer" class="ghost" type="button">休憩60s</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>クイック投入（履歴）</h3>
-        <div class="row">
-          <label for="tplExFromHist">種目</label>
-          <select id="tplExFromHist">
-            <option value="" selected disabled>（選択する）</option>
-          </select>
-        </div>
-        <div class="row">
-          <label for="tplPattern">パターン</label>
-          <select id="tplPattern"></select>
-        </div>
-        <div class="row">
-          <label class="check">
-            <input id="tplUseLastW" type="checkbox" checked />
-            前回重量を使う
-          </label>
-          <button id="btnTplApply" class="ghost" type="button">投入</button>
-        </div>
-        <small>パターンは履歴から自動生成（例：5×5, 3×8, 4×10）。重複はまとめて頻度順に並びます。</small>
-      </div>
-
-      <div class="card">
-        <h3>カスタム投入</h3>
-        <div class="grid grid-3">
-          <input id="tplCustomSets"   inputmode="numeric"  placeholder="セット数（例 5）" autocomplete="off" />
-          <input id="tplCustomReps"   inputmode="numeric"  placeholder="回数（例 5）"     autocomplete="off" />
-          <input id="tplCustomWeight" inputmode="decimal"  placeholder="重量kg（例 40）"  autocomplete="off" />
-        </div>
-
-        <div class="row">
-          <label>部位</label>
-          <div id="tplPartChips" class="chipset" aria-label="部位(カスタム)">
-            <button class="chip" data-part="胸" type="button">胸</button>
-            <button class="chip" data-part="背中" type="button">背中</button>
-            <button class="chip" data-part="肩" type="button">肩</button>
-            <button class="chip" data-part="脚" type="button">脚</button>
-            <button class="chip" data-part="腕" type="button">腕</button>
-          </div>
-        </div>
-        <div class="row">
-          <label for="tplExCustom">種目</label>
-          <select id="tplExCustom">
-            <option value="" selected disabled>（選択する）</option>
-          </select>
-          <button id="btnTplCustom" type="button">投入</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>今日のセット</h3>
-        <ul id="todaySets" class="list"></ul>
-        <div class="row end">
-          <button id="btnUndo" class="ghost" type="button">一手戻す</button>
-          <button id="btnSaveSession" type="button">セッション保存</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== 履歴 ===== -->
-    <section id="tab-history" class="tab" role="tabpanel" aria-labelledby="tabbtn-history">
-      <div class="card">
-        <div class="row">
-          <label for="historyCount">表示件数</label>
-          <select id="historyCount">
-            <option>10</option><option selected>20</option><option>50</option>
-          </select>
-          <button id="btnExport" class="ghost" type="button">CSV書き出し</button>
-          <input type="file" id="importFile" accept=".csv" hidden />
-          <label for="importFile" class="ghost btnlike">CSV読み込み</label>
-        </div>
-        <ul id="historyList" class="list"></ul>
-      </div>
-    </section>
-
-    <!-- ===== 分析 ===== -->
-    <section id="tab-analytics" class="tab" role="tabpanel" aria-labelledby="tabbtn-analytics">
-      <div class="card" id="weekly-summary" aria-live="polite">
-        <h3>最新週サマリー</h3>
-        <div id="weekly-summary-body">読み込み中…</div>
-      </div>
-
-      <div class="card">
-        <h3>直近7日：合計ボリューム(kg)</h3>
-        <canvas id="chart"></canvas>
-        <div id="legend" class="legend"></div>
-      </div>
-
-      <div class="card">
-        <h3>e1RM 推移</h3>
-        <div class="row">
-          <label for="exTrendSelect">種目</label>
-          <select id="exTrendSelect" aria-label="ウォッチ種目から選択" aria-describedby="trendHint">
-            <option value="" selected disabled>（選択する）</option>
-          </select>
-          <select id="trendRange" aria-label="表示範囲">
-            <option value="10" selected>最近10回</option>
-            <option value="20">最近20回</option>
-            <option value="all">全期間</option>
-          </select>
-        </div>
-        <canvas id="trendChart"></canvas>
-        <div id="trendInfo" class="legend"></div>
-        <small id="trendHint" style="display:block;margin-top:6px;color:var(--muted);"></small>
-      </div>
-    </section>
-
-    <!-- ===== 設定 ===== -->
-    <section id="tab-settings" class="tab" role="tabpanel" aria-labelledby="tabbtn-settings">
-      <div class="card">
-        <h3>種目管理</h3>
-        <div class="row">
-          <label for="filterPart">表示する部位</label>
-          <select id="filterPart">
-            <option value="all" selected>すべて</option>
-            <option value="胸">胸</option><option value="背中">背中</option>
-            <option value="肩">肩</option><option value="脚">脚</option><option value="腕">腕</option>
-          </select>
-        </div>
-        <div class="grid grid-2">
-          <input id="newExName" placeholder="例：ベンチプレス" autocomplete="off" />
-          <select id="newExPart" aria-label="部位">
-            <option value="">部位</option>
-            <option value="胸">胸</option><option value="背中">背中</option>
-            <option value="肩">肩</option><option value="脚">脚</option><option value="腕">腕</option>
-          </select>
-        </div>
-        <div class="row"><button id="btnCreateEx" type="button">追加</button></div>
-        <ul id="exList" class="list"></ul>
-      </div>
-
-      <div class="card">
-        <h3>ウォッチ種目（分析の e1RM で選択）</h3>
-        <div class="row">
-          <label>部位</label>
-          <div id="watchPartChips" class="chipset" aria-label="ウォッチする部位">
-            <button class="chip" data-part="胸"   type="button">胸</button>
-            <button class="chip" data-part="背中" type="button">背中</button>
-            <button class="chip" data-part="肩"   type="button">肩</button>
-            <button class="chip" data-part="脚"   type="button">脚</button>
-            <button class="chip" data-part="腕"   type="button">腕</button>
-          </div>
-        </div>
-
-        <div class="row">
-          <label for="watchExSelect">追加</label>
-          <select id="watchExSelect">
-            <option value="" selected disabled>（選択する）</option>
-          </select>
-          <button id="btnWatchAdd" type="button">追加</button>
-        </div>
-
-        <ul id="watchList" class="list"></ul>
-        <small>ここで選んだ種目が、分析タブの「e1RM推移」で選択できます。</small>
-      </div>
-
-      <div class="card">
-        <h3>タイマー</h3>
-        <div class="row">
-          <label for="timerSec">既定秒数</label>
-          <select id="timerSec">
-            <option value="30">30秒</option>
-            <option value="60" selected>60秒</option>
-            <option value="90">90秒</option>
-            <option value="120">120秒</option>
-          </select>
-          <label class="check">
-            <input id="autoTimer" type="checkbox" />
-            セット追加後に自動開始
-          </label>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>通知 / データ</h3>
-        <div class="row">
-          <button id="btnNotif" class="ghost" type="button">通知を許可（休憩タイマー用）</button>
-          <button id="btnWipe" class="danger" type="button">全データ削除</button>
-        </div>
-        <small>※ OSの通知設定でオフにしている場合は通知は表示されません。</small>
-      </div>
-
-      <div class="card">
-        <h3>表示</h3>
-        <label class="switch">
-          <input id="darkToggle" type="checkbox" />
-          <span>ダークモード</span>
-        </label>
-      </div>
-
-      <div class="card">
-        <h3>バックアップ</h3>
-        <div class="row">
-          <button id="btnExportJson" class="ghost" type="button">JSON書き出し</button>
-          <label for="jsonIn" class="ghost btnlike">JSON読み込み</label>
-          <input id="jsonIn" type="file" accept="application/json" hidden />
-        </div>
-        <small>書き出しは端末に保存、読み込みはファイル選択で復元できます。</small>
-      </div>
-
-      <div class="card">
-        <h3>サポート</h3>
-        <a class="btnlike ghost" href="support.html" rel="noopener">支援ページへ</a>
-        <small>広告・紹介リンクからのご支援は開発継続に充てられます。</small>
-      </div>
-
-      <div class="card">
-        <h3>情報</h3>
-        <div class="kv">
-          <div>バージョン</div><div>1.4.3</div>
-          <div>プライバシー</div><div><a target="_blank" href="privacy.html" rel="noopener">プライバシーポリシー</a></div>
-          <div>サポート</div>
-          <div>
-            <a href="mailto:toreninguguanli53@gmail.com?subject=Train%20Punch%20サポート"
-               style="overflow-wrap:anywhere; word-break:break-word;">
-              toreninguguanli53@gmail.com
-            </a>
-          </div>
-        </div>
-        <small>当アプリはトレーニング記録を目的としたツールです。医療情報や効果を保証するものではありません。安全に配慮し、体調に異変があれば医療機関に相談してください。</small>
-      </div>
-    </section>
-  </main>
-
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
-  <script src="app.js?v=1.4.3" defer></script>
-  <script src="sw-register.js" defer></script>
-
-  <!-- IndexedDB移行 + CSV入出力 + 週次サマリー + ハードリロード -->
-  <script type="module">
-  (async () => {
-    const $ = (s)=>document.querySelector(s);
-    const toastHost = $('#toast');
-    function toast(msg){
-      if (typeof window.showToast === 'function') { try { window.showToast(msg); return; } catch{} }
-      if (!toastHost) { alert(msg); return; }
-      toastHost.textContent = msg;
-      toastHost.classList.add('show');
-      setTimeout(()=>toastHost.classList.remove('show'), 1800);
+self.addEventListener('activate', (e) => {
+  e.waitUntil((async () => {
+    // 可能ならナビゲーションPreloadを有効化（表示の体感を改善）
+    if (self.registration.navigationPreload) {
+      try { await self.registration.navigationPreload.enable(); } catch (_) {}
     }
-    const ymd = (d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    const rand4 = ()=>Math.random().toString(36).slice(2,6);
+    // 古いキャッシュは掃除
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
+    await self.clients.claim();
+  })());
+});
 
-    // ===== IndexedDB =====
-    const DB_NAME='trainpunch', DB_VER=1;
-    function openDB(){
-      return new Promise((res,rej)=>{
-        const r = indexedDB.open(DB_NAME, DB_VER);
-        r.onupgradeneeded = (ev)=>{
-          const db = ev.target.result;
-          if(!db.objectStoreNames.contains('sessions')){
-            const s = db.createObjectStore('sessions',{keyPath:'id'});
-            s.createIndex('by_date','date',{unique:false});
+// 必要時のみ即時有効化（任意）
+self.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+self.addEventListener('fetch', (e) => {
+  const req = e.request;
+  const url = new URL(req.url);
+
+  // ---- HTMLナビ（Safari対策で Accept 判定も含める）----
+  const isHTMLNav =
+    req.method === 'GET' &&
+    (req.mode === 'navigate' ||
+     (req.headers.get('accept') || '').includes('text/html'));
+
+  if (isHTMLNav) {
+    e.respondWith((async () => {
+      // 1) navigation preload
+      try {
+        const preload = await e.preloadResponse;
+        if (preload) {
+          if (url.origin === ORIGIN) {
+            const cache = await caches.open(CACHE);
+            cache.put(req, preload.clone()).catch(()=>{});
           }
-          if(!db.objectStoreNames.contains('sets')){
-            const s2 = db.createObjectStore('sets',{keyPath:'id'});
-            s2.createIndex('by_date','date',{unique:false});
-            s2.createIndex('by_part','part',{unique:false});
-            s2.createIndex('by_exercise','exercise',{unique:false});
-            s2.createIndex('by_session','session_id',{unique:false});
-          }
-        };
-        r.onsuccess = ()=>res(r.result);
-        r.onerror = ()=>rej(r.error);
-      });
-    }
-    async function putMany(store, rows){
-      if(!rows.length) return;
-      const db = await openDB();
-      await new Promise((res,rej)=>{
-        const tx = db.transaction(store,'readwrite');
-        const os = tx.objectStore(store);
-        rows.forEach(row => os.put(row));
-        tx.oncomplete = res;
-        tx.onerror = ()=>rej(tx.error);
-      });
-    }
-    async function getAll(store){
-      const db = await openDB();
-      return await new Promise((res,rej)=>{
-        const tx = db.transaction(store,'readonly');
-        const os = tx.objectStore(store);
-        const req = os.getAll();
-        req.onsuccess = ()=>res(req.result||[]);
-        req.onerror = ()=>rej(req.error);
-      });
-    }
-
-    try { await navigator.storage?.persist?.(); } catch {}
-
-    // ===== LocalStorage → DB 移行（1回のみ） =====
-    const LS_KEYS = ['tp_sessions','tp_logs','sessions'];
-    function normDate(x){
-      if(!x) return ymd(new Date());
-      if(x instanceof Date) return ymd(x);
-      const t = String(x).trim().replaceAll('.','-').replaceAll('/','-');
-      const d = new Date(t);
-      return Number.isNaN(d.getTime()) ? ymd(new Date()) : ymd(d);
-    }
-    function normalizeSet(s){
-      const id = s.id || `set_${s.session_id||'na'}_${rand4()}_${Date.now()}`;
-      const part = s.part || s.bodyPart || '';
-      const exercise = s.exercise || s.ex || s.name || '';
-      const weight = Number(s.weight ?? 0);
-      const reps = Number(s.reps ?? s.rep ?? 0);
-      const setNo = Number(s.setNo ?? s.sets ?? s.set_index ?? 1);
-      const rpe = s.rpe != null ? Number(s.rpe) : null;
-      const fatigue = s.fatigue != null ? Number(s.fatigue) : null;
-      const volume = Number(s.volume ?? (weight*reps));
-      const note = s.note || '';
-      return {
-        id,
-        session_id: s.session_id || `sess_${normDate(s.date)}_${rand4()}`,
-        date: normDate(s.date),
-        part, exercise, weight, reps, setNo, rpe, fatigue, volume, note
-      };
-    }
-    async function migrateOnce(){
-      if (localStorage.getItem('tp_migrated_v1')) return;
-      let src = null;
-      for (const k of LS_KEYS){
-        try{
-          const raw = localStorage.getItem(k);
-          if(!raw) continue;
-          const arr = JSON.parse(raw);
-          if(Array.isArray(arr) && arr.length){ src = arr; break; }
-        }catch{}
-      }
-      if(!src){ localStorage.setItem('tp_migrated_v1','1'); return; }
-
-      const sessions=[], sets=[];
-      for(const item of src){
-        if(Array.isArray(item?.sets)){
-          const date = normDate(item.date);
-          const sid = item.id || `sess_${date}_${rand4()}`;
-          sessions.push({ id:sid, date, note:item.note||'' });
-          let n=0;
-          for(const st of item.sets){
-            n++;
-            sets.push(normalizeSet({...st, date, session_id:sid, setNo:n, note:item.note||''}));
-          }
-        }else{
-          const date = normDate(item.date);
-          const sid = item.session_id || `sess_${date}_${rand4()}`;
-          sessions.push({ id:sid, date, note:item.note||'' });
-          sets.push(normalizeSet({...item, date, session_id:sid}));
+          return preload;
         }
-      }
-      const uniqSessions = Object.values(Object.fromEntries(sessions.map(s=>[s.id,s])));
-      try{
-        await putMany('sessions', uniqSessions);
-        await putMany('sets', sets);
-        localStorage.setItem('tp_migrated_v1','1');
-        toast('データをIndexedDBへ移行しました');
-      }catch(e){ console.warn('migrate failed', e); }
-    }
+      } catch (_) {}
 
-    // ===== 共通取得（DB優先・LSフォールバック） =====
-    async function getAllSetsSmart(){
-      try{
-        const arr = await getAll('sets');
-        if (arr?.length) return arr;
-      }catch{}
-      for (const k of LS_KEYS){
-        try{
-          const raw = localStorage.getItem(k);
-          if(!raw) continue;
-          const arr = JSON.parse(raw);
-          if(Array.isArray(arr) && arr.length){
-            const out=[];
-            for(const it of arr){
-              if(Array.isArray(it?.sets)){
-                const date = normDate(it.date); let n=0;
-                for(const st of it.sets){
-                  n++; out.push(normalizeSet({...st, date, setNo:n, session_id: it.id || `sess_${date}_${rand4()}`, note: it.note||''}));
-                }
-              }else out.push(normalizeSet(it));
-            }
-            return out;
-          }
-        }catch{}
-      }
-      return [];
-    }
-    // app.jsからも呼べるよう公開（任意）
-    window.tpGetAllSets = getAllSetsSmart;
-
-    // ===== 週次サマリー =====
-    function isoWeekKey(d){
-      const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-      const day = x.getUTCDay() || 7;
-      x.setUTCDate(x.getUTCDate() + 4 - day);
-      const yearStart = new Date(Date.UTC(x.getUTCFullYear(),0,1));
-      const week = Math.ceil((((x - yearStart)/86400000)+1)/7);
-      return `${x.getUTCFullYear()}-W${String(week).padStart(2,'0')}`;
-    }
-    const setVol = (e)=> typeof e.volume==='number' ? e.volume : (Number(e.weight||0)*Number(e.reps||0));
-    const setFat = (e)=> (typeof e.fatigue==='number' ? e.fatigue : (typeof e.rpe==='number' ? e.rpe : null));
-
-    async function renderWeekly(){
-      const el = document.getElementById('weekly-summary-body');
-      if(!el) return;
-      const data = await getAllSetsSmart();
-      if(!data.length){ el.textContent='記録が見つかりません。入力するとここに今週の要約が出ます。'; return; }
-
-      const map = new Map();
-      for(const e of data){
-        const k = isoWeekKey(new Date(String(e.date)));
-        (map.get(k)||map.set(k,[]).get(k)).push(e);
-      }
-      const latestKey = [...map.keys()].sort().pop();
-      const arr = map.get(latestKey) ?? [];
-
-      const totalVol = arr.reduce((s,e)=>s+setVol(e),0);
-      const fats = arr.map(setFat).filter(v=>typeof v==='number');
-      const avgFat = fats.length ? (fats.reduce((a,b)=>a+b,0)/fats.length) : null;
-
-      let score = 10;
-      if (totalVol <= 1000) score = 2;
-      else if (totalVol <= 2000) score = 4;
-      else if (totalVol <= 3000) score = 6;
-      else if (totalVol <= 4000) score = 8;
-
-      const comment =
-        score <= 3 ? '基礎づくり週。次週は+10〜20%を目安に。' :
-        score <= 6 ? '標準負荷。フォームと睡眠を重視。' :
-        score <= 8 ? 'やや高負荷。補助種目を整理して回復時間を。' :
-                     '高負荷。48–72hの回復と栄養を最優先。';
-
-      el.innerHTML = `
-        <div style="display:flex;gap:1rem;align-items:baseline;flex-wrap:wrap">
-          <strong>対象週：</strong><span>${latestKey}</span>
-          <strong>合計ボリューム：</strong><span>${Math.round(totalVol)}</span>
-          <strong>強度スコア：</strong><span style="font-size:1.25rem">${score}/10</span>
-          ${avgFat!=null ? `<strong>平均疲労度：</strong><span>${avgFat.toFixed(1)}</span>` : ''}
-        </div>
-        <p style="margin-top:.5rem">${comment}</p>
-      `;
-    }
-
-    // ===== CSV I/O =====
-    function csvEsc(v){
-      if(v==null) return '';
-      const s=String(v);
-      return /[",\n]/.test(s) ? `"${s.replaceAll('"','""')}"` : s;
-    }
-    function rowsToCSV(rows){
-      const header=['date','part','exercise','weight','reps','setNo','rpe','fatigue','volume','note','session_id'];
-      const lines=[header.join(',')];
-      for(const r of rows){ lines.push(header.map(k=>csvEsc(r[k])).join(',')); }
-      return lines.join('\n');
-    }
-    async function exportCSV(){
-      const rows = await getAllSetsSmart();
-      if(!rows.length){ toast('書き出すデータがありません'); return; }
-      const csv = rowsToCSV(rows);
-      const blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
-      const a = document.createElement('a');
-      const d=new Date();
-      a.href = URL.createObjectURL(blob);
-      a.download = `trainpunch-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.csv`;
-      document.body.appendChild(a); a.click(); a.remove();
-      toast('CSVを書き出しました');
-    }
-    function splitCSVLine(line){
-      const out=[]; let cur=''; let inQ=false;
-      for(let i=0;i<line.length;i++){
-        const c=line[i];
-        if(inQ){
-          if(c==='"'){ if(line[i+1]==='"'){ cur+='"'; i++; } else { inQ=false; } }
-          else cur+=c;
-        }else{
-          if(c===','){ out.push(cur); cur=''; }
-          else if(c==='"'){ inQ=true; }
-          else cur+=c;
+      // 2) ネット（成功したら同一オリジンに限りキャッシュ更新）
+      try {
+        const res = await fetch(req);
+        if (res && res.ok && url.origin === ORIGIN) {
+          const cache = await caches.open(CACHE);
+          cache.put(req, res.clone()).catch(()=>{});
         }
+        return res;
+      } catch (_) {
+        // 3) そのページ自身のキャッシュ → 4) SPAとして index.html
+        const cache = await caches.open(CACHE);
+        const own   = await cache.match(req, { ignoreSearch: true });
+        if (own) return own;
+        const index = await cache.match('./index.html', { ignoreSearch: true });
+        return index || new Response('<!doctype html><title>offline</title>', {
+          status: 200, headers: { 'Content-Type': 'text/html' }
+        });
       }
-      out.push(cur); return out;
-    }
-    function parseCSV(text){
-      const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
-      if(!lines.length) return [];
-      const header = splitCSVLine(lines[0]).map(h=>h.trim());
-      const rows=[];
-      for(let i=1;i<lines.length;i++){
-        const cols = splitCSVLine(lines[i]);
-        const obj={}; header.forEach((h,idx)=>obj[h]=cols[idx]??'');
-        rows.push(obj);
+    })());
+    return;
+  }
+
+  // ---- 非HTML（静的資産）：キャッシュ優先 → ネット成功時に保存 ----
+  e.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    const hit = await cache.match(req);
+    if (hit) return hit;
+
+    try {
+      const res = await fetch(req);
+      if (res && res.ok && req.method === 'GET' && url.origin === ORIGIN) {
+        cache.put(req, res.clone()).catch(()=>{});
       }
-      return rows;
+      return res;
+    } catch (_) {
+      return hit || Response.error();
     }
-    function mapHeaders(obj){
-      const m={
-        '日付':'date','部位':'part','種目':'exercise','重量':'weight','回数':'reps',
-        'セット':'setNo','RPE':'rpe','疲労度':'fatigue','ボリューム':'volume',
-        'メモ':'note','セッションID':'session_id'
-      };
-      const out={}; for(const [k,v] of Object.entries(obj)){ out[m[k]||k]=v; }
-      return out;
-    }
-    async function importCSVFile(file){
-      const text = await file.text();
-      const rows = parseCSV(text).map(mapHeaders);
-      if(!rows.length){ toast('有効な行がありません'); return; }
-
-      const sets = rows.map(r => normalizeSet({
-        date: r.date, part:r.part, exercise:r.exercise,
-        weight: parseFloat(r.weight||0), reps: parseFloat(r.reps||0),
-        setNo: parseInt(r.setNo||r.set||1),
-        rpe: r.rpe!=='' ? parseFloat(r.rpe) : null,
-        fatigue: r.fatigue!=='' ? parseFloat(r.fatigue) : null,
-        volume: r.volume!=='' ? parseFloat(r.volume) : undefined,
-        note: r.note||'',
-        session_id: r.session_id || `sess_${normDate(r.date)}_${rand4()}`
-      }));
-
-      const bySession = new Map();
-      for(const s of sets){
-        const ex = bySession.get(s.session_id) || { id:s.session_id, date:s.date, note:s.note||'' };
-        if (s.date < ex.date) ex.date = s.date;
-        bySession.set(s.session_id, ex);
-      }
-      const sessions = [...bySession.values()];
-
-      await putMany('sessions', sessions);
-      await putMany('sets', sets);
-
-      toast(`CSVから ${sets.length} セットを取り込みました`);
-      renderWeekly();
-    }
-
-    // ===== ハードリロード =====
-    $('#btnHardRefresh')?.addEventListener('click', async () => {
-      try{
-        if('caches' in window){
-          const names = await caches.keys();
-          await Promise.all(names.map(n=>caches.delete(n)));
-        }
-        if(navigator.serviceWorker?.controller){
-          const regs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.map(r=>r.update()));
-        }
-      }catch(e){ console.warn('hard refresh failed', e); }
-      finally{ location.reload(); }
-    });
-
-    // ===== UI 配線 =====
-    $('#btnExport')?.addEventListener('click', exportCSV);
-    $('#importFile')?.addEventListener('change', (e)=>{
-      const f = e.target.files?.[0]; if(f) importCSVFile(f);
-    });
-    document.getElementById('tabbtn-analytics')?.addEventListener('click', renderWeekly);
-    document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') renderWeekly(); });
-
-    // ===== 初期化 =====
-    await migrateOnce();
-    await renderWeekly();
-  })();
-  </script>
-</body>
-</html>
+  })());
+});
