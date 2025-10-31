@@ -3,6 +3,7 @@
 // 追加: ヘッダーブラー抑制 / チャートresizeデバウンス / 最後のタブ復元 / 週次サマリー
 // 修正: 日付をローカル基準（UTCズレ解消）
 // 可視化改善: 棒・折れ線ともに縦軸数値を表示、左余白を自動調整、値ラベルのはみ出し防止、きれいな目盛り(1/2/5×10ⁿ)
+// v1.5.1 trim: クイック投入UIと関連ロジックを完全削除（軽量化）
 
 const DB_NAME = 'trainpunch_v3';
 const DB_VER  = 3;
@@ -340,12 +341,8 @@ function bindSessionUI(){
     showToast('セッションを保存しました');
   });
 
-  // クイック & カスタム
-  $('#btnTplApply')?.addEventListener('click', applyQuickInsert);
+  // カスタム投入のみ
   $('#btnTplCustom')?.addEventListener('click', applyCustomInsert);
-
-  // 初回テンプレ構築
-  buildHistoryTemplates();
 
   // 種目切替時、前回値プリフィル
   $('#exSelect')?.addEventListener('change', async ()=>{
@@ -463,49 +460,6 @@ function exNameById(id){
   const opt = $('#exSelect')?.querySelector(`option[value="${id}"]`) ||
               $('#tplExCustom')?.querySelector(`option[value="${id}"]`);
   return opt ? opt.textContent : '種目';
-}
-
-// ---- Quick insert from history ----
-async function buildHistoryTemplates(){
-  const sets = await getAll('sets');
-  const exs  = await getAll('exercises');
-  const nameById = Object.fromEntries(exs.map(e=>[e.id, e.name]));
-
-  const used = [...new Set(sets.map(s=>s.exercise_id))].map(id=>({id, name:nameById[id] || `#${id}`})).filter(x=>x.name);
-  used.sort((a,b)=> a.name.localeCompare(b.name,'ja'));
-  const sel = $('#tplExFromHist');
-  if (sel){
-    sel.innerHTML = `<option value="">（選択する）</option>` +
-      (used.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('') || '<option>履歴がありません</option>');
-    sel.value = '';
-  }
-
-  const freq = {};
-  sets.forEach(s=>{ const key = `${s.reps}`; freq[key] = (freq[key]||0)+1; });
-  const patterns = Object.entries(freq).sort((a,b)=> b[1]-a[1]).slice(0,8).map(([reps])=>`5×${reps}`);
-  const pattSel = $('#tplPattern'); if (pattSel){ pattSel.innerHTML = patterns.map(p=>`<option>${p}</option>`).join('') || '<option>パターンなし</option>'; }
-}
-
-async function applyQuickInsert(){
-  const exId = Number($('#tplExFromHist').value);
-  const patt = ($('#tplPattern').value || '5×5').split('×').map(Number);
-  const useLast = $('#tplUseLastW').checked;
-  if(!exId){ showToast('種目を選択してください'); return; }
-
-  let weight = 0;
-  if(useLast){
-    const sets = (await getAll('sets')).filter(s=>s.exercise_id===exId).sort((a,b)=>b.ts-a.ts);
-    if(sets[0]) weight = sets[0].weight;
-  }
-  const date = $('#sessDate').value;
-  const now  = Date.now();
-  const [nSet, reps] = patt;
-
-  pushUndo();
-  for(let i=0;i<(nSet||5);i++){
-    currentSession.sets.push({ temp_id: crypto.randomUUID(), exercise_id: exId, weight, reps, rpe:null, ts: now+i, date });
-  }
-  renderTodaySets(); showToast('クイック投入しました');
 }
 
 async function applyCustomInsert(){
