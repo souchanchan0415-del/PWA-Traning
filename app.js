@@ -1,7 +1,8 @@
-// Train Punch — v1.5.0
+// Train Punch — v1.5.1
 // (auto-timer default + smart input "40x8@8" + today edit & undo + watch-only PR + e1RM trend)
-// 追加: ヘッダーブラー抑制 / チャートresizeデバウンス / 最後のタブ復元
-// 修正: 日付をローカル基準に（UTCズレ解消） / 週次サマリーをapp.jsに統合
+// 追加: ヘッダーブラー抑制 / チャートresizeデバウンス / 最後のタブ復元 / 週次サマリー
+// 修正: 日付をローカル基準（UTCズレ解消）
+// 可視化改善: 棒・折れ線ともに縦軸数値を表示、左余白を自動調整、値ラベルのはみ出し防止、きれいな目盛り(1/2/5×10ⁿ)
 
 const DB_NAME = 'trainpunch_v3';
 const DB_VER  = 3;
@@ -626,114 +627,188 @@ function _lastNDays(n){
   }
   return days;
 }
-// Bar
-function _drawBarChart(canvas, days, totals, hoverIndex=-1){
+
+// === Chart helpers (nice ticks & format) ===
+function _niceRange(min, max, ticksDesired = 5){
+  if (!isFinite(min) || !isFinite(max)) return { niceMin: 0, niceMax: 1, step: 1 };
+  if (min === max){
+    const p = Math.max(1, Math.pow(10, Math.floor(Math.log10(Math.abs(max)||1))));
+    return { niceMin: Math.floor((min - p)/p)*p, niceMax: Math.ceil((max + p)/p)*p, step: p };
+  }
+  const span = max - min;
+  const raw = span / Math.max(2, ticksDesired);
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  let step = (norm <= 1) ? 1*mag : (norm <= 2) ? 2*mag : (norm <= 5) ? 5*mag : 10*mag;
+  const niceMin = Math.floor(min / step) * step;
+  const niceMax = Math.ceil (max / step) * step;
+  return { niceMin, niceMax, step };
+}
+
+// --- Bar (直近7日の合計ボリューム) ---
+function _drawBarChart(canvas, days, totals, hoverIndex = -1){
   _resizeCanvas(canvas, 260);
   const ctx = canvas.getContext('2d');
   const W = canvas.getBoundingClientRect().width, H = 260;
-  const L=42, R=10, T=18, B=28;
+
+  // 余白
+  const T = 26, R = 12, B = 30;
+
+  // まずデータ範囲（少し余白を足す）
+  const maxV = Math.max(1, ...totals);
+  const { niceMin, niceMax, step } = _niceRange(0, maxV * 1.08, 5);
+  const yFor = v => (H - B) - ((v - niceMin) / (niceMax - niceMin)) * (H - B - T);
+
+  // 左余白は縦軸ラベル幅で自動調整
+  ctx.font = '12px system-ui';
+  const yLabels = [];
+  for(let v = niceMin; v <= niceMax + 1e-9; v += step){ yLabels.push(v); }
+  const widest = Math.max(...yLabels.map(v => ctx.measureText(String(Math.round(v))).width));
+  const L = Math.max(42, Math.ceil(widest) + 14);
+
+  // クリア & 軸
   ctx.clearRect(0,0,W,H);
-
   ctx.strokeStyle = '#9993'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L,H-B); ctx.lineTo(W-R,H-B); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(L, T); ctx.lineTo(L, H-B); ctx.lineTo(W-R, H-B); ctx.stroke();
 
-  const innerW = W - L - R, step = innerW / days.length;
-  const barW   = Math.min(32, step * 0.58);
+  // グリッド & 縦軸ラベル
+  ctx.strokeStyle = '#9992';
+  ctx.fillStyle = '#9aa4b2'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for(const v of yLabels){
+    const y = yFor(v);
+    ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(W-R, y); ctx.stroke();
+    ctx.fillText(String(Math.round(v)), L - 6, y);
+  }
 
-  const max = Math.max(1, Math.max(...totals));
-  ctx.fillStyle = '#9aa4b2'; ctx.font='12px system-ui'; ctx.textAlign='center';
-  for(let i=0;i<days.length;i++){ const x = L + i*step + step/2; ctx.fillText(days[i].label, x, H-8); }
-  ctx.strokeStyle='#9992';
-  for(let g=1; g<=4; g++){ const y = T + (H-B-T)*(g/4); ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(W-R,y); ctx.stroke(); }
+  // Xラベル
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.font = '12px system-ui';
+  const innerW = W - L - R, stepX = innerW / days.length;
+  for(let i=0;i<days.length;i++){
+    const x = L + i*stepX + stepX/2;
+    ctx.fillStyle = '#9aa4b2';
+    ctx.fillText(days[i].label, x, H - 8);
+  }
 
+  // データなしメッセージ
   if (totals.every(v => v <= 0)){
     ctx.fillStyle = '#9aa4b2'; ctx.textAlign='center'; ctx.font='14px system-ui';
     ctx.fillText('まだデータがありません。セットを追加すると表示されます。', W/2, (H-B+T)/2);
-    canvas._chartDims = {L, step, barW, W, H, T, B, max}; canvas._days = days; canvas._totals = totals; return;
+    canvas._chartDims = {L, step: stepX, barW: Math.min(32, stepX*0.58), W,H,T,B,max:niceMax};
+    canvas._days = days; canvas._totals = totals; return;
   }
 
+  // 棒
+  const barW = Math.min(32, stepX * 0.58);
   for(let i=0;i<totals.length;i++){
-    const xC = L + i*step + step/2;
+    const v = totals[i];
+    const xC = L + i*stepX + stepX/2;
+    const h  = ((v - niceMin) / (niceMax - niceMin)) * (H - B - T);
     const x  = xC - barW/2;
-    const h  = (totals[i]/max)*(H-B-T);
-    const y  = (H-B) - h;
+    const y  = (H - B) - h;
     ctx.fillStyle = (i===hoverIndex) ? '#0fb6a9' : '#6cc7bf';
-    ctx.fillRect(x, y, barW, h);
+    ctx.fillRect(Math.round(x)+0.5, Math.round(y), Math.round(barW), Math.round(h));
 
-    if (i===hoverIndex){
-      const tip = Math.round(totals[i]) + ' kg', tw=ctx.measureText(tip).width+10, th=22;
-      const tx  = Math.min(W-R-tw, Math.max(L, xC - tw/2));
-      const ty  = y - 8 - th;
+    // 値ラベル（上に表示・切れないようクランプ）
+    if(v > 0){
+      const yLabel = Math.max(T + 12, y - 6);
+      ctx.fillStyle = '#4a5568';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+      ctx.fillText(String(Math.round(v)), xC, yLabel);
+    }
+  }
+
+  // ホバー用メタ
+  canvas._chartDims = {L, step: stepX, barW, W,H,T,B,max:niceMax};
+  canvas._days = days; canvas._totals = totals;
+}
+
+// --- Line (e1RM 推移) ---
+function _drawLineChart(canvas, labels, values, hoverIndex = -1){
+  _resizeCanvas(canvas, 260);
+  const ctx = canvas.getContext('2d');
+  const W = canvas.getBoundingClientRect().width, H = 260;
+
+  const T = 26, R = 12, B = 30;
+
+  ctx.clearRect(0,0,W,H);
+
+  if(values.length === 0){
+    const L = 56; // デフォ左余白
+    ctx.strokeStyle='#9993'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L,H-B); ctx.lineTo(W-R,H-B); ctx.stroke();
+    ctx.fillStyle='#9aa4b2'; ctx.textAlign='center'; ctx.font='14px system-ui';
+    ctx.fillText('まだデータがありません。', W/2, (H-B+T)/2);
+    canvas._trendDims = {L, step:1, W,H,T,B,minV:0,maxV:1};
+    canvas._labels = labels; canvas._values = values;
+    return;
+  }
+
+  // 余白を加えたレンジ
+  const minV0 = Math.min(...values), maxV0 = Math.max(...values);
+  const pad = Math.max(1, (maxV0 - minV0) * 0.10);
+  const { niceMin, niceMax, step } = _niceRange(Math.max(0, minV0 - pad), maxV0 + pad, 5);
+
+  // 左余白をラベル幅で調整
+  ctx.font = '12px system-ui';
+  const tickVals = []; for(let v = niceMin; v <= niceMax + 1e-9; v += step){ tickVals.push(v); }
+  const widest = Math.max(...tickVals.map(v => ctx.measureText(String(Math.round(v))).width));
+  const L = Math.max(56, Math.ceil(widest) + 16);
+
+  const innerW = W - L - R;
+  const stepX = (labels.length <= 1) ? innerW : innerW / (labels.length - 1);
+  const yFor = v => (H - B) - ((v - niceMin) / (niceMax - niceMin)) * (H - B - T);
+
+  // 軸
+  ctx.strokeStyle='#9993'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L,H-B); ctx.lineTo(W-R,H-B); ctx.stroke();
+
+  // グリッド & 縦軸ラベル
+  ctx.strokeStyle='#9992';
+  ctx.fillStyle='#9aa4b2'; ctx.textAlign='right'; ctx.textBaseline='middle';
+  for(const v of tickVals){
+    const y = yFor(v);
+    ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(W-R,y); ctx.stroke();
+    ctx.fillText(String(Math.round(v)), L - 6, y);
+  }
+
+  // Xラベル（端＋間引き）
+  ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  const tickN = Math.min(6, labels.length);
+  for(let i=0;i<labels.length;i++){
+    if(i===0 || i===labels.length-1 || i % Math.ceil(labels.length/(tickN||1))===0){
+      const x = L + i*stepX;
+      ctx.fillStyle='#9aa4b2';
+      ctx.fillText(labels[i], x, H-8);
+    }
+  }
+
+  // 折れ線
+  ctx.strokeStyle='#0fb6a9'; ctx.lineWidth=2; ctx.beginPath();
+  for(let i=0;i<values.length;i++){
+    const x = L + i*stepX, y = yFor(values[i]);
+    (i ? ctx.lineTo(x,y) : ctx.moveTo(x,y));
+  }
+  ctx.stroke();
+
+  // ポイント & ホバー表示
+  for(let i=0;i<values.length;i++){
+    const x = L + i*stepX, y = yFor(values[i]);
+    ctx.fillStyle = (i===hoverIndex)? '#0fb6a9' : '#6cc7bf';
+    ctx.beginPath(); ctx.arc(x,y,3.2,0,Math.PI*2); ctx.fill();
+
+    if(i===hoverIndex){
+      const tip = `${labels[i]}  ${Math.round(values[i])} kg`;
+      const tw = ctx.measureText(tip).width + 10, th = 22;
+      const tx = Math.min(W - R - tw, Math.max(L, x - tw/2));
+      const ty = Math.max(T + 6, Math.min(H - B - th - 4, y - 10 - th));
       ctx.fillStyle='#0fb6a9'; ctx.fillRect(tx, ty, tw, th);
       ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='12px system-ui';
       ctx.fillText(tip, tx + tw/2, ty + th/2);
     }
   }
 
-  canvas._chartDims = {L, step, barW, W, H, T, B, max}; canvas._days = days; canvas._totals = totals;
-}
-
-// Line (e1RM trend)
-function _drawLineChart(canvas, labels, values, hoverIndex=-1){
-  _resizeCanvas(canvas, 260);
-  const ctx = canvas.getContext('2d');
-  const W = canvas.getBoundingClientRect().width, H = 260;
-  const L=42, R=10, T=18, B=28;
-  ctx.clearRect(0,0,W,H);
-
-  ctx.strokeStyle = '#9993'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L,H-B); ctx.lineTo(W-R,H-B); ctx.stroke();
-
-  const innerW = W - L - R, step = (labels.length<=1? innerW : innerW/(labels.length-1));
-  const minV = Math.min(...values), maxV = Math.max(...values);
-  const span = Math.max(1, maxV - minV);
-  const yFor = v => (H-B) - ((v - minV) / span) * (H-B-T);
-
-  // grid + labels
-  ctx.fillStyle='#9aa4b2'; ctx.font='12px system-ui'; ctx.textAlign='center';
-  const tickN = Math.min(6, labels.length);
-  for(let i=0;i<labels.length;i++){
-    if(i===0 || i===labels.length-1 || i % Math.ceil(labels.length/(tickN||1))===0){
-      const x = L + i*step; ctx.fillText(labels[i], x, H-8);
-    }
-  }
-  ctx.strokeStyle='#9992';
-  for(let g=1; g<=4; g++){ const y = T + (H-B-T)*(g/4); ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(W-R,y); ctx.stroke(); }
-
-  if(values.length===0){
-    ctx.fillStyle='#9aa4b2'; ctx.textAlign='center'; ctx.font='14px system-ui';
-    ctx.fillText('まだデータがありません。', W/2, (H-B+T)/2);
-    canvas._trendDims = {L, step, W, H, T, B, minV, maxV}; canvas._labels=labels; canvas._values=values;
-    return;
-  }
-
-  // line
-  ctx.strokeStyle='#0fb6a9'; ctx.lineWidth=2; ctx.beginPath();
-  for(let i=0;i<values.length;i++){
-    const x=L+i*step, y=yFor(values[i]);
-    (i?ctx.lineTo(x,y):ctx.moveTo(x,y));
-  }
-  ctx.stroke();
-
-  // points
-  for(let i=0;i<values.length;i++){
-    const x=L+i*step, y=yFor(values[i]);
-    ctx.fillStyle = (i===hoverIndex)?'#0fb6a9':'#6cc7bf';
-    ctx.beginPath(); ctx.arc(x,y,3.2,0,Math.PI*2); ctx.fill();
-
-    if(i===hoverIndex){
-      const tip = `${labels[i]}  ${Math.round(values[i])} kg`;
-      const tw=ctx.measureText(tip).width+10, th=22;
-      const tx=Math.min(W-R-tw, Math.max(L, x - tw/2));
-      const ty=y-10-th;
-      ctx.fillStyle='#0fb6a9'; ctx.fillRect(tx, ty, tw, th);
-      ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='12px system-ui';
-      ctx.fillText(tip, tx+tw/2, ty+th/2);
-    }
-  }
-
-  canvas._trendDims = {L, step, W, H, T, B, minV, maxV};
-  canvas._labels=labels; canvas._values=values;
+  canvas._trendDims = {L, step: stepX, W,H,T,B, minV: niceMin, maxV: niceMax};
+  canvas._labels = labels; canvas._values = values;
 }
 
 let _chartEventsBound = false;
@@ -1143,7 +1218,7 @@ async function renderWeeklySummary(){
   const rpes = arr.map(x=> x.rpe).filter(v=> typeof v==='number' && !Number.isNaN(v));
   const avgRpe = rpes.length ? (rpes.reduce((a,b)=>a+b,0)/rpes.length) : null;
 
-  // あなたのしきい値ロジック（必要なら後でチューニング可能）
+  // しきい値ロジック（必要なら後でチューニング可能）
   let score = 10;
   if (totalVol <= 1000) score = 2;
   else if (totalVol <= 2000) score = 4;
