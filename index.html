@@ -319,105 +319,338 @@
   <script src="app.js?v=1.4.3" defer></script>
   <script src="sw-register.js" defer></script>
 
-  <!-- 追加JS：最新週サマリー & ハードリロード -->
+  <!-- 追加JS：IndexedDB移行 + 週次サマリー + CSV入出力 + ハードリロード -->
   <script type="module">
-  // ====== 最新週サマリー ======
-  const STORAGE_CANDIDATES = ['tp_sessions','tp_logs','sessions'];
-  function loadEntries(){
-    for(const k of STORAGE_CANDIDATES){
-      try{ const raw = localStorage.getItem(k);
-           if(!raw) continue;
-           const arr = JSON.parse(raw);
-           if(Array.isArray(arr) && arr.length) return arr;
+  (async () => {
+    // ======= ユーティリティ =======
+    const $ = (s)=>document.querySelector(s);
+    const toastHost = $('#toast');
+    function toast(msg){
+      if (typeof window.showToast === 'function') { try { window.showToast(msg); return; } catch{} }
+      if (!toastHost) { alert(msg); return; }
+      toastHost.textContent = msg;
+      toastHost.classList.add('show');
+      setTimeout(()=>toastHost.classList.remove('show'), 1800);
+    }
+    const ymd = (d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const rand4 = ()=>Math.random().toString(36).slice(2,6);
+
+    // ======= IndexedDB 基盤 =======
+    const DB_NAME='trainpunch', DB_VER=1;
+    function openDB(){
+      return new Promise((res,rej)=>{
+        const r = indexedDB.open(DB_NAME, DB_VER);
+        r.onupgradeneeded = (ev)=>{
+          const db = ev.target.result;
+          if(!db.objectStoreNames.contains('sessions')){
+            const s = db.createObjectStore('sessions',{keyPath:'id'});
+            s.createIndex('by_date','date',{unique:false});
+          }
+          if(!db.objectStoreNames.contains('sets')){
+            const s2 = db.createObjectStore('sets',{keyPath:'id'});
+            s2.createIndex('by_date','date',{unique:false});
+            s2.createIndex('by_part','part',{unique:false});
+            s2.createIndex('by_exercise','exercise',{unique:false});
+            s2.createIndex('by_session','session_id',{unique:false});
+          }
+        };
+        r.onsuccess = ()=>res(r.result);
+        r.onerror = ()=>rej(r.error);
+      });
+    }
+    async function putMany(store, rows){
+      if(!rows.length) return;
+      const db = await openDB();
+      await new Promise((res,rej)=>{
+        const tx = db.transaction(store,'readwrite');
+        const os = tx.objectStore(store);
+        rows.forEach(row => os.put(row));
+        tx.oncomplete = res;
+        tx.onerror = ()=>rej(tx.error);
+      });
+    }
+    async function getAll(store){
+      const db = await openDB();
+      return await new Promise((res,rej)=>{
+        const tx = db.transaction(store,'readonly');
+        const os = tx.objectStore(store);
+        const req = os.getAll();
+        req.onsuccess = ()=>res(req.result||[]);
+        req.onerror = ()=>rej(req.error);
+      });
+    }
+
+    // 永続化リクエスト
+    try { await navigator.storage?.persist?.(); } catch {}
+
+    // ======= LocalStorage → DB へ一度だけ移行 =======
+    const LS_KEYS = ['tp_sessions','tp_logs','sessions'];
+    function normDate(x){
+      if(!x) return ymd(new Date());
+      if(x instanceof Date) return ymd(x);
+      const t = String(x).trim().replaceAll('.','-').replaceAll('/','-');
+      const d = new Date(t);
+      return Number.isNaN(d.getTime()) ? ymd(new Date()) : ymd(d);
+    }
+    function normalizeSet(s){
+      const id = s.id || `set_${s.session_id||'na'}_${rand4()}_${Date.now()}`;
+      const part = s.part || s.bodyPart || '';
+      const exercise = s.exercise || s.ex || s.name || '';
+      const weight = Number(s.weight ?? 0);
+      const reps = Number(s.reps ?? s.rep ?? 0);
+      const setNo = Number(s.setNo ?? s.sets ?? s.set_index ?? 1);
+      const rpe = s.rpe != null ? Number(s.rpe) : null;
+      const fatigue = s.fatigue != null ? Number(s.fatigue) : null;
+      const volume = Number(s.volume ?? (weight*reps));
+      const note = s.note || '';
+      return {
+        id,
+        session_id: s.session_id || `sess_${normDate(s.date)}_${rand4()}`,
+        date: normDate(s.date),
+        part, exercise, weight, reps, setNo, rpe, fatigue, volume, note
+      };
+    }
+    async function migrateOnce(){
+      if (localStorage.getItem('tp_migrated_v1')) return;
+      let src = null;
+      for (const k of LS_KEYS){
+        try{
+          const raw = localStorage.getItem(k);
+          if(!raw) continue;
+          const arr = JSON.parse(raw);
+          if(Array.isArray(arr) && arr.length){ src = arr; break; }
+        }catch{}
+      }
+      if(!src){ localStorage.setItem('tp_migrated_v1','1'); return; }
+
+      const sessions=[], sets=[];
+      for(const item of src){
+        if(Array.isArray(item?.sets)){
+          const date = normDate(item.date);
+          const sid = item.id || `sess_${date}_${rand4()}`;
+          sessions.push({ id:sid, date, note:item.note||'' });
+          let n=0;
+          for(const st of item.sets){
+            n++;
+            sets.push(normalizeSet({...st, date, session_id:sid, setNo:n, note:item.note||''}));
+          }
+        }else{
+          const date = normDate(item.date);
+          const sid = item.session_id || `sess_${date}_${rand4()}`;
+          sessions.push({ id:sid, date, note:item.note||'' });
+          sets.push(normalizeSet({...item, date, session_id:sid}));
+        }
+      }
+      // 重複セッションID排除
+      const uniqSessions = Object.values(Object.fromEntries(sessions.map(s=>[s.id,s])));
+      try{
+        await putMany('sessions', uniqSessions);
+        await putMany('sets', sets);
+        localStorage.setItem('tp_migrated_v1','1');
+        toast('データをIndexedDBへ移行しました');
+      }catch(e){ console.warn('migrate failed', e); }
+    }
+
+    // ======= データ取得（DB→LS フォールバック） =======
+    async function getAllSetsSmart(){
+      try{
+        const arr = await getAll('sets');
+        if (arr?.length) return arr;
       }catch{}
-    }
-    return [];
-  }
-  function toDate(x){
-    if(x instanceof Date) return x;
-    if(typeof x==='string'){
-      const t = x.trim();
-      const norm = t.includes('/') ? t : t.replaceAll('.','-').replaceAll('/','-');
-      return new Date(norm);
-    }
-    return new Date(x||Date.now());
-  }
-  function isoWeekKey(d){
-    const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    const day = x.getUTCDay() || 7;
-    x.setUTCDate(x.getUTCDate() + 4 - day);
-    const yearStart = new Date(Date.UTC(x.getUTCFullYear(),0,1));
-    const week = Math.ceil((((x - yearStart)/86400000)+1)/7);
-    return `${x.getUTCFullYear()}-W${String(week).padStart(2,'0')}`;
-  }
-  const vol = e => typeof e.volume==='number' ? e.volume :
-                      Number(e.weight||0) * Number(e.reps||0) * Number(e.sets||1);
-  const fat = e => (typeof e.fatigue==='number' ? e.fatigue :
-                    (typeof e.rpe==='number' ? e.rpe : null));
-
-  function renderWeekly(){
-    const el = document.getElementById('weekly-summary-body');
-    if(!el) return;
-    const data = loadEntries();
-    if(!data.length){ el.textContent = '記録が見つかりません。入力するとここに今週の要約が出ます。'; return; }
-
-    // group by ISO week
-    const map = new Map();
-    for(const e of data){
-      const k = isoWeekKey(toDate(e.date));
-      (map.get(k) || map.set(k,[]).get(k)).push(e);
-    }
-    const latestKey = [...map.keys()].sort().pop();
-    const arr = map.get(latestKey);
-
-    const totalVol = arr.reduce((s,e)=>s+vol(e),0);
-    const fats = arr.map(fat).filter(v=>typeof v==='number');
-    const avgFat = fats.length ? (fats.reduce((a,b)=>a+b,0)/fats.length) : null;
-
-    // ★ しきい値はここを編集（=IF(B2<=1000,2, <=2000,4, <=3000,6, <=4000,8, 10)）
-    let score = 10;
-    if (totalVol <= 1000) score = 2;
-    else if (totalVol <= 2000) score = 4;
-    else if (totalVol <= 3000) score = 6;
-    else if (totalVol <= 4000) score = 8;
-
-    const comment =
-      score <= 3 ? '基礎づくり週。次週は+10〜20%を目安に。' :
-      score <= 6 ? '標準負荷。フォームと睡眠を重視。' :
-      score <= 8 ? 'やや高負荷。補助種目を整理して回復時間を。' :
-                   '高負荷。48–72hの回復と栄養を最優先。';
-
-    el.innerHTML = `
-      <div style="display:flex;gap:1rem;align-items:baseline;flex-wrap:wrap">
-        <strong>対象週：</strong><span>${latestKey}</span>
-        <strong>合計ボリューム：</strong><span>${Math.round(totalVol)}</span>
-        <strong>強度スコア：</strong><span style="font-size:1.25rem">${score}/10</span>
-        ${avgFat!=null ? `<strong>平均疲労度：</strong><span>${avgFat.toFixed(1)}</span>` : ''}
-      </div>
-      <p style="margin-top:.5rem">${comment}</p>
-    `;
-  }
-  renderWeekly();
-
-  // ====== ハードリロード（SW + Cache を全クリア） ======
-  document.getElementById('btnHardRefresh')?.addEventListener('click', async () => {
-    try {
-      // Cache Storage削除
-      if ('caches' in window) {
-        const names = await caches.keys();
-        await Promise.all(names.map(n => caches.delete(n)));
+      for (const k of LS_KEYS){
+        try{
+          const raw = localStorage.getItem(k);
+          if(!raw) continue;
+          const arr = JSON.parse(raw);
+          if(Array.isArray(arr) && arr.length){
+            const out=[];
+            for(const it of arr){
+              if(Array.isArray(it?.sets)){
+                const date = normDate(it.date); let n=0;
+                for(const st of it.sets){
+                  n++; out.push(normalizeSet({...st, date, setNo:n, session_id: it.id || `sess_${date}_${rand4()}`, note: it.note||''}));
+                }
+              }else out.push(normalizeSet(it));
+            }
+            return out;
+          }
+        }catch{}
       }
-      // Service Worker更新 & 待機中をスキップ
-      if (navigator.serviceWorker?.controller) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map(r => r.update()));
-      }
-    } catch(e) {
-      console.warn('hard refresh failed', e);
-    } finally {
-      location.reload();
+      return [];
     }
-  });
+
+    // ======= 週次サマリー =======
+    function isoWeekKey(d){
+      const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      const day = x.getUTCDay() || 7;
+      x.setUTCDate(x.getUTCDate() + 4 - day);
+      const yearStart = new Date(Date.UTC(x.getUTCFullYear(),0,1));
+      const week = Math.ceil((((x - yearStart)/86400000)+1)/7);
+      return `${x.getUTCFullYear()}-W${String(week).padStart(2,'0')}`;
+    }
+    const setVol = (e)=> typeof e.volume==='number' ? e.volume : (Number(e.weight||0)*Number(e.reps||0));
+    const setFat = (e)=> (typeof e.fatigue==='number' ? e.fatigue : (typeof e.rpe==='number' ? e.rpe : null));
+
+    async function renderWeekly(){
+      const el = document.getElementById('weekly-summary-body');
+      if(!el) return;
+      const data = await getAllSetsSmart();
+      if(!data.length){ el.textContent='記録が見つかりません。入力するとここに今週の要約が出ます。'; return; }
+
+      const map = new Map();
+      for(const e of data){
+        const k = isoWeekKey(new Date(String(e.date)));
+        (map.get(k)||map.set(k,[]).get(k)).push(e);
+      }
+      const latestKey = [...map.keys()].sort().pop();
+      const arr = map.get(latestKey);
+
+      const totalVol = arr.reduce((s,e)=>s+setVol(e),0);
+      const fats = arr.map(setFat).filter(v=>typeof v==='number');
+      const avgFat = fats.length ? (fats.reduce((a,b)=>a+b,0)/fats.length) : null;
+
+      // ボリューム→スコア（必要ならしきい値調整）
+      let score = 10;
+      if (totalVol <= 1000) score = 2;
+      else if (totalVol <= 2000) score = 4;
+      else if (totalVol <= 3000) score = 6;
+      else if (totalVol <= 4000) score = 8;
+
+      const comment =
+        score <= 3 ? '基礎づくり週。次週は+10〜20%を目安に。' :
+        score <= 6 ? '標準負荷。フォームと睡眠を重視。' :
+        score <= 8 ? 'やや高負荷。補助種目を整理して回復時間を。' :
+                     '高負荷。48–72hの回復と栄養を最優先。';
+
+      el.innerHTML = `
+        <div style="display:flex;gap:1rem;align-items:baseline;flex-wrap:wrap">
+          <strong>対象週：</strong><span>${latestKey}</span>
+          <strong>合計ボリューム：</strong><span>${Math.round(totalVol)}</span>
+          <strong>強度スコア：</strong><span style="font-size:1.25rem">${score}/10</span>
+          ${avgFat!=null ? `<strong>平均疲労度：</strong><span>${avgFat.toFixed(1)}</span>` : ''}
+        </div>
+        <p style="margin-top:.5rem">${comment}</p>
+      `;
+    }
+
+    // ======= CSV エクスポート／インポート =======
+    function csvEsc(v){
+      if(v==null) return '';
+      const s=String(v);
+      return /[",\n]/.test(s) ? `"${s.replaceAll('"','""')}"` : s;
+    }
+    function rowsToCSV(rows){
+      const header=['date','part','exercise','weight','reps','setNo','rpe','fatigue','volume','note','session_id'];
+      const lines=[header.join(',')];
+      for(const r of rows){
+        lines.push(header.map(k=>csvEsc(r[k])).join(','));
+      }
+      return lines.join('\n');
+    }
+    async function exportCSV(){
+      const rows = await getAllSetsSmart();
+      if(!rows.length){ toast('書き出すデータがありません'); return; }
+      const csv = rowsToCSV(rows);
+      const blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
+      const a = document.createElement('a');
+      const d=new Date();
+      a.href = URL.createObjectURL(blob);
+      a.download = `trainpunch-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+      toast('CSVを書き出しました');
+    }
+    function splitCSVLine(line){
+      const out=[], q=false; let cur='', inQ=q;
+      for(let i=0;i<line.length;i++){
+        const c=line[i];
+        if(inQ){
+          if(c==='"'){ if(line[i+1]==='"'){ cur+='"'; i++; } else { inQ=false; } }
+          else cur+=c;
+        }else{
+          if(c===','){ out.push(cur); cur=''; }
+          else if(c==='"'){ inQ=true; }
+          else cur+=c;
+        }
+      }
+      out.push(cur); return out;
+    }
+    function parseCSV(text){
+      const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
+      if(!lines.length) return [];
+      const header = splitCSVLine(lines[0]).map(h=>h.trim());
+      const rows=[];
+      for(let i=1;i<lines.length;i++){
+        const cols = splitCSVLine(lines[i]);
+        const obj={}; header.forEach((h,idx)=>obj[h]=cols[idx]??'');
+        rows.push(obj);
+      }
+      return rows;
+    }
+    function mapHeaders(obj){
+      const m={
+        '日付':'date','部位':'part','種目':'exercise','重量':'weight','回数':'reps',
+        'セット':'setNo','RPE':'rpe','疲労度':'fatigue','ボリューム':'volume',
+        'メモ':'note','セッションID':'session_id'
+      };
+      const out={}; for(const [k,v] of Object.entries(obj)){ out[m[k]||k]=v; }
+      return out;
+    }
+    async function importCSVFile(file){
+      const text = await file.text();
+      const rows = parseCSV(text).map(mapHeaders);
+      if(!rows.length){ toast('有効な行がありません'); return; }
+
+      const sets = rows.map(r => normalizeSet({
+        date: r.date, part:r.part, exercise:r.exercise,
+        weight:Number(r.weight||0), reps:Number(r.reps||0),
+        setNo:Number(r.setNo||r.set||1),
+        rpe: r.rpe!=='' ? Number(r.rpe) : null,
+        fatigue: r.fatigue!=='' ? Number(r.fatigue) : null,
+        volume: r.volume!=='' ? Number(r.volume) : undefined,
+        note: r.note||'',
+        session_id: r.session_id || `sess_${normDate(r.date)}_${rand4()}`
+      }));
+
+      const bySession = new Map();
+      for(const s of sets){
+        const ex = bySession.get(s.session_id) || { id:s.session_id, date:s.date, note:s.note||'' };
+        if (s.date < ex.date) ex.date = s.date;
+        bySession.set(s.session_id, ex);
+      }
+      const sessions = [...bySession.values()];
+
+      await putMany('sessions', sessions);
+      await putMany('sets', sets);
+
+      toast(`CSVから ${sets.length} セットを取り込みました`);
+      renderWeekly();
+    }
+
+    // ======= ハードリロード（SW + Cache 全クリア） =======
+    $('#btnHardRefresh')?.addEventListener('click', async () => {
+      try{
+        if('caches' in window){
+          const names = await caches.keys();
+          await Promise.all(names.map(n=>caches.delete(n)));
+        }
+        if(navigator.serviceWorker?.controller){
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r=>r.update()));
+        }
+      }catch(e){ console.warn('hard refresh failed', e); }
+      finally{ location.reload(); }
+    });
+
+    // ======= UI 配線 =======
+    $('#btnExport')?.addEventListener('click', exportCSV);
+    $('#importFile')?.addEventListener('change', (e)=>{
+      const f = e.target.files?.[0]; if(f) importCSVFile(f);
+    });
+
+    // ======= 初期化 =======
+    await migrateOnce();
+    await renderWeekly();
+  })();
   </script>
 </body>
 </html>
