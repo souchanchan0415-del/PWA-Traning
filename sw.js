@@ -1,11 +1,11 @@
-// Train Punch SW (v1.5.1)
+// Train Punch SW (v1.5.2)
 // - 1ファイルのVERSIONでapp.js/styles.cssのクエリを統一
 // - SPAナビ: preload→network→同一ページ→index.html の順でフォールバック
 // - ignoreSearchはHTMLだけに適用（資産はクエリでバージョン固定）
 // - 旧キャッシュ掃除 / navigationPreload 有効化
 // - 自動 skipWaiting なし（message で任意反映）
 
-const VERSION = '1.5.1';
+const VERSION = '1.5.2';
 const CACHE   = `trainpunch-${VERSION}`;
 const ORIGIN  = self.location.origin;
 const Q       = `?v=${VERSION}`;
@@ -44,7 +44,7 @@ self.addEventListener('activate', (e) => {
     if (self.registration.navigationPreload) {
       try { await self.registration.navigationPreload.enable(); } catch (_) {}
     }
-    // 古いキャッシュは掃除
+    // 古いキャッシュを掃除
     const keys = await caches.keys();
     await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
     await self.clients.claim();
