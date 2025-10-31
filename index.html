@@ -1,119 +1,248 @@
-// Train Punch SW (v1.5.1)
-// - 1ファイルのVERSIONでapp.js/styles.cssのクエリを統一
-// - SPAナビ: preload→network→同一ページ→index.html の順でフォールバック
-// - ignoreSearchはHTMLだけに適用（資産はクエリでバージョン固定）
-// - 旧キャッシュ掃除 / navigationPreload 有効化
-// - 自動 skipWaiting なし（message で任意反映）
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0e1116">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <title>Train Punch v1.5.1</title>
 
-const VERSION = '1.5.1';
-const CACHE   = `trainpunch-${VERSION}`;
-const ORIGIN  = self.location.origin;
-const Q       = `?v=${VERSION}`;
+  <!-- styles -->
+  <link rel="preload" href="styles.css?v=1.5.1" as="style">
+  <link rel="stylesheet" href="styles.css?v=1.5.1">
+  <noscript><style>noscript{display:block;padding:12px} .nojs{display:block}</style></noscript>
+</head>
+<body>
+  <!-- App bar -->
+  <header class="appbar">
+    <button id="btnHardRefresh" class="iconbtn" title="更新">↻</button>
+    <h1 class="logo">Train Punch</h1>
+    <nav class="tabs" aria-label="Main tabs">
+      <button class="active" data-tab="session" aria-selected="true">セッション</button>
+      <button data-tab="analytics" aria-selected="false">解析</button>
+      <button data-tab="history" aria-selected="false">履歴</button>
+      <button data-tab="settings" aria-selected="false">設定</button>
+    </nav>
+  </header>
 
-const ASSETS = [
-  './',
-  './index.html',
-  `./styles.css${Q}`,
-  `./app.js${Q}`,
-  './sw-register.js',
-  './manifest.webmanifest',
-  './privacy.html',
-  './support.html',
-  './beep.wav',
-  './icons/icon-180.png',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
-];
+  <main class="container">
+    <!-- ===== Session ===== -->
+    <section id="tab-session" class="tab active" aria-labelledby="セッション">
+      <div class="card">
+        <h3>部位</h3>
+        <div id="partChips" class="chipset" role="tablist" aria-label="部位選択">
+          <div class="chip active" data-part="胸">胸</div>
+          <div class="chip" data-part="背中">背中</div>
+          <div class="chip" data-part="肩">肩</div>
+          <div class="chip" data-part="脚">脚</div>
+          <div class="chip" data-part="腕">腕</div>
+        </div>
 
-self.addEventListener('install', (e) => {
-  e.waitUntil((async () => {
-    const cache = await caches.open(CACHE);
-    await Promise.all(
-      ASSETS.map(url =>
-        cache.add(new Request(url, { cache: 'reload' })).catch(() => {})
-      )
-    );
-  })());
-});
+        <div class="row">
+          <label for="exSelect">種目</label>
+          <select id="exSelect">
+            <option value="" disabled selected>（選択する）</option>
+          </select>
+          <button id="btnAddEx" class="ghost">＋ 種目追加</button>
+        </div>
 
-self.addEventListener('activate', (e) => {
-  e.waitUntil((async () => {
-    // 可能ならナビゲーションPreloadを有効化（表示の体感を改善）
-    if (self.registration.navigationPreload) {
-      try { await self.registration.navigationPreload.enable(); } catch (_) {}
-    }
-    // 古いキャッシュは掃除
-    const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
-    await self.clients.claim();
-  })());
-});
+        <div class="grid grid-3">
+          <input id="weight" inputmode="decimal" placeholder="重量 kg（例: 40x8@8 もOK）">
+          <input id="reps" inputmode="numeric" placeholder="回数">
+          <input id="rpe" inputmode="decimal" placeholder="RPE（任意）">
+        </div>
 
-// 必要時のみ即時有効化（任意）
-self.addEventListener('message', (e) => {
-  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
-});
+        <div class="row end">
+          <button id="btnTimer" class="ghost">休憩60s</button>
+          <button id="btnUndo" class="ghost">一手戻す</button>
+          <button id="btnAddSet">セット追加</button>
+        </div>
 
-self.addEventListener('fetch', (e) => {
-  const req = e.request;
-  const url = new URL(req.url);
+        <ul id="todaySets" class="list" aria-live="polite">
+          <li>まだありません</li>
+        </ul>
+      </div>
 
-  // ---- HTMLナビ（Safari対策で Accept 判定も含める）----
-  const isHTMLNav =
-    req.method === 'GET' &&
-    (req.mode === 'navigate' ||
-     (req.headers.get('accept') || '').includes('text/html'));
+      <div class="card">
+        <h3>日付・メモ</h3>
+        <div class="grid grid-2">
+          <input id="sessDate" type="date" aria-label="日付">
+          <textarea id="sessNote" rows="2" placeholder="メモ（任意）"></textarea>
+        </div>
+        <div class="row end">
+          <button id="btnSaveSession">セッション保存</button>
+        </div>
+      </div>
 
-  if (isHTMLNav) {
-    e.respondWith((async () => {
-      // 1) navigation preload
-      try {
-        const preload = await e.preloadResponse;
-        if (preload) {
-          if (url.origin === ORIGIN) {
-            const cache = await caches.open(CACHE);
-            cache.put(req, preload.clone()).catch(()=>{});
-          }
-          return preload;
-        }
-      } catch (_) {}
+      <div class="card">
+        <h3>クイック投入</h3>
+        <div class="row">
+          <label for="tplExFromHist">種目</label>
+          <select id="tplExFromHist">
+            <option value="" selected>（選択する）</option>
+          </select>
+          <label for="tplPattern">パターン</label>
+          <select id="tplPattern">
+            <option>5×5</option>
+          </select>
+          <label class="check">
+            <input id="tplUseLastW" type="checkbox"> 前回重量を使う
+          </label>
+          <button id="btnTplApply">投入</button>
+        </div>
+      </div>
 
-      // 2) ネット（成功したら同一オリジンに限りキャッシュ更新）
-      try {
-        const res = await fetch(req);
-        if (res && res.ok && url.origin === ORIGIN) {
-          const cache = await caches.open(CACHE);
-          cache.put(req, res.clone()).catch(()=>{});
-        }
-        return res;
-      } catch (_) {
-        // 3) そのページ自身のキャッシュ → 4) SPAとして index.html
-        const cache = await caches.open(CACHE);
-        const own   = await cache.match(req, { ignoreSearch: true });
-        if (own) return own;
-        const index = await cache.match('./index.html', { ignoreSearch: true });
-        return index || new Response('<!doctype html><title>offline</title>', {
-          status: 200, headers: { 'Content-Type': 'text/html' }
-        });
-      }
-    })());
-    return;
-  }
+      <div class="card">
+        <h3>カスタム投入</h3>
+        <div id="tplPartChips" class="chipset">
+          <div class="chip active" data-part="胸">胸</div>
+          <div class="chip" data-part="背中">背中</div>
+          <div class="chip" data-part="肩">肩</div>
+          <div class="chip" data-part="脚">脚</div>
+          <div class="chip" data-part="腕">腕</div>
+        </div>
+        <div class="grid grid-3">
+          <select id="tplExCustom"><option value="">（選択する）</option></select>
+          <input id="tplCustomSets" inputmode="numeric" placeholder="セット数（例:5）">
+          <input id="tplCustomReps" inputmode="numeric" placeholder="回数（例:5）">
+          <input id="tplCustomWeight" inputmode="decimal" placeholder="重量 kg（例:0）">
+        </div>
+        <div class="row end">
+          <button id="btnTplCustom">投入</button>
+        </div>
+      </div>
+    </section>
 
-  // ---- 非HTML（静的資産）：キャッシュ優先 → ネット成功時に保存 ----
-  e.respondWith((async () => {
-    const cache = await caches.open(CACHE);
-    const hit = await cache.match(req);
-    if (hit) return hit;
+    <!-- ===== Analytics ===== -->
+    <section id="tab-analytics" class="tab" aria-labelledby="解析">
+      <div class="card">
+        <h3>直近7日の合計ボリューム</h3>
+        <canvas id="chart" width="800" height="260" aria-label="7日間ボリューム推移"></canvas>
+        <div id="metrics"></div>
+        <div id="legend" class="legend"></div>
+      </div>
 
-    try {
-      const res = await fetch(req);
-      if (res && res.ok && req.method === 'GET' && url.origin === ORIGIN) {
-        cache.put(req, res.clone()).catch(()=>{});
-      }
-      return res;
-    } catch (_) {
-      return hit || Response.error();
-    }
-  })());
-});
+      <div class="card">
+        <h3>e1RM トレンド</h3>
+        <div class="row">
+          <label for="exTrendSelect">種目</label>
+          <select id="exTrendSelect">
+            <option value="">設定 → ウォッチ種目で追加してください</option>
+          </select>
+          <label for="trendRange">範囲</label>
+          <select id="trendRange">
+            <option value="10">最新10</option>
+            <option value="20">最新20</option>
+            <option value="all">すべて</option>
+          </select>
+        </div>
+        <canvas id="trendChart" width="800" height="260" aria-label="e1RMトレンド"></canvas>
+        <div id="trendInfo" class="legend"></div>
+        <p id="trendHint" class="small"></p>
+      </div>
+
+      <div class="card">
+        <h3>今週のサマリー</h3>
+        <div id="weekly-summary-body">計算中…</div>
+      </div>
+    </section>
+
+    <!-- ===== History ===== -->
+    <section id="tab-history" class="tab" aria-labelledby="履歴">
+      <div class="card">
+        <h3>履歴</h3>
+        <div class="row">
+          <label for="historyCount">表示件数</label>
+          <select id="historyCount">
+            <option>10</option><option selected>20</option><option>50</option>
+          </select>
+          <button id="btnExport" class="ghost">CSVエクスポート</button>
+          <label class="btnlike" for="importFile">CSVインポート</label>
+          <input id="importFile" type="file" accept=".csv,text/csv" hidden>
+        </div>
+        <ul id="historyList" class="list"></ul>
+      </div>
+    </section>
+
+    <!-- ===== Settings ===== -->
+    <section id="tab-settings" class="tab" aria-labelledby="設定">
+      <div class="card">
+        <h3>一般</h3>
+        <div class="grid grid-3">
+          <label for="timerSec">休憩(秒)</label>
+          <select id="timerSec">
+            <option>30</option><option selected>60</option><option>90</option><option>120</option>
+          </select>
+          <label class="check"><input id="autoTimer" type="checkbox"> セット追加で自動スタート</label>
+          <label class="check"><input id="darkToggle" type="checkbox"> ダークテーマ</label>
+          <button id="btnNotif" class="ghost">通知を許可</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>種目</h3>
+        <div class="grid grid-3">
+          <input id="newExName" placeholder="種目名（例：懸垂）">
+          <select id="newExPart">
+            <option value="" disabled selected>部位</option>
+            <option>胸</option><option>背中</option><option>肩</option><option>脚</option><option>腕</option>
+          </select>
+          <button id="btnCreateEx">追加</button>
+        </div>
+        <div class="row">
+          <label for="filterPart">絞り込み</label>
+          <select id="filterPart">
+            <option value="all" selected>すべて</option>
+            <option>胸</option><option>背中</option><option>肩</option><option>脚</option><option>腕</option>
+          </select>
+        </div>
+        <ul id="exList" class="list"></ul>
+      </div>
+
+      <div class="card">
+        <h3>ウォッチ種目（PR通知/e1RMトレンド）</h3>
+        <div id="watchPartChips" class="chipset">
+          <div class="chip active" data-part="胸">胸</div>
+          <div class="chip" data-part="背中">背中</div>
+          <div class="chip" data-part="肩">肩</div>
+          <div class="chip" data-part="脚">脚</div>
+          <div class="chip" data-part="腕">腕</div>
+        </div>
+        <div class="row">
+          <select id="watchExSelect"><option value="">（選択する）</option></select>
+          <button id="btnWatchAdd">追加</button>
+        </div>
+        <ul id="watchList" class="list"></ul>
+      </div>
+
+      <div class="card">
+        <h3>バックアップ</h3>
+        <div class="row">
+          <button id="btnExportJson" class="ghost">JSONエクスポート</button>
+          <label class="btnlike" for="jsonIn">JSONインポート</label>
+          <input id="jsonIn" type="file" accept="application/json" hidden>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>危険ゾーン</h3>
+        <button id="btnWipe" class="danger">全データ削除</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <noscript>
+    <p class="nojs">JavaScript を有効にしてください。</p>
+  </noscript>
+
+  <!-- scripts -->
+  <script defer src="app.js?v=1.5.1"></script>
+  <script defer src="sw-register.js"></script>
+</body>
+</html>
