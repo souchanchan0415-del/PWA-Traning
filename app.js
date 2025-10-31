@@ -1,6 +1,7 @@
-// Train Punch — v1.4.3 (+ perf fixes)
+// Train Punch — v1.5.0
 // (auto-timer default + smart input "40x8@8" + today edit & undo + watch-only PR + e1RM trend)
-// 追加: スクロール中はヘッダーのブラー無効化 / チャートのresizeデバウンス / 最後に開いたタブの復元
+// 追加: ヘッダーブラー抑制 / チャートresizeデバウンス / 最後のタブ復元
+// 修正: 日付をローカル基準に（UTCズレ解消） / 週次サマリーをapp.jsに統合
 
 const DB_NAME = 'trainpunch_v3';
 const DB_VER  = 3;
@@ -15,7 +16,11 @@ function showToast(msg){
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 1400);
 }
-const todayStr = () => new Date().toISOString().slice(0,10);
+
+// --- Local date utils (UTCズレ対策) ---
+const ymdLocal = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const todayStr = () => ymdLocal(new Date());
+
 const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const e1rm = (w,r) => w * (1 + (r||0)/30);
 
@@ -189,6 +194,7 @@ async function init(){
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
 
   refreshTimerButtonLabel();
+  await renderWeeklySummary(); // 週次サマリー初回描画
 }
 
 async function ensureInitialExercises(){
@@ -329,6 +335,7 @@ function bindSessionUI(){
     currentSession = { date: todayStr(), note:'', sets: [] };
     $('#sessDate').value = todayStr(); $('#sessNote').value = '';
     renderTodaySets(); renderHistory(); renderAnalytics();
+    await renderWeeklySummary();
     showToast('セッションを保存しました');
   });
 
@@ -610,11 +617,12 @@ function _resizeCanvas(canvas, targetHeight = 260){
   }
 }
 function _lastNDays(n){
-  const today = new Date(); today.setHours(0,0,0,0);
+  const base = new Date();
+  base.setHours(0,0,0,0); // ローカル0時
   const days=[];
   for(let i=n-1;i>=0;i--){
-    const d = new Date(today.getTime() - i*86400000);
-    days.push({ key:d.toISOString().slice(0,10), label:`${d.getMonth()+1}/${d.getDate()}` });
+    const d = new Date(base); d.setDate(base.getDate()-i);
+    days.push({ key: ymdLocal(d), label:`${d.getMonth()+1}/${d.getDate()}` });
   }
   return days;
 }
@@ -768,6 +776,9 @@ async function renderAnalytics(){
   // ---- e1RM trend ----
   await renderTrendSelect();
   await renderTrendChart();
+
+  // 週次サマリーも更新
+  await renderWeeklySummary();
 }
 
 // === e1RM trend helpers ===
@@ -905,6 +916,7 @@ function bindSettingsUI(){
     }
     await ensureInitialExercises();
     await renderExList(); await renderExSelect(); await renderTplExSelect(); renderHistory(); renderAnalytics(); renderTodaySets(); await renderWatchUI(); await renderTrendSelect();
+    await renderWeeklySummary();
     showToast('全データを削除しました');
   });
 
@@ -939,6 +951,7 @@ function bindSettingsUI(){
     refreshTimerButtonLabel();
 
     await renderExList(); await renderExSelect(); await renderTplExSelect(); renderHistory(); renderAnalytics(); renderTodaySets(); await renderWatchUI(); await renderTrendSelect();
+    await renderWeeklySummary();
     showToast('復元しました'); e.target.value='';
   });
 }
@@ -960,6 +973,7 @@ async function renderExList(){
       pushUndo();
       await del('exercises', Number(b.dataset.id));
       await renderExList(); await renderExSelect(); await renderTplExSelect(); renderAnalytics(); await renderWatchUI(); await renderTrendSelect();
+      await renderWeeklySummary();
     });
   });
 }
@@ -1006,6 +1020,7 @@ async function renderWatchUI(){
         watchlist = watchlist.filter(x=>x!==id);
         await put('prefs',{key:'watchlist', value:watchlist});
         await renderWatchUI(); await renderTrendSelect(); await renderTrendChart();
+        await renderWeeklySummary();
       });
     });
   }
@@ -1016,6 +1031,7 @@ async function renderWatchUI(){
       if(!watchlist.includes(id)) watchlist.push(id);
       await put('prefs',{key:'watchlist', value:watchlist});
       await renderWatchUI(); await renderTrendSelect(); await renderTrendChart();
+      await renderWeeklySummary();
       showToast('ウォッチに追加しました');
     });
     addBtn._bound = true;
@@ -1054,7 +1070,8 @@ async function importCSV(e){
     const [id,session_id,exercise_id,weight,reps,rpe,ts,date] = parseCSVRow(line);
     await put('sets',{id:Number(id), session_id:Number(session_id), exercise_id:Number(exercise_id), weight:Number(weight), reps:Number(reps), rpe:rpe?Number(rpe):null, ts:Number(ts), date});
   }
-  renderHistory(); renderAnalytics(); showToast('インポート完了'); e.target.value='';
+  renderHistory(); renderAnalytics(); await renderWeeklySummary();
+  showToast('インポート完了'); e.target.value='';
 }
 function csvEscape(s){ const needs=/[",\n]/.test(s); return needs?'"'+String(s).replace(/"/g,'""')+'"':s; }
 function parseCSVRow(row){
@@ -1071,7 +1088,8 @@ async function deleteSession(id){
   const sets = await indexGetAll('sets','by_session', id);
   await Promise.all(sets.map(s=> del('sets', s.id)));
   await del('sessions', id);
-  renderHistory(); renderAnalytics(); showToast('セッションを削除しました');
+  renderHistory(); renderAnalytics(); await renderWeeklySummary();
+  showToast('セッションを削除しました');
 }
 async function editSessionNote(id){
   const s = await get('sessions', id);
@@ -1082,12 +1100,71 @@ async function editSessionNote(id){
 async function duplicateSessionToToday(id){
   const src = await get('sessions', id);
   const today = todayStr();
-  const newId = await put('sessions', {date:today, note:(src?.note||'')+' (複製)', created_at:Date.now()});
+  const newId = await put('sessions', {date:today, note:(src?.note||'')+' (複製)', created_at: Date.now()});
   const sets = await indexGetAll('sets','by_session', id);
   for(const x of sets){
     await put('sets',{session_id:newId, exercise_id:x.exercise_id, weight:x.weight, reps:x.reps, rpe:x.rpe, ts:Date.now(), date:today});
   }
-  renderHistory(); renderAnalytics(); showToast('今日に複製しました');
+  renderHistory(); renderAnalytics(); await renderWeeklySummary();
+  showToast('今日に複製しました');
+}
+
+// ===== 週次サマリー（ローカル週 / ISO準拠近似） =====
+function _isoWeekKeyLocal(dateStr){
+  const d0 = new Date(dateStr); // ローカル
+  const d  = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate());
+  const day = d.getDay() || 7;          // 月=1 … 日=7
+  d.setDate(d.getDate() + 4 - day);     // 週の木曜へ
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+  const week = Math.ceil((((d - yearStart)/86400000) + 1) / 7);
+  return `${d.getFullYear()}-W${String(week).padStart(2,'0')}`;
+}
+
+async function renderWeeklySummary(){
+  const el = document.getElementById('weekly-summary-body');
+  if(!el) return; // 要素が無ければ何もしない
+
+  const sets = await getAll('sets');
+  if(!sets.length){
+    el.textContent = '記録が見つかりません。入力するとここに今週の要約が出ます。';
+    return;
+  }
+
+  // 週ごとにグルーピング（その週の合計ボリューム & 平均RPE）
+  const map = new Map();
+  for(const s of sets){
+    const k = _isoWeekKeyLocal(s.date);
+    (map.get(k) || map.set(k,[]).get(k)).push(s);
+  }
+  const latestKey = [...map.keys()].sort().pop();
+  const arr = map.get(latestKey) || [];
+
+  const totalVol = arr.reduce((sum,x)=> sum + (Number(x.weight)||0)*(Number(x.reps)||0), 0);
+  const rpes = arr.map(x=> x.rpe).filter(v=> typeof v==='number' && !Number.isNaN(v));
+  const avgRpe = rpes.length ? (rpes.reduce((a,b)=>a+b,0)/rpes.length) : null;
+
+  // あなたのしきい値ロジック（必要なら後でチューニング可能）
+  let score = 10;
+  if (totalVol <= 1000) score = 2;
+  else if (totalVol <= 2000) score = 4;
+  else if (totalVol <= 3000) score = 6;
+  else if (totalVol <= 4000) score = 8;
+
+  const comment =
+    score <= 3 ? '基礎づくり週。次週は+10〜20%を目安に。' :
+    score <= 6 ? '標準負荷。フォームと睡眠を重視。' :
+    score <= 8 ? 'やや高負荷。補助種目を整理して回復時間を。' :
+                 '高負荷。48–72hの回復と栄養を最優先。';
+
+  el.innerHTML = `
+    <div style="display:flex;gap:1rem;align-items:baseline;flex-wrap:wrap">
+      <strong>対象週：</strong><span>${latestKey}</span>
+      <strong>合計ボリューム：</strong><span>${Math.round(totalVol)}</span>
+      <strong>強度スコア：</strong><span style="font-size:1.25rem">${score}/10</span>
+      ${avgRpe!=null ? `<strong>平均RPE：</strong><span>${avgRpe.toFixed(1)}</span>` : ''}
+    </div>
+    <p style="margin-top:.5rem">${comment}</p>
+  `;
 }
 
 init();
