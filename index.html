@@ -14,6 +14,20 @@
   <link rel="preload" href="styles.css?v=1.5.1" as="style">
   <link rel="stylesheet" href="styles.css?v=1.5.1">
   <noscript><style>noscript{display:block;padding:12px} .nojs{display:block}</style></noscript>
+
+  <!-- SW更新ドット用の最小CSS（styles.cssが無くても視認できるよう保険で同梱） -->
+  <style>
+    .iconbtn.update{position:relative}
+    .iconbtn.update::after{
+      content:""; position:absolute; top:6px; right:6px; width:8px; height:8px; border-radius:50%;
+      background:#ff5a5a; box-shadow:0 0 0 0 rgba(255,90,90,.7); animation:tp-pulse 1.6s infinite;
+    }
+    @keyframes tp-pulse{
+      0%{ box-shadow:0 0 0 0 rgba(255,90,90,.7) }
+      70%{ box-shadow:0 0 0 10px rgba(255,90,90,0) }
+      100%{ box-shadow:0 0 0 0 rgba(255,90,90,0) }
+    }
+  </style>
 </head>
 <body>
   <!-- App bar -->
@@ -77,8 +91,6 @@
         </div>
       </div>
 
-      <!-- ※クイック投入は要望により削除 -->
-
       <div class="card">
         <h3>カスタム投入</h3>
         <div id="tplPartChips" class="chipset">
@@ -102,7 +114,6 @@
 
     <!-- ===== Analytics ===== -->
     <section id="tab-analytics" class="tab" aria-labelledby="解析">
-      <!-- 今週のサマリー：最上段へ移動 -->
       <div class="card" id="weekly-summary">
         <h3>今週のサマリー</h3>
         <div id="weekly-summary-body">計算中…</div>
@@ -212,7 +223,6 @@
         </div>
       </div>
 
-      <!-- 新規：サポート & ポリシー -->
       <div class="card">
         <h3>サポート & ポリシー</h3>
         <div class="kv">
@@ -240,6 +250,7 @@
 
   <!-- scripts -->
   <script defer src="app.js?v=1.5.1"></script>
-  <script defer src="sw-register.js"></script>
+  <!-- sw-register はキャッシュバスト用にバージョンを付与（前ターンの v1.5.2） -->
+  <script defer src="sw-register.js?v=1.5.2"></script>
 </body>
 </html>
