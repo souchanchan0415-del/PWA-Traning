@@ -13,12 +13,14 @@ const Q       = `?v=${VERSION}`;
 const ASSETS = [
   './',
   './index.html',
+  './contact.html',      // 追加
+  './tokusho.html',      // 追加
+  './privacy.html',
+  './support.html',
   `./styles.css${Q}`,
   `./app.js${Q}`,
   './sw-register.js',
   './manifest.webmanifest',
-  './privacy.html',
-  './support.html',
   './beep.wav',
   './icons/icon-180.png',
   './icons/icon-192.png',
