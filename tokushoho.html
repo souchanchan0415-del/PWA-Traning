@@ -1,38 +1,135 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>特定商取引法に基づく表記 | Train Punch</title>
-<style>
-  body{font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial;padding:24px;line-height:1.7;max-width:760px;margin:auto;color:#222}
-  h1{line-height:1.3;margin-bottom:8px}
-  dl{margin:0}
-  dt{font-weight:700;margin-top:14px}
-  dd{margin:6px 0 0 0}
-  small{color:#666}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>特定商取引法に基づく表記 | Train Punch</title>
+  <meta name="description" content="Train Punch（トレインパンチ）の特定商取引法に基づく表記。支援（チップ／寄付）に関する事業者情報・支払方法など。">
+  <meta name="theme-color" content="#0fb6a9">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png" sizes="192x192">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="特定商取引法に基づく表記 | Train Punch">
+  <meta property="og:description" content="支援（寄付）に関する事業者情報・支払方法などの表示。">
+  <meta property="og:image" content="./icons/icon-512.png">
+  <style>
+    :root{
+      --bg:#f7fafc;
+      --card:#ffffff;
+      --text:#1a202c;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --brand:#0fb6a9;
+      --brand-weak:#6cc7bf;
+      --danger:#e11d48;
+      --focus:#0fb6a940;
+      --shadow:0 2px 22px rgba(0,0,0,.06);
+    }
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg:#0b0f14;
+        --card:#10151c;
+        --text:#e5e7eb;
+        --muted:#a1a1aa;
+        --line:#1f2937;
+        --shadow:0 2px 22px rgba(0,0,0,.35);
+      }
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP","Meiryo",sans-serif;
+      background:var(--bg); color:var(--text);
+    }
+    header{
+      position:sticky; top:0; z-index:5;
+      backdrop-filter:saturate(1.2) blur(8px);
+      background:color-mix(in oklab, var(--card) 90%, transparent);
+      border-bottom:1px solid var(--line);
+    }
+    .wrap{max-width:860px;margin:0 auto;padding:16px}
+    .headbar{display:flex;align-items:center;gap:10px;min-height:56px}
+    .logo{width:28px;height:28px;border-radius:6px;background:var(--brand);display:inline-block;box-shadow:inset 0 0 0 2px #fff3}
+    .title{font-weight:700;letter-spacing:.2px}
+    nav{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
+    nav a{color:var(--text);text-decoration:none;padding:8px 10px;border-radius:8px}
+    nav a:hover{background:var(--line)}
+    main{padding:24px 0 40px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px}
+    h1{font-size:20px;margin:6px 0 14px}
+    dl{margin:0}
+    dt{font-weight:700;margin-top:14px}
+    dd{margin:6px 0 0 0}
+    .muted{color:var(--muted)}
+    footer{border-top:1px solid var(--line);padding:18px 0;color:var(--muted);font-size:13px;margin-top:24px}
+    .small{font-size:13px}
+    .tag{display:inline-block;padding:.1rem .5rem;border-radius:999px;background:var(--line);font-size:12px;color:var(--muted)}
+  </style>
 </head>
 <body>
-<h1>特定商取引法に基づく表記</h1>
+  <header>
+    <div class="wrap headbar">
+      <span class="logo" aria-hidden="true"></span>
+      <div class="title">Train Punch</div>
+      <nav>
+        <a href="./index.html">アプリへ戻る</a>
+        <a href="./privacy.html">プライバシー</a>
+        <a href="./contact.html">お問い合わせ</a>
+      </nav>
+    </div>
+  </header>
 
-<dl>
-  <dt>販売事業者（屋号）</dt><dd>Train Punch</dd>
-  <dt>運営責任者</dt><dd>（個人）</dd>
-  <dt>所在地</dt><dd>個人情報保護のため、請求があった場合は遅滞なく開示いたします。</dd>
-  <dt>電話番号</dt><dd>請求いただいた方に、遅滞なく開示いたします。<br><small>お問合せは下記メールへお願いいたします。</small></dd>
-  <dt>メールアドレス</dt><dd><a href="mailto:toreninguguanli53@gmail.com">toreninguguanli53@gmail.com</a></dd>
-  <dt>URL</dt><dd><a href="https://trainpunch.github.io/PWA-Traning/">https://trainpunch.github.io/PWA-Traning/</a></dd>
+  <main class="wrap">
+    <div class="card">
+      <h1>特定商取引法に基づく表記</h1>
+      <dl>
+        <dt>販売事業者（屋号）</dt><dd>Train Punch</dd>
+        <dt>運営責任者</dt><dd>（個人）</dd>
+        <dt>所在地</dt><dd>個人情報保護のため、請求があった場合は遅滞なく開示いたします。</dd>
+        <dt>電話番号</dt>
+        <dd>請求いただいた方に、遅滞なく開示いたします。<br><span class="muted small">※お問い合わせは下記メールへお願いいたします。</span></dd>
+        <dt>メールアドレス</dt>
+        <dd><a href="mailto:toreninguguanli53@gmail.com">toreninguguanli53@gmail.com</a></dd>
+        <dt>URL</dt>
+        <dd><a href="https://trainpunch.github.io/PWA-Traning/">https://trainpunch.github.io/PWA-Traning/</a></dd>
 
-  <dt>販売価格・対価</dt><dd>支援（チップ／寄付）金額は任意です。金額は各サービスの決済画面に表示されます。</dd>
-  <dt>商品代金以外の必要料金</dt><dd>なし（通信費等はお客様のご負担）</dd>
-  <dt>支払方法</dt><dd>クレジットカード等（Stripe／Ko-fi を通じて処理）</dd>
-  <dt>支払時期</dt><dd>各サービスの規約に基づき、申込時に決済されます。</dd>
-  <dt>引き渡し時期</dt><dd>本ページで受け付けるのは開発支援（寄付）であり、物品・デジタルコンテンツの提供はありません。</dd>
-  <dt>返品・キャンセル</dt><dd>寄付の性質上、原則として返金はお受けしておりません。ただし重複課金等の誤決済が確認できる場合は個別に対応いたします。まずはメールにてご連絡ください。</dd>
-  <dt>表現および商品に関する注意書き</dt><dd>支援金はアプリ開発・運営の継続に充てます。対価としての役務・成果物の提供を保証するものではありません。</dd>
-</dl>
+        <dt>販売価格・対価</dt>
+        <dd>支援（チップ／寄付）金額は任意です。金額は各サービスの決済画面に表示されます。</dd>
+        <dt>商品代金以外の必要料金</dt>
+        <dd>なし（通信費等はお客様のご負担）</dd>
+        <dt>支払方法</dt>
+        <dd>クレジットカード等（Stripe／Ko-fi を通じて処理）</dd>
+        <dt>支払時期</dt>
+        <dd>各サービスの規約に基づき、申込時に決済されます。</dd>
+        <dt>引き渡し時期</dt>
+        <dd>本ページで受け付けるのは開発支援（寄付）であり、物品・デジタルコンテンツの提供はありません。</dd>
+        <dt>返品・キャンセル</dt>
+        <dd>寄付の性質上、原則として返金はお受けしておりません。ただし重複課金等の誤決済が確認できる場合は個別に対応いたします。まずはメールにてご連絡ください。</dd>
+        <dt>表現および商品に関する注意書き</dt>
+        <dd>支援金はアプリ開発・運営の継続に充てます。対価としての役務・成果物の提供を保証するものではありません。</dd>
+      </dl>
 
-<p style="color:#666;font-size:13px;margin-top:28px">最終更新日：2025-10-27</p>
+      <p class="muted small" style="margin-top:18px">最終更新日：2025-10-27</p>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div>© <span id="year"></span> Train Punch</div>
+      <div class="muted small">v1.5.1 • 本ページは表示のみで通信は行いません。</div>
+    </div>
+  </footer>
+
+  <script>
+    // 年表示のみ
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // PWA登録（存在すれば）
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    }
+  </script>
 </body>
 </html>
