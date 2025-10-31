@@ -18,7 +18,6 @@
 
   <link rel="preload" href="beep.wav" as="audio" />
   <link rel="prefetch" href="support.html" />
-  <!-- CSS のキャッシュバスターは 1.4.3b に統一 -->
   <link rel="stylesheet" href="styles.css?v=1.4.3b" />
 </head>
 <body>
@@ -162,7 +161,6 @@
 
     <!-- ===== 分析 ===== -->
     <section id="tab-analytics" class="tab" role="tabpanel" aria-labelledby="tabbtn-analytics">
-      <!-- 追加：最新週サマリー -->
       <div class="card" id="weekly-summary" aria-live="polite">
         <h3>最新週サマリー</h3>
         <div id="weekly-summary-body">読み込み中…</div>
@@ -217,7 +215,6 @@
         <ul id="exList" class="list"></ul>
       </div>
 
-      <!-- ウォッチ種目 -->
       <div class="card">
         <h3>ウォッチ種目（分析の e1RM で選択）</h3>
         <div class="row">
@@ -243,7 +240,6 @@
         <small>ここで選んだ種目が、分析タブの「e1RM推移」で選択できます。</small>
       </div>
 
-      <!-- 追加：タイマー設定 -->
       <div class="card">
         <h3>タイマー</h3>
         <div class="row">
@@ -278,7 +274,6 @@
         </label>
       </div>
 
-      <!-- バックアップ -->
       <div class="card">
         <h3>バックアップ</h3>
         <div class="row">
@@ -289,7 +284,6 @@
         <small>書き出しは端末に保存、読み込みはファイル選択で復元できます。</small>
       </div>
 
-      <!-- ★ サポート（バックアップの後に配置） -->
       <div class="card">
         <h3>サポート</h3>
         <a class="btnlike ghost" href="support.html" rel="noopener">支援ページへ</a>
@@ -319,10 +313,9 @@
   <script src="app.js?v=1.4.3" defer></script>
   <script src="sw-register.js" defer></script>
 
-  <!-- 追加JS：IndexedDB移行 + 週次サマリー + CSV入出力 + ハードリロード -->
+  <!-- IndexedDB移行 + CSV入出力 + 週次サマリー + ハードリロード -->
   <script type="module">
   (async () => {
-    // ======= ユーティリティ =======
     const $ = (s)=>document.querySelector(s);
     const toastHost = $('#toast');
     function toast(msg){
@@ -335,7 +328,7 @@
     const ymd = (d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const rand4 = ()=>Math.random().toString(36).slice(2,6);
 
-    // ======= IndexedDB 基盤 =======
+    // ===== IndexedDB =====
     const DB_NAME='trainpunch', DB_VER=1;
     function openDB(){
       return new Promise((res,rej)=>{
@@ -380,10 +373,9 @@
       });
     }
 
-    // 永続化リクエスト
     try { await navigator.storage?.persist?.(); } catch {}
 
-    // ======= LocalStorage → DB へ一度だけ移行 =======
+    // ===== LocalStorage → DB 移行（1回のみ） =====
     const LS_KEYS = ['tp_sessions','tp_logs','sessions'];
     function normDate(x){
       if(!x) return ymd(new Date());
@@ -441,7 +433,6 @@
           sets.push(normalizeSet({...item, date, session_id:sid}));
         }
       }
-      // 重複セッションID排除
       const uniqSessions = Object.values(Object.fromEntries(sessions.map(s=>[s.id,s])));
       try{
         await putMany('sessions', uniqSessions);
@@ -451,7 +442,7 @@
       }catch(e){ console.warn('migrate failed', e); }
     }
 
-    // ======= データ取得（DB→LS フォールバック） =======
+    // ===== 共通取得（DB優先・LSフォールバック） =====
     async function getAllSetsSmart(){
       try{
         const arr = await getAll('sets');
@@ -478,8 +469,10 @@
       }
       return [];
     }
+    // app.jsからも呼べるよう公開（任意）
+    window.tpGetAllSets = getAllSetsSmart;
 
-    // ======= 週次サマリー =======
+    // ===== 週次サマリー =====
     function isoWeekKey(d){
       const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
       const day = x.getUTCDay() || 7;
@@ -503,13 +496,12 @@
         (map.get(k)||map.set(k,[]).get(k)).push(e);
       }
       const latestKey = [...map.keys()].sort().pop();
-      const arr = map.get(latestKey);
+      const arr = map.get(latestKey) ?? [];
 
       const totalVol = arr.reduce((s,e)=>s+setVol(e),0);
       const fats = arr.map(setFat).filter(v=>typeof v==='number');
       const avgFat = fats.length ? (fats.reduce((a,b)=>a+b,0)/fats.length) : null;
 
-      // ボリューム→スコア（必要ならしきい値調整）
       let score = 10;
       if (totalVol <= 1000) score = 2;
       else if (totalVol <= 2000) score = 4;
@@ -533,7 +525,7 @@
       `;
     }
 
-    // ======= CSV エクスポート／インポート =======
+    // ===== CSV I/O =====
     function csvEsc(v){
       if(v==null) return '';
       const s=String(v);
@@ -542,9 +534,7 @@
     function rowsToCSV(rows){
       const header=['date','part','exercise','weight','reps','setNo','rpe','fatigue','volume','note','session_id'];
       const lines=[header.join(',')];
-      for(const r of rows){
-        lines.push(header.map(k=>csvEsc(r[k])).join(','));
-      }
+      for(const r of rows){ lines.push(header.map(k=>csvEsc(r[k])).join(',')); }
       return lines.join('\n');
     }
     async function exportCSV(){
@@ -560,7 +550,7 @@
       toast('CSVを書き出しました');
     }
     function splitCSVLine(line){
-      const out=[], q=false; let cur='', inQ=q;
+      const out=[]; let cur=''; let inQ=false;
       for(let i=0;i<line.length;i++){
         const c=line[i];
         if(inQ){
@@ -602,11 +592,11 @@
 
       const sets = rows.map(r => normalizeSet({
         date: r.date, part:r.part, exercise:r.exercise,
-        weight:Number(r.weight||0), reps:Number(r.reps||0),
-        setNo:Number(r.setNo||r.set||1),
-        rpe: r.rpe!=='' ? Number(r.rpe) : null,
-        fatigue: r.fatigue!=='' ? Number(r.fatigue) : null,
-        volume: r.volume!=='' ? Number(r.volume) : undefined,
+        weight: parseFloat(r.weight||0), reps: parseFloat(r.reps||0),
+        setNo: parseInt(r.setNo||r.set||1),
+        rpe: r.rpe!=='' ? parseFloat(r.rpe) : null,
+        fatigue: r.fatigue!=='' ? parseFloat(r.fatigue) : null,
+        volume: r.volume!=='' ? parseFloat(r.volume) : undefined,
         note: r.note||'',
         session_id: r.session_id || `sess_${normDate(r.date)}_${rand4()}`
       }));
@@ -626,7 +616,7 @@
       renderWeekly();
     }
 
-    // ======= ハードリロード（SW + Cache 全クリア） =======
+    // ===== ハードリロード =====
     $('#btnHardRefresh')?.addEventListener('click', async () => {
       try{
         if('caches' in window){
@@ -641,13 +631,15 @@
       finally{ location.reload(); }
     });
 
-    // ======= UI 配線 =======
+    // ===== UI 配線 =====
     $('#btnExport')?.addEventListener('click', exportCSV);
     $('#importFile')?.addEventListener('change', (e)=>{
       const f = e.target.files?.[0]; if(f) importCSVFile(f);
     });
+    document.getElementById('tabbtn-analytics')?.addEventListener('click', renderWeekly);
+    document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') renderWeekly(); });
 
-    // ======= 初期化 =======
+    // ===== 初期化 =====
     await migrateOnce();
     await renderWeekly();
   })();
