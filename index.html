@@ -77,23 +77,7 @@
         </div>
       </div>
 
-      <div class="card">
-        <h3>クイック投入</h3>
-        <div class="row">
-          <label for="tplExFromHist">種目</label>
-          <select id="tplExFromHist">
-            <option value="" selected>（選択する）</option>
-          </select>
-          <label for="tplPattern">パターン</label>
-          <select id="tplPattern">
-            <option>5×5</option>
-          </select>
-          <label class="check">
-            <input id="tplUseLastW" type="checkbox"> 前回重量を使う
-          </label>
-          <button id="btnTplApply">投入</button>
-        </div>
-      </div>
+      <!-- ※クイック投入は要望により削除 -->
 
       <div class="card">
         <h3>カスタム投入</h3>
@@ -118,6 +102,12 @@
 
     <!-- ===== Analytics ===== -->
     <section id="tab-analytics" class="tab" aria-labelledby="解析">
+      <!-- 今週のサマリー：最上段へ移動 -->
+      <div class="card" id="weekly-summary">
+        <h3>今週のサマリー</h3>
+        <div id="weekly-summary-body">計算中…</div>
+      </div>
+
       <div class="card">
         <h3>直近7日の合計ボリューム</h3>
         <canvas id="chart" width="800" height="260" aria-label="7日間ボリューム推移"></canvas>
@@ -142,11 +132,6 @@
         <canvas id="trendChart" width="800" height="260" aria-label="e1RMトレンド"></canvas>
         <div id="trendInfo" class="legend"></div>
         <p id="trendHint" class="small"></p>
-      </div>
-
-      <div class="card">
-        <h3>今週のサマリー</h3>
-        <div id="weekly-summary-body">計算中…</div>
       </div>
     </section>
 
@@ -225,6 +210,18 @@
           <label class="btnlike" for="jsonIn">JSONインポート</label>
           <input id="jsonIn" type="file" accept="application/json" hidden>
         </div>
+      </div>
+
+      <!-- 新規：サポート & ポリシー -->
+      <div class="card">
+        <h3>サポート & ポリシー</h3>
+        <div class="kv">
+          <div>問い合わせ</div><div><a href="./contact.html">contact.html</a></div>
+          <div>プライバシーポリシー</div><div><a href="./privacy.html">privacy.html</a></div>
+          <div>特定商取引法に基づく表記</div><div><a href="./tokusho.html">tokusho.html</a></div>
+          <div>サポート</div><div><a href="./support.html">support.html</a></div>
+        </div>
+        <small>上記ページはオフラインでも表示できるようプリキャッシュします。</small>
       </div>
 
       <div class="card">
