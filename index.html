@@ -36,11 +36,32 @@
       .badge.wu{ background:#3a1f1f; color:#ffb3b3 }
     }
   </style>
+
+  <!-- フォールバック：app.jsが読めなくても動くハードリフレッシュ -->
+  <script>
+  window.__tpHardRefresh = async function(){
+    if (window.__tpHRRunning) return;
+    window.__tpHRRunning = true;
+    const btn = document.getElementById('btnHardRefresh');
+    if (btn){ btn.disabled = true; btn.textContent = '更新…'; }
+    try{
+      if('serviceWorker' in navigator){
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister().catch(()=>{})));
+      }
+      if('caches' in window){
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k).catch(()=>{})));
+      }
+    }catch(e){}
+    location.reload();
+  };
+  </script>
 </head>
 <body>
   <!-- App bar -->
   <header class="appbar">
-    <button id="btnHardRefresh" class="iconbtn" title="更新" aria-label="強制更新">↻</button>
+    <button id="btnHardRefresh" class="iconbtn" title="更新" aria-label="強制更新" type="button" onclick="window.__tpHardRefresh()">↻</button>
     <h1 class="logo">Train Punch</h1>
     <nav class="tabs" aria-label="Main tabs">
       <button class="active" data-tab="session" aria-selected="true">セッション</button>
