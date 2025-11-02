@@ -6,10 +6,16 @@
   <meta name="theme-color" content="#0e1116">
   <meta name="format-detection" content="telephone=no">
   <meta name="color-scheme" content="light dark">
+  <!-- HTML 自体は極力キャッシュさせない（保険） -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
-  <title>Train Punch v1.5.5-hotfix1</title>
+
+  <title>Train Punch v1.5.6-safari-fix2</title>
 
   <!-- styles -->
   <link rel="preload" href="styles.css?v=1.5.1" as="style">
@@ -77,23 +83,15 @@
 
       // 起動時キルスイッチ： /?kill=1 を付けて開くと即全解除→再読み込み
       if (has('kill')) {
-        // 1回だけ発火させるため、クエリを外したURLに置き換えてから処理
         const cleanURL = location.href.replace(/([?&])(kill(=1|=true)?)(&|$)/,'$1').replace(/[?&]$/,'');
         history.replaceState(null,'',cleanURL);
         window.__tpHardRefresh();
       }
-
-      // TESTボタン（?debug=1のときだけ表示：クリックが通るか判定用）
-      function mountTest(){
-        if (!has('debug')) return;
-        const b = document.createElement('button'); b.id='tp-test';
-        b.textContent='TEST'; b.className='btnlike ghost';
-        b.onclick = () => alert('クリックは通っています');
-        document.addEventListener('DOMContentLoaded',()=>{ document.body.appendChild(b); b.style.display='inline-block'; },{once:true});
-      }
-      mountTest();
     })();
   </script>
+
+  <!-- バージョン確認用ログ（読み替わり確認） -->
+  <script>console.log('TP index v1.5.6-safari-fix2');</script>
 </head>
 <body>
   <!-- App bar -->
@@ -126,7 +124,6 @@
           <select id="exSelect" aria-label="種目選択">
             <option value="" disabled selected>（選択する）</option>
           </select>
-          <!-- セッション側の「＋ 種目追加」は削除（追加は設定タブで実施） -->
         </div>
 
         <div class="grid grid-3">
@@ -335,8 +332,8 @@
 
   <noscript><p class="nojs">JavaScript を有効にしてください。</p></noscript>
 
-  <!-- scripts -->
-  <script defer src="app.js?v=1.5.5-hotfix1"></script>
-  <script defer src="sw-register.js?v=1.5.2"></script>
+  <!-- scripts（バージョンを上げて確実に最新を取得） -->
+  <script defer src="app.js?v=1.5.6-safari-fix2"></script>
+  <script defer src="sw-register.js?v=1.5.3"></script>
 </body>
 </html>
