@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0e1116">
   <meta name="format-detection" content="telephone=no">
+  <meta name="color-scheme" content="light dark">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -15,7 +16,10 @@
   <link rel="stylesheet" href="styles.css?v=1.5.1">
   <noscript><style>noscript{display:block;padding:12px} .nojs{display:block}</style></noscript>
 
-  <!-- SW更新ドット用の最小CSS（styles.cssが無くても視認できるよう保険で同梱） -->
+  <!-- audio -->
+  <link rel="preload" href="beep.wav" as="audio" type="audio/wav">
+
+  <!-- 最小フォールバックCSS（SW更新ドット / WUバッジ） -->
   <style>
     .iconbtn.update{position:relative}
     .iconbtn.update::after{
@@ -27,12 +31,17 @@
       70%{ box-shadow:0 0 0 10px rgba(255,90,90,0) }
       100%{ box-shadow:0 0 0 0 rgba(255,90,90,0) }
     }
+    /* styles.css が読めない時の保険（軽い着色だけ） */
+    .badge.wu{ padding:2px 6px; border-radius:10px; background:#ffe6e6; color:#b21c1c; font-size:12px }
+    @media (prefers-color-scheme: dark){
+      .badge.wu{ background:#3a1f1f; color:#ffb3b3 }
+    }
   </style>
 </head>
 <body>
   <!-- App bar -->
   <header class="appbar">
-    <button id="btnHardRefresh" class="iconbtn" title="更新">↻</button>
+    <button id="btnHardRefresh" class="iconbtn" title="更新" aria-label="強制更新">↻</button>
     <h1 class="logo">Train Punch</h1>
     <nav class="tabs" aria-label="Main tabs">
       <button class="active" data-tab="session" aria-selected="true">セッション</button>
@@ -57,22 +66,22 @@
 
         <div class="row">
           <label for="exSelect">種目</label>
-          <select id="exSelect">
+          <select id="exSelect" aria-label="種目選択">
             <option value="" disabled selected>（選択する）</option>
           </select>
           <button id="btnAddEx" class="ghost">＋ 種目追加</button>
         </div>
 
         <div class="grid grid-3">
-          <input id="weight" inputmode="decimal" placeholder="重量 kg（例: 40x8@8 もOK）">
-          <input id="reps" inputmode="numeric" placeholder="回数">
-          <input id="rpe" inputmode="decimal" placeholder="RPE（任意）">
+          <input id="weight" inputmode="decimal" autocomplete="off" placeholder="重量 kg（例: 40x8@8 もOK）" aria-label="重量">
+          <input id="reps"   inputmode="numeric" autocomplete="off" placeholder="回数" aria-label="回数">
+          <input id="rpe"    inputmode="decimal" autocomplete="off" placeholder="RPE（任意）" aria-label="RPE">
         </div>
 
-        <!-- ★ ウォームアップ自動生成（新規ブロック） -->
+        <!-- ★ ウォームアップ自動生成 -->
         <div class="row">
           <label for="wuScheme">ウォームアップ</label>
-          <select id="wuScheme" title="自動…回数に応じて強度/筋肥大/持久を自動判定">
+          <select id="wuScheme" title="自動…回数に応じて強度/筋肥大/持久を自動判定" aria-label="ウォームアップ方式">
             <option value="auto" selected>自動（回数から判定）</option>
             <option value="strength">強度系（3–5回向け）</option>
             <option value="hypertrophy">筋肥大系（6–10回向け）</option>
@@ -80,13 +89,14 @@
           </select>
 
           <label for="wuRound">丸め</label>
-          <select id="wuRound" title="プレートに合わせた丸め">
+          <select id="wuRound" title="プレートに合わせた丸め" aria-label="丸め単位">
             <option value="2.5" selected>±2.5kg</option>
             <option value="1">±1.0kg</option>
             <option value="0.5">±0.5kg</option>
           </select>
 
-          <button id="btnGenWarmup" class="ghost">↑からウォームアップ自動生成</button>
+          <button id="btnGenWarmup" class="ghost" title="入力中のトップセットからWUを作成">↑からウォームアップ自動生成</button>
+          <button id="btnClearWarmup" class="ghost danger" title="生成済みWUを削除（種目選択時はその種目のみ）">WU削除</button>
         </div>
         <!-- ／ウォームアップここまで -->
 
@@ -105,7 +115,7 @@
         <h3>日付・メモ</h3>
         <div class="grid grid-2">
           <input id="sessDate" type="date" aria-label="日付">
-          <textarea id="sessNote" rows="2" placeholder="メモ（任意）"></textarea>
+          <textarea id="sessNote" rows="2" placeholder="メモ（任意）" aria-label="メモ"></textarea>
         </div>
         <div class="row end">
           <button id="btnSaveSession">セッション保存</button>
@@ -114,7 +124,7 @@
 
       <div class="card">
         <h3>カスタム投入</h3>
-        <div id="tplPartChips" class="chipset">
+        <div id="tplPartChips" class="chipset" aria-label="カスタム投入の部位選択">
           <div class="chip active" data-part="胸">胸</div>
           <div class="chip" data-part="背中">背中</div>
           <div class="chip" data-part="肩">肩</div>
@@ -122,10 +132,10 @@
           <div class="chip" data-part="腕">腕</div>
         </div>
         <div class="grid grid-3">
-          <select id="tplExCustom"><option value="">（選択する）</option></select>
-          <input id="tplCustomSets" inputmode="numeric" placeholder="セット数（例:5）">
-          <input id="tplCustomReps" inputmode="numeric" placeholder="回数（例:5）">
-          <input id="tplCustomWeight" inputmode="decimal" placeholder="重量 kg（例:0）">
+          <select id="tplExCustom" aria-label="カスタム種目"><option value="">（選択する）</option></select>
+          <input id="tplCustomSets"  inputmode="numeric" autocomplete="off" placeholder="セット数（例:5）" aria-label="セット数">
+          <input id="tplCustomReps"  inputmode="numeric" autocomplete="off" placeholder="回数（例:5）" aria-label="回数">
+          <input id="tplCustomWeight" inputmode="decimal" autocomplete="off" placeholder="重量 kg（例:0）" aria-label="重量">
         </div>
         <div class="row end">
           <button id="btnTplCustom">投入</button>
@@ -137,7 +147,7 @@
     <section id="tab-analytics" class="tab" aria-labelledby="解析">
       <div class="card" id="weekly-summary">
         <h3>今週のサマリー</h3>
-        <div id="weekly-summary-body">計算中…</div>
+        <div id="weekly-summary-body" aria-live="polite">計算中…</div>
       </div>
 
       <div class="card">
