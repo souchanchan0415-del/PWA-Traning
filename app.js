@@ -1,26 +1,33 @@
-// Train Punch — v1.5.4 (fix: Safe indexGetAll for iOS Safari + history sort fallback)
-// NOTE: あなたが貼ってくれた bindSessionUI() をそのまま利用
+// Train Punch — v1.5.5
+// fix: Fail-open storage (LocalStorage fallback on iOS file:// / private mode) +
+//      bind UI before DB init + minor safety/toast/error guards
+// NOTE: あなたの bindSessionUI() ロジックは保持しつつ、init順序とストレージ層だけ強化
 
 const DB_NAME = 'trainpunch_v3';
-const DB_VER  = 3; // ←必要なら4でも動くが、互換のため3に固定
+const DB_VER  = 3;
 let db;
 
+// ======== tiny DOM helpers ========
 const $  = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
-
 function showToast(msg){
-  const t = $('#toast');
-  t.textContent = msg;
+  const t = $('#toast'); if(!t) return;
+  t.textContent = String(msg || '');
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 1400);
 }
+window.addEventListener('error', e=>{
+  // 解析用に控えつつ静かに通知
+  console.warn('[TP] Uncaught:', e?.error || e?.message || e);
+  showToast('エラー: ' + (e?.message || '不明'));
+});
 
 // --- Local date utils ---
 const ymdLocal = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const todayStr = () => ymdLocal(new Date());
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const e1rm = (w,r) => w * (1 + (r||0)/30);
+const e1rm = (w,r) => Number(w||0) * (1 + (Number(r||0))/30);
 
 // --- small utils ---
 const debounce = (fn, wait=150)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), wait); }; };
@@ -41,57 +48,186 @@ async function hardRefresh(){
   location.reload();
 }
 
-// ---- IndexedDB helpers ----
+// ======================================================
+// Storage layer: IndexedDB (primary) -> LocalStorage (fallback)
+// ======================================================
+let USE_LS = false;              // true なら LocalStorage モード
+const LS_KEY = 'trainpunch_ls';  // ここに全データを保存
+
+function _lsLoad(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw){
+      const obj = JSON.parse(raw);
+      return {
+        sessions:  Array.isArray(obj.sessions)? obj.sessions : [],
+        sets:      Array.isArray(obj.sets)?     obj.sets     : [],
+        exercises: Array.isArray(obj.exercises)?obj.exercises: [],
+        prefs:     Array.isArray(obj.prefs)?    obj.prefs    : []
+      };
+    }
+  }catch(_){}
+  return { sessions:[], sets:[], exercises:[], prefs:[] };
+}
+function _lsSave(data){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(data)); }catch(_){}
+}
+function _lsNextId(arr){
+  return (arr.reduce((m,x)=> Math.max(m, Number(x.id)||0), 0) + 1) || 1;
+}
+
+async function enableLocalStorageFallback(reason){
+  USE_LS = true;
+  console.warn('[TP] Fallback to LocalStorage:', reason);
+  showToast('ローカル保存に切替（IDB不可）');
+  // 初回起動で exercises が空なら初期投入は後段 ensureInitialExercises() に任せる
+}
+
+// ---- IndexedDB helpers (kept API) ----
 function openDB(){
   return new Promise((resolve,reject)=>{
-    const req = indexedDB.open(DB_NAME, DB_VER);
-    req.onupgradeneeded = (e)=>{
-      const d = req.result;
-
-      // exercises
-      if(!d.objectStoreNames.contains('exercises')){
-        const s = d.createObjectStore('exercises',{keyPath:'id',autoIncrement:true});
-        s.createIndex('name','name',{unique:true});
-        s.createIndex('by_group','group',{unique:false});
-      }else{
-        const s = e.target.transaction.objectStore('exercises');
-        if(!s.indexNames.contains('name'))     s.createIndex('name','name',{unique:true});
-        if(!s.indexNames.contains('by_group')) s.createIndex('by_group','group',{unique:false});
-      }
-
-      // sessions
-      if(!d.objectStoreNames.contains('sessions')){
-        d.createObjectStore('sessions',{keyPath:'id', autoIncrement:true});
-      }
-
-      // sets
-      if(!d.objectStoreNames.contains('sets')){
-        const s = d.createObjectStore('sets',{keyPath:'id', autoIncrement:true});
-        s.createIndex('by_session','session_id',{unique:false});
-        s.createIndex('by_date','date',{unique:false});
-      }else{
-        const s = e.target.transaction.objectStore('sets');
-        if(!s.indexNames.contains('by_session')) s.createIndex('by_session','session_id',{unique:false});
-        if(!s.indexNames.contains('by_date'))    s.createIndex('by_date','date',{unique:false});
-      }
-
-      // prefs
-      if(!d.objectStoreNames.contains('prefs')){
-        d.createObjectStore('prefs',{keyPath:'key'});
-      }
-    };
-    req.onsuccess = ()=>{ db = req.result; resolve(db); };
-    req.onerror   = ()=>reject(req.error);
+    try{
+      if(!('indexedDB' in window)) return reject(new Error('IndexedDB unsupported'));
+      const req = indexedDB.open(DB_NAME, DB_VER);
+      req.onupgradeneeded = (e)=>{
+        const d = req.result;
+        // exercises
+        if(!d.objectStoreNames.contains('exercises')){
+          const s = d.createObjectStore('exercises',{keyPath:'id',autoIncrement:true});
+          s.createIndex('name','name',{unique:true});
+          s.createIndex('by_group','group',{unique:false});
+        }else{
+          const s = e.target.transaction.objectStore('exercises');
+          if(!s.indexNames.contains('name'))     s.createIndex('name','name',{unique:true});
+          if(!s.indexNames.contains('by_group')) s.createIndex('by_group','group',{unique:false});
+        }
+        // sessions
+        if(!d.objectStoreNames.contains('sessions')){
+          d.createObjectStore('sessions',{keyPath:'id', autoIncrement:true});
+        }
+        // sets
+        if(!d.objectStoreNames.contains('sets')){
+          const s = d.createObjectStore('sets',{keyPath:'id', autoIncrement:true});
+          s.createIndex('by_session','session_id',{unique:false});
+          s.createIndex('by_date','date',{unique:false});
+        }else{
+          const s = e.target.transaction.objectStore('sets');
+          if(!s.indexNames.contains('by_session')) s.createIndex('by_session','session_id',{unique:false});
+          if(!s.indexNames.contains('by_date'))    s.createIndex('by_date','date',{unique:false});
+        }
+        // prefs
+        if(!d.objectStoreNames.contains('prefs')){
+          d.createObjectStore('prefs',{keyPath:'key'});
+        }
+      };
+      req.onsuccess = ()=>{ db = req.result; resolve(db); };
+      req.onerror   = ()=>reject(req.error || new Error('open failed'));
+    }catch(err){ reject(err); }
   });
 }
-const tx = (names, mode='readonly') => db.transaction(names, mode);
-const put  = (store, val)=> new Promise((res,rej)=>{ const r=tx([store],'readwrite').objectStore(store).put(val); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
-const del  = (store, key)=> new Promise((res,rej)=>{ const r=tx([store],'readwrite').objectStore(store).delete(key); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
-const get  = (store, key)=> new Promise((res,rej)=>{ const r=tx([store]).objectStore(store).get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
-const getAll = (store)=> new Promise((res,rej)=>{ const r=tx([store]).objectStore(store).getAll(); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
 
-// ← 安全な indexGetAll（インデックスが無くても手動フィルタで代替）
-const indexGetAll = (store, idx, q)=> new Promise((res)=>{
+const tx = (names, mode='readonly') => db.transaction(names, mode);
+
+// ---- API wrappers that auto-fallback to LS ----
+async function put(store, val){
+  if(USE_LS){
+    const data = _lsLoad();
+    if(store==='prefs'){
+      // key 固定
+      const i = data.prefs.findIndex(p=>p.key===val.key);
+      if(i>=0) data.prefs[i] = val; else data.prefs.push(val);
+      _lsSave(data);
+      return val.key;
+    }
+    const arr = data[store]; if(!Array.isArray(arr)) throw new Error('bad store');
+    if(val.id==null) val.id = _lsNextId(arr);
+    const i = arr.findIndex(x=> Number(x.id)===Number(val.id));
+    if(i>=0) arr[i] = val; else arr.push(val);
+    _lsSave(data);
+    return val.id;
+  }
+  return new Promise((res,rej)=>{
+    try{
+      const r = tx([store],'readwrite').objectStore(store).put(val);
+      r.onsuccess=()=>res(r.result);
+      r.onerror  =()=>rej(r.error);
+    }catch(err){ rej(err); }
+  }).catch(async err=>{
+    await enableLocalStorageFallback(err?.message || err);
+    return put(store,val);
+  });
+}
+
+async function del_(store, key){
+  if(USE_LS){
+    const data = _lsLoad();
+    if(store==='prefs'){
+      const i = data.prefs.findIndex(p=>p.key===key);
+      if(i>=0) data.prefs.splice(i,1);
+      _lsSave(data); return;
+    }
+    const arr = data[store]||[];
+    const idx = arr.findIndex(x=> Number(x.id)===Number(key));
+    if(idx>=0) arr.splice(idx,1);
+    _lsSave(data); return;
+  }
+  return new Promise((res,rej)=>{
+    try{
+      const r = tx([store],'readwrite').objectStore(store).delete(key);
+      r.onsuccess=()=>res();
+      r.onerror  =()=>rej(r.error);
+    }catch(err){ rej(err); }
+  }).catch(async err=>{
+    await enableLocalStorageFallback(err?.message || err);
+    return del_(store,key);
+  });
+}
+const del = del_;
+
+async function get(store, key){
+  if(USE_LS){
+    const data = _lsLoad();
+    if(store==='prefs') return data.prefs.find(p=>p.key===key) || undefined;
+    return (data[store]||[]).find(x=> Number(x.id)===Number(key));
+  }
+  return new Promise((res,rej)=>{
+    try{
+      const r = tx([store]).objectStore(store).get(key);
+      r.onsuccess=()=>res(r.result);
+      r.onerror  =()=>rej(r.error);
+    }catch(err){ rej(err); }
+  }).catch(async err=>{
+    await enableLocalStorageFallback(err?.message || err);
+    return get(store,key);
+  });
+}
+
+async function getAll(store){
+  if(USE_LS){
+    const data = _lsLoad();
+    return (data[store]||[]).slice();
+  }
+  return new Promise((res,rej)=>{
+    try{
+      const r = tx([store]).objectStore(store).getAll();
+      r.onsuccess=()=>res(r.result || []);
+      r.onerror  =()=>rej(r.error);
+    }catch(err){ rej(err); }
+  }).catch(async err=>{
+    await enableLocalStorageFallback(err?.message || err);
+    return getAll(store);
+  });
+}
+
+// 安全 indexGetAll（インデックス無しでも代替 / LS対応）
+const indexGetAll = (store, idx, q)=> new Promise(async (res)=>{
+  if(USE_LS){
+    const data = _lsLoad();
+    const arr = (data[store]||[]).slice();
+    const field = idx==='by_session' ? 'session_id' : idx==='by_date' ? 'date' : null;
+    res(field ? arr.filter(x=> x[field]===q) : arr);
+    return;
+  }
   try{
     const os = tx([store]).objectStore(store);
     const names = os.indexNames;
@@ -110,7 +246,6 @@ const indexGetAll = (store, idx, q)=> new Promise((res)=>{
       r.onerror = ()=> res([]);
       return;
     }
-
     const r = os.index(idx).getAll(q);
     r.onsuccess = ()=> res(r.result || []);
     r.onerror   = ()=> res([]);
@@ -145,12 +280,7 @@ let autoTimerOn     = false;
 
 // undo stack
 const undoStack = [];
-function pushUndo(){
-  try{
-    undoStack.push(JSON.stringify(currentSession.sets));
-    if(undoStack.length > 30) undoStack.shift();
-  }catch(_){}
-}
+function pushUndo(){ try{ undoStack.push(JSON.stringify(currentSession.sets)); if(undoStack.length > 30) undoStack.shift(); }catch(_){ } }
 function doUndo(){
   if(!undoStack.length){ showToast('戻すものがありません'); return; }
   const last = undoStack.pop();
@@ -186,7 +316,7 @@ function suggestWarmupByTop(topW, topR, schemeSel='auto', roundStep=2.5){
 
 // =================== Init ===================
 async function init(){
-  // スクロール中はヘッダーブラー抑制
+  // 1) まずUIを動かす（DB成否に依らず）
   (function(){
     let _t;
     window.addEventListener('scroll', ()=>{
@@ -204,15 +334,23 @@ async function init(){
     b.textContent=old; b.disabled=false;
   });
 
-  await openDB();
-  await ensureInitialExercises();
+  bindTabs(); // ← 先にバインド
+
+  // 2) DBを試み、失敗したらLSへ
+  try{
+    await openDB();
+  }catch(err){
+    await enableLocalStorageFallback(err?.message || err);
+  }
+
+  await ensureInitialExercises(); // LSでも必要
 
   // prefs
-  watchlist       = (await get('prefs','watchlist'))?.value || [];
-  defaultTimerSec = Number((await get('prefs','timer_sec'))?.value ?? 60) || 60;
-  autoTimerOn     = !!((await get('prefs','auto_timer'))?.value);
-
-  bindTabs();
+  try{
+    watchlist       = (await get('prefs','watchlist'))?.value || [];
+    defaultTimerSec = Number((await get('prefs','timer_sec'))?.value ?? 60) || 60;
+    autoTimerOn     = !!((await get('prefs','auto_timer'))?.value);
+  }catch(e){ console.warn(e); }
 
   const lastTab = (await get('prefs','last_tab'))?.value;
   if(lastTab){
@@ -221,7 +359,7 @@ async function init(){
   }
 
   // Session
-  $('#sessDate').value = todayStr();
+  $('#sessDate') && ($('#sessDate').value = todayStr());
   bindSessionUI();
 
   // WU pref
@@ -259,13 +397,22 @@ async function init(){
 }
 
 async function ensureInitialExercises(){
+  // exercises が空ならプリセット投入（IDB/LS共通）
   const all = await getAll('exercises');
-  const byName = Object.fromEntries(all.map(e=>[e.name, e]));
+  if(all && all.length){ 
+    // 既存の group 欠落を補完
+    const byName = Object.fromEntries(all.map(e=>[e.name, e]));
+    for(const p of PARTS){
+      for(const name of EX_GROUPS[p]){
+        const hit = byName[name];
+        if(hit && !hit.group){ await put('exercises', {...hit, group:p}); }
+      }
+    }
+    return;
+  }
   for(const p of PARTS){
     for(const name of EX_GROUPS[p]){
-      const hit = byName[name];
-      if(!hit){ await put('exercises', {name, group:p}); }
-      else if(!hit.group){ await put('exercises', {...hit, group:p}); }
+      await put('exercises', {name, group:p});
     }
   }
 }
@@ -279,7 +426,7 @@ function bindTabs(){
 
       const tab = btn.dataset.tab;
       $$('.tab').forEach(s=>s.classList.remove('active'));
-      $('#tab-'+tab).classList.add('active');
+      $('#tab-'+tab)?.classList.add('active');
 
       put('prefs', {key:'last_tab', value:tab}).catch(()=>{});
 
@@ -297,7 +444,7 @@ function renderPartChips(){
   });
 }
 
-// === あなた提供の bindSessionUI() をそのまま ===
+// === bindSessionUI() ===
 function bindSessionUI(){
   const chips = $('#partChips');
   if (chips){
@@ -355,7 +502,7 @@ function bindSessionUI(){
     plan.forEach((s,i)=>{
       if(hasSame(s.weight, s.reps)) return;
       currentSession.sets.push({
-        temp_id: crypto.randomUUID(),
+        temp_id: (crypto?.randomUUID?.() || String(now+i)+'_'+Math.random().toString(16).slice(2)),
         exercise_id: exId,
         weight: s.weight,
         reps: s.reps,
@@ -413,7 +560,7 @@ function bindSessionUI(){
     pushUndo();
 
     currentSession.sets.push({
-      temp_id: crypto.randomUUID(),
+      temp_id: (crypto?.randomUUID?.() || Date.now()+'_'+Math.random().toString(16).slice(2)),
       exercise_id: exId, weight, reps,
       rpe: rpeStr ? Number(rpeStr) : null,
       ts: Date.now(), date: $('#sessDate').value
@@ -595,7 +742,7 @@ async function applyCustomInsert(){
 
   pushUndo();
   for(let i=0;i<n;i++){
-    currentSession.sets.push({ temp_id:crypto.randomUUID(), exercise_id:exId, weight:w, reps:r, rpe:null, ts: now+i, date });
+    currentSession.sets.push({ temp_id:(crypto?.randomUUID?.() || now+'_'+i), exercise_id:exId, weight:w, reps:r, rpe:null, ts: now+i, date });
   }
   renderTodaySets(); showToast('カスタム投入しました');
 }
@@ -639,7 +786,7 @@ function bindHistoryUI(){
   $('#importFile')?.addEventListener('change', importCSV);
 }
 
-// ★ 追加：履歴詳細（種目ごとのセット/RPE/WU/ボリューム）
+// 詳細ブロック（保持）
 function buildSessionDetailsHTML(sets, nameById){
   if(!sets || !sets.length){
     return '<div class="small" style="margin-top:8px">セットがありません。</div>';
@@ -676,7 +823,6 @@ function buildSessionDetailsHTML(sets, nameById){
 
 async function renderHistory(){
   const count = Number($('#historyCount')?.value || 20);
-  // ← created_at が無い古いレコードを date から復元してソート
   const sessions = (await getAll('sessions'))
     .map(s => ({...s, created_at: s.created_at ?? new Date(s.date).getTime() || 0}))
     .sort((a,b)=>b.created_at - a.created_at)
@@ -685,14 +831,13 @@ async function renderHistory(){
   const ul = $('#historyList'); if(!ul) return;
   ul.innerHTML = '';
 
-  // 種目名マップ（詳細表示で使用）
   const allEx = await getAll('exercises');
   const nameById = Object.fromEntries(allEx.map(e=>[e.id,e.name]));
   ul._nameById = nameById;
 
   for(const s of sessions){
     const sets = await indexGetAll('sets','by_session', s.id);
-    const vol = sets.reduce((sum,x)=> sum + x.weight*x.reps, 0);
+    const vol = sets.reduce((sum,x)=> sum + (Number(x.weight)||0)*(Number(x.reps)||0), 0);
     const est = sets.length ? Math.max(...sets.map(x=> e1rm(x.weight,x.reps))) : 0;
 
     const li = document.createElement('li');
@@ -720,7 +865,7 @@ async function renderHistory(){
       const id = Number(b.dataset.id), act=b.dataset.act;
       const li = b.closest('li');
 
-      if(act==='del'){ if(confirm('このセッションを削除しますか？')) await deleteSession(id); }
+      if(act==='del'){ if(confirm('このセッションを削除しますか？')) await deleteSession(id); renderHistory(); }
       if(act==='note'){ await editSessionNote(id); renderHistory(); }
       if(act==='detail'){
         const box = li.querySelector('.details');
@@ -928,7 +1073,7 @@ async function renderAnalytics(){
   const canvas = $('#chart'); if(canvas){
     const sets = await getAll('sets');
     const days = _lastNDays(7);
-    const totals = days.map(d => sets.filter(s => s.date === d.key).reduce((sum,x)=> sum + x.weight * x.reps, 0));
+    const totals = days.map(d => sets.filter(s => s.date === d.key).reduce((sum,x)=> sum + (Number(x.weight)||0) * (Number(x.reps)||0), 0));
     _drawBarChart(canvas, days, totals, -1);
 
     if(!_chartEventsBound){
@@ -1093,8 +1238,12 @@ function bindSettingsUI(){
 
   $('#btnWipe')?.addEventListener('click', async ()=>{
     if(!confirm('本当に全データを削除しますか？')) return;
-    for(const s of ['sessions','sets','exercises']){
-      await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+    if(USE_LS){
+      localStorage.removeItem(LS_KEY);
+    }else{
+      for(const s of ['sessions','sets','exercises']){
+        await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+      }
     }
     await ensureInitialExercises();
     await renderExList(); await renderExSelect(); await renderTplExSelect(); renderHistory(); renderAnalytics(); renderTodaySets(); await renderWatchUI(); await renderTrendSelect();
@@ -1118,13 +1267,25 @@ function bindSettingsUI(){
   $('#jsonIn')?.addEventListener('change', async (e)=>{
     const file = e.target.files[0]; if(!file) return;
     const data = JSON.parse(await file.text());
-    for(const s of ['sessions','sets','exercises','prefs']){
-      await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+
+    if(USE_LS){
+      const next = {
+        sessions:  Array.isArray(data.sessions)?  data.sessions  : [],
+        sets:      Array.isArray(data.sets)?      data.sets      : [],
+        exercises: Array.isArray(data.exercises)? data.exercises : [],
+        prefs:     Array.isArray(data.prefs)?     data.prefs     : [],
+      };
+      _lsSave(next);
+    }else{
+      for(const s of ['sessions','sets','exercises','prefs']){
+        await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+      }
+      for(const x of (data.exercises||[])) await put('exercises', x);
+      for(const x of (data.sessions ||[])) await put('sessions', x);
+      for(const x of (data.sets     ||[])) await put('sets', x);
+      for(const x of (data.prefs    ||[])) await put('prefs', x);
     }
-    for(const x of (data.exercises||[])) await put('exercises', x);
-    for(const x of (data.sessions ||[])) await put('sessions', x);
-    for(const x of (data.sets     ||[])) await put('sets', x);
-    for(const x of (data.prefs    ||[])) await put('prefs', x);
+
     watchlist       = (await get('prefs','watchlist'))?.value || [];
     defaultTimerSec = Number((await get('prefs','timer_sec'))?.value ?? 60) || 60;
     autoTimerOn     = !!((await get('prefs','auto_timer'))?.value);
@@ -1242,15 +1403,29 @@ async function importCSV(e){
   const sLines   = sessionsPart.split(/\r?\n/).slice(2).filter(Boolean);
   const setLines = setsPart.split(/\r?\n/).slice(2).filter(Boolean);
 
-  for(const s of ['sessions','sets']){ await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); }
-
-  for(const line of sLines){
-    const [id,date,note] = parseCSVRow(line);
-    await put('sessions', {id:Number(id), date, note, created_at:new Date(date).getTime()});
-  }
-  for(const line of setLines){
-    const [id,session_id,exercise_id,weight,reps,rpe,ts,date] = parseCSVRow(line);
-    await put('sets',{id:Number(id), session_id:Number(session_id), exercise_id:Number(exercise_id), weight:Number(weight), reps:Number(reps), rpe:rpe?Number(rpe):null, ts:Number(ts), date});
+  if(USE_LS){
+    const data = _lsLoad();
+    data.sessions = [];
+    data.sets = [];
+    for(const line of sLines){
+      const [id,date,note] = parseCSVRow(line);
+      data.sessions.push({id:Number(id), date, note, created_at:new Date(date).getTime()});
+    }
+    for(const line of setLines){
+      const [id,session_id,exercise_id,weight,reps,rpe,ts,date] = parseCSVRow(line);
+      data.sets.push({id:Number(id), session_id:Number(session_id), exercise_id:Number(exercise_id), weight:Number(weight), reps:Number(reps), rpe:rpe?Number(rpe):null, ts:Number(ts), date});
+    }
+    _lsSave(data);
+  }else{
+    for(const s of ['sessions','sets']){ await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); }
+    for(const line of sLines){
+      const [id,date,note] = parseCSVRow(line);
+      await put('sessions', {id:Number(id), date, note, created_at:new Date(date).getTime()});
+    }
+    for(const line of setLines){
+      const [id,session_id,exercise_id,weight,reps,rpe,ts,date] = parseCSVRow(line);
+      await put('sets',{id:Number(id), session_id:Number(session_id), exercise_id:Number(exercise_id), weight:Number(weight), reps:Number(reps), rpe:rpe?Number(rpe):null, ts:Number(ts), date});
+    }
   }
   renderHistory(); renderAnalytics(); await renderWeeklySummary();
   showToast('インポート完了'); e.target.value='';
