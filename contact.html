@@ -3,7 +3,7 @@
 <head>
   <!--
     Train Punch – Contact
-    v1.5.1 / Standalone contact page
+    v1.5.4 / Standalone contact page
   -->
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -44,9 +44,10 @@
     html,body{height:100%}
     body{
       margin:0;
-      font:16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", "Meiryo", sans-serif;
+      font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP","Meiryo",sans-serif;
       background:var(--bg);
       color:var(--text);
+      -webkit-tap-highlight-color: transparent;
     }
     header{
       position:sticky; top:0; z-index:5;
@@ -55,18 +56,11 @@
       border-bottom:1px solid var(--line);
     }
     .wrap{max-width:860px;margin:0 auto;padding:16px}
-    .headbar{
-      display:flex;align-items:center;gap:10px;min-height:56px;
-    }
-    .logo{
-      width:28px;height:28px;border-radius:6px;background:var(--brand);
-      display:inline-block;box-shadow:inset 0 0 0 2px #fff3;
-    }
+    .headbar{display:flex;align-items:center;gap:10px;min-height:56px}
+    .logo{width:28px;height:28px;border-radius:6px;background:var(--brand);display:inline-block;box-shadow:inset 0 0 0 2px #fff3}
     .title{font-weight:700;letter-spacing:.2px}
     nav{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
-    nav a{
-      color:var(--text); text-decoration:none; padding:8px 10px; border-radius:8px;
-    }
+    nav a{color:var(--text);text-decoration:none;padding:8px 10px;border-radius:8px}
     nav a:hover{background:var(--line)}
     main{padding:24px 0 40px}
     .card{
@@ -90,6 +84,7 @@
     button, .btn{
       appearance:none;border:none;background:var(--brand);color:#fff;
       padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;
+      touch-action:manipulation;
     }
     button:focus-visible, .btn:focus-visible{outline:3px solid var(--focus)}
     .btn.secondary{background:var(--brand-weak);color:#0b1216}
@@ -98,7 +93,7 @@
     details{border:1px solid var(--line);border-radius:10px;padding:12px;background:transparent}
     summary{cursor:pointer;font-weight:700}
     footer{border-top:1px solid var(--line);padding:18px 0;color:var(--muted);font-size:13px}
-    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; background:#0002; padding:.1rem .35rem; border-radius:.35rem}
+    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;background:#0002;padding:.1rem .35rem;border-radius:.35rem}
     .tag{display:inline-block;padding:.1rem .5rem;border-radius:999px;background:var(--line);font-size:12px;color:var(--muted)}
     .copy{font-size:12px;color:var(--muted);margin-left:6px}
   </style>
@@ -125,7 +120,7 @@
       <h2 id="contact-ways">すぐに連絡する</h2>
       <p>下のボタンでメールアプリが開きます（件名にアプリ名とバージョンを自動付与）。</p>
       <div class="actions">
-        <a id="mailtoQuick" class="btn" href="#">メールを開く</a>
+        <a id="mailtoQuick" class="btn" href="#" rel="noopener">メールを開く</a>
         <button id="copyMail" class="btn ghost" type="button">メールアドレスをコピー</button>
         <span class="copy" id="mailShown" aria-live="polite"></span>
       </div>
@@ -147,7 +142,7 @@
         </div>
         <div>
           <label for="subject">件名</label>
-          <input id="subject" type="text" placeholder="例）履歴が表示されない / チャートが崩れる など">
+          <input id="subject" type="text" placeholder="例）履歴が表示されない / チャートが崩れる など" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false">
         </div>
       </div>
 
@@ -196,16 +191,16 @@
   <footer>
     <div class="wrap">
       <div>© <span id="year"></span> Train Punch</div>
-      <div class="muted">v1.5.1 • このページは通信を行わず、メール作成時のみ端末のメーラーを呼び出します。</div>
+      <div class="muted">v1.5.4 • このページは通信を行わず、メール作成時のみ端末のメーラーを呼び出します。</div>
     </div>
   </footer>
 
   <script>
-    // 連絡先メール（指定のアドレスに置き換え済み）
+    // 連絡先メール（置き換え済み）
     const SUPPORT_EMAIL = 'toreninguguanli53@gmail.com';
 
-    // バージョンはここで管理（index/app.jsのコメントと合わせる）
-    const APP_VERSION = 'v1.5.1';
+    // バージョン（app.js と合わせる）
+    const APP_VERSION = 'v1.5.4';
 
     // 年表示
     document.getElementById('year').textContent = new Date().getFullYear();
@@ -218,29 +213,33 @@
       `mailto:${encodeURIComponent(SUPPORT_EMAIL)}?subject=${encodeURIComponent('【Train Punch】お問い合わせ ' + APP_VERSION)}`
     );
 
-    document.getElementById('copyMail').addEventListener('click', async ()=>{
+    // クリップボード共通（フォールバック付き）
+    async function copyText(text){
       try{
-        await navigator.clipboard.writeText(SUPPORT_EMAIL);
-        toast('メールアドレスをコピーしました');
+        await navigator.clipboard.writeText(text);
+        toast('コピーしました');
       }catch(_){
-        alert('コピーできませんでした：' + SUPPORT_EMAIL);
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.setAttribute('readonly','');
+        ta.style.position='fixed'; ta.style.left='-9999px';
+        document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast('コピーしました');
       }
-    });
+    }
+
+    document.getElementById('copyMail').addEventListener('click', ()=> copyText(SUPPORT_EMAIL));
 
     // テンプレコピー
-    document.getElementById('copyTemplate').addEventListener('click', async ()=>{
+    document.getElementById('copyTemplate').addEventListener('click', ()=>{
       const tpl = `再現手順：
 1）…
 2）…
 期待した動作：
 実際の動作：
 スクリーンショット/動画の有無：`;
-      try{
-        await navigator.clipboard.writeText(tpl);
-        toast('テンプレをコピーしました');
-      }catch(_){
-        alert('コピーできませんでした。');
-      }
+      copyText(tpl);
     });
 
     // メール生成
@@ -257,7 +256,7 @@
       try{
         window.location.href = mailto;
       }catch(_){
-        navigator.clipboard?.writeText(`${subject}\n\n${body}`).catch(()=>{});
+        copyText(`${subject}\n\n${body}`);
         alert('メールを開けませんでした。件名と本文をコピーしましたので、メールに貼り付けて送信してください。宛先：' + SUPPORT_EMAIL);
       }
     });
@@ -271,7 +270,6 @@
       const vh = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
       const standalone = window.matchMedia('(display-mode: standalone)').matches;
       const now = new Date();
-
       return [
         '―――― 環境情報（自動追記）――――',
         `アプリ: Train Punch ${APP_VERSION}`,
@@ -283,7 +281,7 @@
         `画面: ${vw}×${vh}`,
         `PWA(スタンドアロン): ${standalone ? 'はい' : 'いいえ'}`,
         '――――――――――――――――――――'
-      ].join('\n');
+      ].join('\\n');
     }
 
     // かんたんトースト
