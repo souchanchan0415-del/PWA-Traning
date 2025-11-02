@@ -1,6 +1,7 @@
-// Train Punch — v1.5.6 (full replace)
+// Train Punch — v1.5.6-safari-fix (full replace)
 // fix: CSV import splitter / timer button guard / DOM ready wrapper
 //      unhandledrejection toast / IDB onblocked + minor safety
+//      Safari: disallow mixing ?? and || in same expression (timer_sec)
 // NOTE: あなたの bindSessionUI() ロジックは保持、init順序とストレージ層の堅牢化
 
 const DB_NAME = 'trainpunch_v3';
@@ -357,9 +358,13 @@ async function init(){
 
   // prefs
   try{
-    watchlist       = (await get('prefs','watchlist'))?.value || [];
-    defaultTimerSec = Number((await get('prefs','timer_sec'))?.value ?? 60) || 60;
-    autoTimerOn     = !!((await get('prefs','auto_timer'))?.value);
+    watchlist = (await get('prefs','watchlist'))?.value || [];
+    { // Safari-safe: no mixing ?? and ||
+      const _t = (await get('prefs','timer_sec'))?.value;
+      defaultTimerSec = Number(_t ?? 60);
+      if(!Number.isFinite(defaultTimerSec) || defaultTimerSec <= 0) defaultTimerSec = 60;
+    }
+    autoTimerOn = !!((await get('prefs','auto_timer'))?.value);
   }catch(e){ console.warn(e); }
 
   const lastTab = (await get('prefs','last_tab'))?.value;
@@ -1297,9 +1302,14 @@ function bindSettingsUI(){
       for(const x of (data.prefs    ||[])) await put('prefs', x);
     }
 
-    watchlist       = (await get('prefs','watchlist'))?.value || [];
-    defaultTimerSec = Number((await get('prefs','timer_sec'))?.value ?? 60) || 60;
-    autoTimerOn     = !!((await get('prefs','auto_timer'))?.value);
+    watchlist = (await get('prefs','watchlist'))?.value || [];
+    { // Safari-safe: no mixing ?? and ||
+      const _t = (await get('prefs','timer_sec'))?.value;
+      defaultTimerSec = Number(_t ?? 60);
+      if(!Number.isFinite(defaultTimerSec) || defaultTimerSec <= 0) defaultTimerSec = 60;
+    }
+    autoTimerOn = !!((await get('prefs','auto_timer'))?.value);
+
     if($('#timerSec')) $('#timerSec').value = String(defaultTimerSec);
     if($('#autoTimer')) $('#autoTimer').checked = !!autoTimerOn;
     refreshTimerButtonLabel();
