@@ -1,7 +1,7 @@
-// Train Punch — v1.5.5
-// fix: Fail-open storage (LocalStorage fallback on iOS file:// / private mode) +
-//      bind UI before DB init + minor safety/toast/error guards
-// NOTE: あなたの bindSessionUI() ロジックは保持しつつ、init順序とストレージ層だけ強化
+// Train Punch — v1.5.6 (full replace)
+// fix: CSV import splitter / timer button guard / DOM ready wrapper
+//      unhandledrejection toast / IDB onblocked + minor safety
+// NOTE: あなたの bindSessionUI() ロジックは保持、init順序とストレージ層の堅牢化
 
 const DB_NAME = 'trainpunch_v3';
 const DB_VER  = 3;
@@ -20,6 +20,12 @@ window.addEventListener('error', e=>{
   // 解析用に控えつつ静かに通知
   console.warn('[TP] Uncaught:', e?.error || e?.message || e);
   showToast('エラー: ' + (e?.message || '不明'));
+});
+// Promise未捕捉も拾う
+window.addEventListener('unhandledrejection', e=>{
+  console.warn('[TP] UnhandledRejection:', e?.reason);
+  const msg = e?.reason?.message || String(e?.reason || '不明');
+  showToast('エラー: ' + msg);
 });
 
 // --- Local date utils ---
@@ -119,6 +125,10 @@ function openDB(){
         if(!d.objectStoreNames.contains('prefs')){
           d.createObjectStore('prefs',{keyPath:'key'});
         }
+      };
+      req.onblocked = ()=>{
+        console.warn('[TP] IDB open blocked');
+        showToast('DB更新待機中… 他のタブを閉じてください');
       };
       req.onsuccess = ()=>{ db = req.result; resolve(db); };
       req.onerror   = ()=>reject(req.error || new Error('open failed'));
@@ -756,9 +766,10 @@ function refreshTimerButtonLabel(){
   }
 }
 function startRestTimer(sec){
+  const btn = $('#btnTimer');
+  if(!btn){ showToast('タイマーボタンが見つかりません'); return; } // ← 追加ガード
   clearInterval(timerHandle);
   timerLeft = sec;
-  const btn = $('#btnTimer');
   btn.disabled = true;
   btn.textContent = `休憩${timerLeft}s`;
   timerHandle = setInterval(()=>{
@@ -1397,9 +1408,15 @@ async function exportCSV(){
 async function importCSV(e){
   const file = e.target.files[0]; if(!file) return;
   const text = await file.text();
-  const [_, sBlock, setBlock] = text.split('##SESSIONS');
-  if(!setBlock){ showToast('形式が違います'); e.target.value=''; return; }
-  const [sessionsPart, setsPart] = ('##SESSIONS'+setBlock).split('##SETS');
+
+  // ← 修正: splitter ロジックを堅牢化
+  const parts = text.split('##SESSIONS');
+  const afterSessions = parts[1];
+  if(!afterSessions){ showToast('形式が違います'); e.target.value=''; return; }
+  const segs = afterSessions.split('##SETS');
+  const sessionsPart = segs[0] ?? '';
+  const setsPart     = segs[1] ?? '';
+
   const sLines   = sessionsPart.split(/\r?\n/).slice(2).filter(Boolean);
   const setLines = setsPart.split(/\r?\n/).slice(2).filter(Boolean);
 
@@ -1417,7 +1434,9 @@ async function importCSV(e){
     }
     _lsSave(data);
   }else{
-    for(const s of ['sessions','sets']){ await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); }
+    for(const s of ['sessions','sets']){
+      await new Promise((res,rej)=>{ const r = tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+    }
     for(const line of sLines){
       const [id,date,note] = parseCSVRow(line);
       await put('sessions', {id:Number(id), date, note, created_at:new Date(date).getTime()});
@@ -1521,4 +1540,10 @@ async function renderWeeklySummary(){
   `;
 }
 
-init();
+// ==== DOM ready ====
+// defer なしでも確実に init を走らせる
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
