@@ -17,3 +17,4 @@ npx cap copy
 ```
 
 - プライバシーポリシーURLは `privacy.html` を Pages に置いてリンク可能。
+
