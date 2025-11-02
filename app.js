@@ -1,7 +1,7 @@
-// Train Punch — v1.5.6-safari-fix (full replace)
+// Train Punch — v1.5.6-safari-fix3 (full replace)
 // fix: CSV import splitter / timer button guard / DOM ready wrapper
 //      unhandledrejection toast / IDB onblocked + minor safety
-//      Safari: disallow mixing ?? and || in same expression (timer_sec)
+//      Safari: disallow mixing ?? and || in same expression (created_at, timer_sec)
 // NOTE: あなたの bindSessionUI() ロジックは保持、init順序とストレージ層の堅牢化
 
 const DB_NAME = 'trainpunch_v3';
@@ -18,11 +18,9 @@ function showToast(msg){
   setTimeout(() => t.classList.remove('show'), 1400);
 }
 window.addEventListener('error', e=>{
-  // 解析用に控えつつ静かに通知
   console.warn('[TP] Uncaught:', e?.error || e?.message || e);
   showToast('エラー: ' + (e?.message || '不明'));
 });
-// Promise未捕捉も拾う
 window.addEventListener('unhandledrejection', e=>{
   console.warn('[TP] UnhandledRejection:', e?.reason);
   const msg = e?.reason?.message || String(e?.reason || '不明');
@@ -58,8 +56,8 @@ async function hardRefresh(){
 // ======================================================
 // Storage layer: IndexedDB (primary) -> LocalStorage (fallback)
 // ======================================================
-let USE_LS = false;              // true なら LocalStorage モード
-const LS_KEY = 'trainpunch_ls';  // ここに全データを保存
+let USE_LS = false;
+const LS_KEY = 'trainpunch_ls';
 
 function _lsLoad(){
   try{
@@ -76,18 +74,13 @@ function _lsLoad(){
   }catch(_){}
   return { sessions:[], sets:[], exercises:[], prefs:[] };
 }
-function _lsSave(data){
-  try{ localStorage.setItem(LS_KEY, JSON.stringify(data)); }catch(_){}
-}
-function _lsNextId(arr){
-  return (arr.reduce((m,x)=> Math.max(m, Number(x.id)||0), 0) + 1) || 1;
-}
+function _lsSave(data){ try{ localStorage.setItem(LS_KEY, JSON.stringify(data)); }catch(_){ } }
+function _lsNextId(arr){ return (arr.reduce((m,x)=> Math.max(m, Number(x.id)||0), 0) + 1) || 1; }
 
 async function enableLocalStorageFallback(reason){
   USE_LS = true;
   console.warn('[TP] Fallback to LocalStorage:', reason);
   showToast('ローカル保存に切替（IDB不可）');
-  // 初回起動で exercises が空なら初期投入は後段 ensureInitialExercises() に任せる
 }
 
 // ---- IndexedDB helpers (kept API) ----
@@ -98,7 +91,6 @@ function openDB(){
       const req = indexedDB.open(DB_NAME, DB_VER);
       req.onupgradeneeded = (e)=>{
         const d = req.result;
-        // exercises
         if(!d.objectStoreNames.contains('exercises')){
           const s = d.createObjectStore('exercises',{keyPath:'id',autoIncrement:true});
           s.createIndex('name','name',{unique:true});
@@ -108,11 +100,9 @@ function openDB(){
           if(!s.indexNames.contains('name'))     s.createIndex('name','name',{unique:true});
           if(!s.indexNames.contains('by_group')) s.createIndex('by_group','group',{unique:false});
         }
-        // sessions
         if(!d.objectStoreNames.contains('sessions')){
           d.createObjectStore('sessions',{keyPath:'id', autoIncrement:true});
         }
-        // sets
         if(!d.objectStoreNames.contains('sets')){
           const s = d.createObjectStore('sets',{keyPath:'id', autoIncrement:true});
           s.createIndex('by_session','session_id',{unique:false});
@@ -122,7 +112,6 @@ function openDB(){
           if(!s.indexNames.contains('by_session')) s.createIndex('by_session','session_id',{unique:false});
           if(!s.indexNames.contains('by_date'))    s.createIndex('by_date','date',{unique:false});
         }
-        // prefs
         if(!d.objectStoreNames.contains('prefs')){
           d.createObjectStore('prefs',{keyPath:'key'});
         }
@@ -144,7 +133,6 @@ async function put(store, val){
   if(USE_LS){
     const data = _lsLoad();
     if(store==='prefs'){
-      // key 固定
       const i = data.prefs.findIndex(p=>p.key===val.key);
       if(i>=0) data.prefs[i] = val; else data.prefs.push(val);
       _lsSave(data);
@@ -230,7 +218,7 @@ async function getAll(store){
   });
 }
 
-// 安全 indexGetAll（インデックス無しでも代替 / LS対応）
+// 安全 indexGetAll
 const indexGetAll = (store, idx, q)=> new Promise(async (res)=>{
   if(USE_LS){
     const data = _lsLoad();
@@ -327,7 +315,6 @@ function suggestWarmupByTop(topW, topR, schemeSel='auto', roundStep=2.5){
 
 // =================== Init ===================
 async function init(){
-  // 1) まずUIを動かす（DB成否に依らず）
   (function(){
     let _t;
     window.addEventListener('scroll', ()=>{
@@ -337,7 +324,6 @@ async function init(){
     }, {passive:true});
   })();
 
-  // ↻
   $('#btnHardRefresh')?.addEventListener('click', async ()=>{
     const b = $('#btnHardRefresh'); const old = b.textContent;
     b.disabled = true; b.textContent='更新…'; showToast('最新に更新します…');
@@ -345,25 +331,22 @@ async function init(){
     b.textContent=old; b.disabled=false;
   });
 
-  bindTabs(); // ← 先にバインド
+  bindTabs();
 
-  // 2) DBを試み、失敗したらLSへ
   try{
     await openDB();
   }catch(err){
     await enableLocalStorageFallback(err?.message || err);
   }
 
-  await ensureInitialExercises(); // LSでも必要
+  await ensureInitialExercises();
 
-  // prefs
+  // prefs（Safari-safe）
   try{
     watchlist = (await get('prefs','watchlist'))?.value || [];
-    { // Safari-safe: no mixing ?? and ||
-      const _t = (await get('prefs','timer_sec'))?.value;
-      defaultTimerSec = Number(_t ?? 60);
-      if(!Number.isFinite(defaultTimerSec) || defaultTimerSec <= 0) defaultTimerSec = 60;
-    }
+    const _t = (await get('prefs','timer_sec'))?.value;
+    defaultTimerSec = Number(_t ?? 60);
+    if(!Number.isFinite(defaultTimerSec) || defaultTimerSec <= 0) defaultTimerSec = 60;
     autoTimerOn = !!((await get('prefs','auto_timer'))?.value);
   }catch(e){ console.warn(e); }
 
@@ -373,28 +356,23 @@ async function init(){
     if(btn && !btn.classList.contains('active')) btn.click();
   }
 
-  // Session
   $('#sessDate') && ($('#sessDate').value = todayStr());
   bindSessionUI();
 
-  // WU pref
   const wuSchemePref = (await get('prefs','wu_scheme'))?.value || 'auto';
   const wuRoundPref  = String((await get('prefs','wu_round'))?.value ?? '2.5');
   if($('#wuScheme')) $('#wuScheme').value = wuSchemePref;
   if($('#wuRound'))  $('#wuRound').value  = wuRoundPref;
 
-  // Custom insert
   bindCustomInsertUI();
   renderTplPartChips();
   await renderTplExSelect();
 
-  // History & Settings
   bindHistoryUI();
   bindSettingsUI();
   await renderWatchUI();
   await renderTrendSelect();
 
-  // Initial renders
   renderPartChips();
   await renderExSelect();
   renderTodaySets();
@@ -402,7 +380,6 @@ async function init(){
   renderAnalytics();
   renderExList();
 
-  // Theme
   const dark = (await get('prefs','dark'))?.value || false;
   $('#darkToggle')?.setAttribute('checked', dark ? 'checked' : '');
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
@@ -412,10 +389,8 @@ async function init(){
 }
 
 async function ensureInitialExercises(){
-  // exercises が空ならプリセット投入（IDB/LS共通）
   const all = await getAll('exercises');
-  if(all && all.length){ 
-    // 既存の group 欠落を補完
+  if(all && all.length){
     const byName = Object.fromEntries(all.map(e=>[e.name, e]));
     for(const p of PARTS){
       for(const name of EX_GROUPS[p]){
@@ -459,7 +434,6 @@ function renderPartChips(){
   });
 }
 
-// === bindSessionUI() ===
 function bindSessionUI(){
   const chips = $('#partChips');
   if (chips){
@@ -472,7 +446,6 @@ function bindSessionUI(){
     });
   }
 
-  // スマート入力
   ['weight','reps','rpe'].forEach(id=>{
     const el = $('#'+id);
     el?.addEventListener('input', handleSmartInput, {passive:true});
@@ -480,16 +453,13 @@ function bindSessionUI(){
     el?.addEventListener('paste', ()=> setTimeout(handleSmartInput, 0));
   });
 
-  // Enter で投入
   $('#rpe')?.addEventListener('keydown', (e)=>{
     if(e.key==='Enter'){ e.preventDefault(); $('#btnAddSet')?.click(); }
   });
 
-  // ★ WU 設定保存
   $('#wuScheme')?.addEventListener('change', (e)=> put('prefs',{key:'wu_scheme', value: e.target.value}).catch(()=>{}));
   $('#wuRound') ?.addEventListener('change', (e)=> put('prefs',{key:'wu_round',  value: Number(e.target.value)||2.5}).catch(()=>{}));
 
-  // ★ WU自動生成
   $('#btnGenWarmup')?.addEventListener('click', async ()=>{
     const exId = Number($('#exSelect').value);
     const wTop = Number($('#weight').value);
@@ -504,11 +474,9 @@ function bindSessionUI(){
 
     pushUndo();
 
-    // 既存WU（当日・同種目）を置き換え
     const exFilter = s => !(s.wu && s.exercise_id===exId);
     currentSession.sets = currentSession.sets.filter(exFilter);
 
-    // 既存（非WU）と重複する重量×回数はスキップ
     const hasSame = (w,r)=> currentSession.sets.some(s=> s.exercise_id===exId && !s.wu && s.weight===w && s.reps===r);
 
     const date = $('#sessDate').value;
@@ -533,7 +501,6 @@ function bindSessionUI(){
     showToast(`WU ${added}セットを追加（${label} / ±${step}kg）`);
   });
 
-  // ★ WU一括削除
   $('#btnClearWarmup')?.addEventListener('click', ()=>{
     if(!currentSession.sets.length){ showToast('削除対象がありません'); return; }
     pushUndo();
@@ -554,7 +521,6 @@ function bindSessionUI(){
     }
   });
 
-  // セット追加（PR判定はウォッチのみ）
   $('#btnAddSet')?.addEventListener('click', async ()=>{
     const exId = Number($('#exSelect').value);
     const weight = Number($('#weight').value);
@@ -592,11 +558,9 @@ function bindSessionUI(){
     renderTodaySets();
   });
 
-  // タイマー / Undo
   $('#btnTimer')?.addEventListener('click', ()=>startRestTimer(defaultTimerSec));
   $('#btnUndo')?.addEventListener('click', doUndo);
 
-  // セーブ
   $('#btnSaveSession')?.addEventListener('click', async ()=>{
     if(!currentSession.sets.length){ showToast('セットがありません'); return; }
     const date = $('#sessDate').value;
@@ -624,10 +588,8 @@ function bindSessionUI(){
     showToast('セッションを保存しました');
   });
 
-  // カスタム投入
   $('#btnTplCustom')?.addEventListener('click', applyCustomInsert);
 
-  // 種目切替時、前回値プリフィル
   $('#exSelect')?.addEventListener('change', async ()=>{
     const exId = Number($('#exSelect').value);
     if(!exId){ $('#weight').value=''; $('#reps').value=''; $('#rpe').value=''; return; }
@@ -772,7 +734,7 @@ function refreshTimerButtonLabel(){
 }
 function startRestTimer(sec){
   const btn = $('#btnTimer');
-  if(!btn){ showToast('タイマーボタンが見つかりません'); return; } // ← 追加ガード
+  if(!btn){ showToast('タイマーボタンが見つかりません'); return; }
   clearInterval(timerHandle);
   timerLeft = sec;
   btn.disabled = true;
@@ -802,7 +764,6 @@ function bindHistoryUI(){
   $('#importFile')?.addEventListener('change', importCSV);
 }
 
-// 詳細ブロック（保持）
 function buildSessionDetailsHTML(sets, nameById){
   if(!sets || !sets.length){
     return '<div class="small" style="margin-top:8px">セットがありません。</div>';
@@ -839,10 +800,13 @@ function buildSessionDetailsHTML(sets, nameById){
 
 async function renderHistory(){
   const count = Number($('#historyCount')?.value || 20);
-  const sessions = (await getAll('sessions'))
-    .map(s => ({...s, created_at: s.created_at ?? new Date(s.date).getTime() || 0}))
-    .sort((a,b)=>b.created_at - a.created_at)
-    .slice(0,count);
+
+  // Safari-safe: created_at を段階的に決定（?? と || を同式内で混在させない）
+  const sessions = (await getAll('sessions')).map(s => {
+    let created = (s && s.created_at != null) ? s.created_at : new Date(s.date).getTime();
+    if (!Number.isFinite(created)) created = 0;
+    return { ...s, created_at: created };
+  }).sort((a,b)=>b.created_at - a.created_at).slice(0,count);
 
   const ul = $('#historyList'); if(!ul) return;
   ul.innerHTML = '';
@@ -1009,7 +973,6 @@ function _drawLineChart(canvas, labels, values, hoverIndex = -1){
   const W = canvas.getBoundingClientRect().width, H = 260;
 
   const T = 26, R = 12, B = 30;
-
   ctx.clearRect(0,0,W,H);
 
   if(values.length === 0){
@@ -1151,7 +1114,7 @@ async function renderTrendSelect(){
 
 async function renderTrendChart(){
   const canvas = $('#trendChart'); if(!canvas) return;
-  const sel = $('#exTrendSelect'); const rangeSel = $('#trendRange');
+  const sel = $('#exTrendSelect'); const rangeSel = $('#trendRange'];
   const exId = Number(sel?.value||0);
   const range = (rangeSel?.value||'10');
 
@@ -1198,7 +1161,8 @@ async function renderTrendChart(){
     _trendEventsBound = true;
   }
 
-  const latest = values.at(-1)||0;
+  // Safari 14- 対策：.at(-1) を使わず末尾を参照
+  const latest = values.length ? values[values.length-1] : 0;
   const best   = Math.max(0, ...values);
   if(info){
     info.innerHTML = `
@@ -1303,11 +1267,9 @@ function bindSettingsUI(){
     }
 
     watchlist = (await get('prefs','watchlist'))?.value || [];
-    { // Safari-safe: no mixing ?? and ||
-      const _t = (await get('prefs','timer_sec'))?.value;
-      defaultTimerSec = Number(_t ?? 60);
-      if(!Number.isFinite(defaultTimerSec) || defaultTimerSec <= 0) defaultTimerSec = 60;
-    }
+    const _t = (await get('prefs','timer_sec'))?.value;
+    defaultTimerSec = Number(_t ?? 60);
+    if(!Number.isFinite(defaultTimerSec) || defaultTimerSec <= 0) defaultTimerSec = 60;
     autoTimerOn = !!((await get('prefs','auto_timer'))?.value);
 
     if($('#timerSec')) $('#timerSec').value = String(defaultTimerSec);
@@ -1419,7 +1381,6 @@ async function importCSV(e){
   const file = e.target.files[0]; if(!file) return;
   const text = await file.text();
 
-  // ← 修正: splitter ロジックを堅牢化
   const parts = text.split('##SESSIONS');
   const afterSessions = parts[1];
   if(!afterSessions){ showToast('形式が違います'); e.target.value=''; return; }
@@ -1551,7 +1512,6 @@ async function renderWeeklySummary(){
 }
 
 // ==== DOM ready ====
-// defer なしでも確実に init を走らせる
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
