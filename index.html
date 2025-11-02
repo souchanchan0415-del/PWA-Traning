@@ -14,7 +14,7 @@
   <!-- styles -->
   <link rel="preload" href="styles.css?v=1.5.1" as="style">
   <link rel="stylesheet" href="styles.css?v=1.5.1">
-  <noscript><style>noscript{display:block;padding:12px} .nojs{display:block}</style></noscript>
+  <noscript><style>noscript{display:block;padding:12px}.nojs{display:block}</style></noscript>
 
   <!-- audio -->
   <link rel="preload" href="beep.wav" as="audio" type="audio/wav">
@@ -63,25 +63,25 @@
   <header class="appbar">
     <button id="btnHardRefresh" class="iconbtn" title="更新" aria-label="強制更新" type="button" onclick="window.__tpHardRefresh()">↻</button>
     <h1 class="logo">Train Punch</h1>
-    <nav class="tabs" aria-label="Main tabs">
-      <button class="active" data-tab="session" aria-selected="true">セッション</button>
-      <button data-tab="analytics" aria-selected="false">解析</button>
-      <button data-tab="history" aria-selected="false">履歴</button>
-      <button data-tab="settings" aria-selected="false">設定</button>
+    <nav class="tabs" aria-label="Main tabs" role="tablist">
+      <button class="active" data-tab="session" aria-selected="true" role="tab" type="button">セッション</button>
+      <button data-tab="analytics" aria-selected="false" role="tab" type="button">解析</button>
+      <button data-tab="history" aria-selected="false" role="tab" type="button">履歴</button>
+      <button data-tab="settings" aria-selected="false" role="tab" type="button">設定</button>
     </nav>
   </header>
 
   <main class="container">
     <!-- ===== Session ===== -->
-    <section id="tab-session" class="tab active" aria-labelledby="セッション">
+    <section id="tab-session" class="tab active" aria-labelledby="セッション" role="tabpanel">
       <div class="card">
         <h3>部位</h3>
         <div id="partChips" class="chipset" role="tablist" aria-label="部位選択">
-          <div class="chip active" data-part="胸">胸</div>
-          <div class="chip" data-part="背中">背中</div>
-          <div class="chip" data-part="肩">肩</div>
-          <div class="chip" data-part="脚">脚</div>
-          <div class="chip" data-part="腕">腕</div>
+          <div class="chip active" data-part="胸" role="tab" aria-selected="true" tabindex="0">胸</div>
+          <div class="chip" data-part="背中" role="tab" aria-selected="false" tabindex="0">背中</div>
+          <div class="chip" data-part="肩" role="tab" aria-selected="false" tabindex="0">肩</div>
+          <div class="chip" data-part="脚" role="tab" aria-selected="false" tabindex="0">脚</div>
+          <div class="chip" data-part="腕" role="tab" aria-selected="false" tabindex="0">腕</div>
         </div>
 
         <div class="row">
@@ -115,15 +115,15 @@
             <option value="0.5">±0.5kg</option>
           </select>
 
-          <button id="btnGenWarmup" class="ghost" title="入力中のトップセットからWUを作成">↑からウォームアップ自動生成</button>
-          <button id="btnClearWarmup" class="ghost danger" title="生成済みWUを削除（種目選択時はその種目のみ）">WU削除</button>
+          <button id="btnGenWarmup" class="ghost" title="入力中のトップセットからWUを作成" type="button">↑からウォームアップ自動生成</button>
+          <button id="btnClearWarmup" class="ghost danger" title="生成済みWUを削除（種目選択時はその種目のみ）" type="button">WU削除</button>
         </div>
         <!-- ／ウォームアップここまで -->
 
         <div class="row end">
-          <button id="btnTimer" class="ghost">休憩60s</button>
-          <button id="btnUndo" class="ghost">一手戻す</button>
-          <button id="btnAddSet">セット追加</button>
+          <button id="btnTimer" class="ghost" type="button">休憩60s</button>
+          <button id="btnUndo" class="ghost" type="button">一手戻す</button>
+          <button id="btnAddSet" type="button">セット追加</button>
         </div>
 
         <ul id="todaySets" class="list" aria-live="polite">
@@ -138,18 +138,18 @@
           <textarea id="sessNote" rows="2" placeholder="メモ（任意）" aria-label="メモ"></textarea>
         </div>
         <div class="row end">
-          <button id="btnSaveSession">セッション保存</button>
+          <button id="btnSaveSession" type="button">セッション保存</button>
         </div>
       </div>
 
       <div class="card">
         <h3>カスタム投入</h3>
         <div id="tplPartChips" class="chipset" aria-label="カスタム投入の部位選択">
-          <div class="chip active" data-part="胸">胸</div>
-          <div class="chip" data-part="背中">背中</div>
-          <div class="chip" data-part="肩">肩</div>
-          <div class="chip" data-part="脚">脚</div>
-          <div class="chip" data-part="腕">腕</div>
+          <div class="chip active" data-part="胸" tabindex="0">胸</div>
+          <div class="chip" data-part="背中" tabindex="0">背中</div>
+          <div class="chip" data-part="肩" tabindex="0">肩</div>
+          <div class="chip" data-part="脚" tabindex="0">脚</div>
+          <div class="chip" data-part="腕" tabindex="0">腕</div>
         </div>
         <div class="grid grid-3">
           <select id="tplExCustom" aria-label="カスタム種目"><option value="">（選択する）</option></select>
@@ -158,13 +158,13 @@
           <input id="tplCustomWeight" inputmode="decimal" autocomplete="off" placeholder="重量 kg（例:0）" aria-label="重量">
         </div>
         <div class="row end">
-          <button id="btnTplCustom">投入</button>
+          <button id="btnTplCustom" type="button">投入</button>
         </div>
       </div>
     </section>
 
     <!-- ===== Analytics ===== -->
-    <section id="tab-analytics" class="tab" aria-labelledby="解析">
+    <section id="tab-analytics" class="tab" aria-labelledby="解析" role="tabpanel">
       <div class="card" id="weekly-summary">
         <h3>今週のサマリー</h3>
         <div id="weekly-summary-body" aria-live="polite">計算中…</div>
@@ -198,7 +198,7 @@
     </section>
 
     <!-- ===== History ===== -->
-    <section id="tab-history" class="tab" aria-labelledby="履歴">
+    <section id="tab-history" class="tab" aria-labelledby="履歴" role="tabpanel">
       <div class="card">
         <h3>履歴</h3>
         <div class="row">
@@ -206,7 +206,7 @@
           <select id="historyCount">
             <option>10</option><option selected>20</option><option>50</option>
           </select>
-          <button id="btnExport" class="ghost">CSVエクスポート</button>
+          <button id="btnExport" class="ghost" type="button">CSVエクスポート</button>
           <label class="btnlike" for="importFile">CSVインポート</label>
           <input id="importFile" type="file" accept=".csv,text/csv" hidden>
         </div>
@@ -215,7 +215,7 @@
     </section>
 
     <!-- ===== Settings ===== -->
-    <section id="tab-settings" class="tab" aria-labelledby="設定">
+    <section id="tab-settings" class="tab" aria-labelledby="設定" role="tabpanel">
       <div class="card">
         <h3>一般</h3>
         <div class="grid grid-3">
@@ -225,19 +225,19 @@
           </select>
           <label class="check"><input id="autoTimer" type="checkbox"> セット追加で自動スタート</label>
           <label class="check"><input id="darkToggle" type="checkbox"> ダークテーマ</label>
-          <button id="btnNotif" class="ghost">通知を許可</button>
+          <button id="btnNotif" class="ghost" type="button">通知を許可</button>
         </div>
       </div>
 
       <div class="card">
         <h3>種目</h3>
         <div class="grid grid-3">
-          <input id="newExName" placeholder="種目名（例：懸垂）">
+          <input id="newExName" placeholder="種目名（例：懸垂）" autocomplete="off">
           <select id="newExPart">
             <option value="" disabled selected>部位</option>
             <option>胸</option><option>背中</option><option>肩</option><option>脚</option><option>腕</option>
           </select>
-          <button id="btnCreateEx">追加</button>
+          <button id="btnCreateEx" type="button">追加</button>
         </div>
         <div class="row">
           <label for="filterPart">絞り込み</label>
@@ -252,15 +252,15 @@
       <div class="card">
         <h3>ウォッチ種目（PR通知/e1RMトレンド）</h3>
         <div id="watchPartChips" class="chipset">
-          <div class="chip active" data-part="胸">胸</div>
-          <div class="chip" data-part="背中">背中</div>
-          <div class="chip" data-part="肩">肩</div>
-          <div class="chip" data-part="脚">脚</div>
-          <div class="chip" data-part="腕">腕</div>
+          <div class="chip active" data-part="胸" tabindex="0">胸</div>
+          <div class="chip" data-part="背中" tabindex="0">背中</div>
+          <div class="chip" data-part="肩" tabindex="0">肩</div>
+          <div class="chip" data-part="脚" tabindex="0">脚</div>
+          <div class="chip" data-part="腕" tabindex="0">腕</div>
         </div>
         <div class="row">
           <select id="watchExSelect"><option value="">（選択する）</option></select>
-          <button id="btnWatchAdd">追加</button>
+          <button id="btnWatchAdd" type="button">追加</button>
         </div>
         <ul id="watchList" class="list"></ul>
       </div>
@@ -268,7 +268,7 @@
       <div class="card">
         <h3>バックアップ</h3>
         <div class="row">
-          <button id="btnExportJson" class="ghost">JSONエクスポート</button>
+          <button id="btnExportJson" class="ghost" type="button">JSONエクスポート</button>
           <label class="btnlike" for="jsonIn">JSONインポート</label>
           <input id="jsonIn" type="file" accept="application/json" hidden>
         </div>
@@ -287,7 +287,7 @@
 
       <div class="card">
         <h3>危険ゾーン</h3>
-        <button id="btnWipe" class="danger">全データ削除</button>
+        <button id="btnWipe" class="danger" type="button">全データ削除</button>
       </div>
     </section>
   </main>
