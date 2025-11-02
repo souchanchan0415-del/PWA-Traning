@@ -1,10 +1,8 @@
-// Train Punch — v1.5.3 (DB fix + safe index fallback)
-// - Uses your bindSessionUI() exactly as provided
-// - DB_VER=4 with index repair, and indexGetAll() has fallback
-// - History/Analytics/Weekly summary wired to new schema
+// Train Punch — v1.5.4 (fix: Safe indexGetAll for iOS Safari)
+// NOTE: あなたが貼ってくれた bindSessionUI() をそのまま利用
 
 const DB_NAME = 'trainpunch_v3';
-const DB_VER  = 4;
+const DB_VER  = 3; // ←必要なら4でも動くが、互換のため3に固定
 let db;
 
 const $  = s => document.querySelector(s);
@@ -92,12 +90,16 @@ const del  = (store, key)=> new Promise((res,rej)=>{ const r=tx([store],'readwri
 const get  = (store, key)=> new Promise((res,rej)=>{ const r=tx([store]).objectStore(store).get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
 const getAll = (store)=> new Promise((res,rej)=>{ const r=tx([store]).objectStore(store).getAll(); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
 
-// フォールバック付き index getAll（index が無くても止まらない）
+// ← ← ここが修正ポイント：安全な index 存在判定＆フォールバック
 const indexGetAll = (store, idx, q)=> new Promise((res)=>{
   try{
-    const tr = tx([store]);
-    const os = tr.objectStore(store);
-    if(!os.indexNames || !os.indexNames.contains(idx)){
+    const os = tx([store]).objectStore(store);
+    const names = os.indexNames;
+    const hasIndex =
+      names ? (typeof names.contains === 'function' ? names.contains(idx) : Array.from(names).includes(idx))
+            : false;
+
+    if(!hasIndex){
       const fieldMap = { by_session:'session_id', by_date:'date' };
       const field = fieldMap[idx] || null;
       const r = os.getAll();
@@ -108,8 +110,9 @@ const indexGetAll = (store, idx, q)=> new Promise((res)=>{
       r.onerror = ()=> res([]);
       return;
     }
+
     const r = os.index(idx).getAll(q);
-    r.onsuccess = ()=> res(r.result);
+    r.onsuccess = ()=> res(r.result || []);
     r.onerror   = ()=> res([]);
   }catch(_){ res([]); }
 });
@@ -130,7 +133,7 @@ let selectedPart   = '胸';
 let tplSelectedPart= '胸';
 
 // watchlist
-let watchlist = [];                  // [exercise_id]
+let watchlist = [];
 let watchSelectedPart = '胸';
 let _watchChipsBound = false;
 let _trendEventsBound = false;
@@ -158,7 +161,7 @@ function doUndo(){
   }catch{ showToast('戻せませんでした'); }
 }
 
-// =================== Warm-up generator helpers ===================
+// ==== Warm-up helpers ====
 function roundTo(x, step=2.5){ step = Number(step)||2.5; return Math.round((Number(x)||0) / step) * step; }
 function guessSchemeByReps(reps){ const r = Number(reps)||0; if(r <= 5) return 'strength'; if(r <= 10) return 'hypertrophy'; return 'endurance'; }
 const WU_PLANS = {
@@ -211,7 +214,6 @@ async function init(){
 
   bindTabs();
 
-  // 最後のタブ復元
   const lastTab = (await get('prefs','last_tab'))?.value;
   if(lastTab){
     const btn = document.querySelector(`.tabs button[data-tab="${lastTab}"]`);
@@ -249,7 +251,7 @@ async function init(){
 
   // Theme
   const dark = (await get('prefs','dark'))?.value || false;
-  $('#darkToggle').checked = dark;
+  $('#darkToggle')?.setAttribute('checked', dark ? 'checked' : '');
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
 
   refreshTimerButtonLabel();
@@ -295,7 +297,7 @@ function renderPartChips(){
   });
 }
 
-// === bindSessionUI (your version as-is) ===
+// === あなた提供の bindSessionUI() をそのまま ===
 function bindSessionUI(){
   const chips = $('#partChips');
   if (chips){
@@ -637,46 +639,42 @@ function bindHistoryUI(){
   $('#importFile')?.addEventListener('change', importCSV);
 }
 async function renderHistory(){
-  try{
-    const count = Number($('#historyCount')?.value || 20);
-    const sessions = (await getAll('sessions')).sort((a,b)=>b.created_at-a.created_at).slice(0,count);
-    const ul = $('#historyList'); if(!ul) return;
-    ul.innerHTML = '';
+  const count = Number($('#historyCount')?.value || 20);
+  const sessions = (await getAll('sessions')).sort((a,b)=>b.created_at-a.created_at).slice(0,count);
+  const ul = $('#historyList'); if(!ul) return;
+  ul.innerHTML = '';
 
-    for(const s of sessions){
-      const sets = await indexGetAll('sets','by_session', s.id);
-      const vol = sets.reduce((sum,x)=> sum + x.weight*x.reps, 0);
-      const est = sets.length ? Math.max(...sets.map(x=> e1rm(x.weight,x.reps))) : 0;
+  for(const s of sessions){
+    const sets = await indexGetAll('sets','by_session', s.id);
+    const vol = sets.reduce((sum,x)=> sum + x.weight*x.reps, 0);
+    const est = sets.length ? Math.max(...sets.map(x=> e1rm(x.weight,x.reps))) : 0;
 
-      const li = document.createElement('li');
-      li.innerHTML = `
-        <div>
-          <strong>${s.date}</strong>
-          <span class="badge">${Math.round(vol)}kg</span>
-          <span class="badge">1RM推定:${Math.round(est)}kg</span>
-          <div style="font-size:12px;color:var(--muted)">${esc(s.note||'')}</div>
-        </div>
-        <div style="display:flex; gap:6px">
-          <button class="ghost" data-act="dup"  data-id="${s.id}">複製</button>
-          <button class="ghost" data-act="edit" data-id="${s.id}">編集</button>
-          <button class="danger" data-act="del"  data-id="${s.id}">削除</button>
-        </div>`;
-      ul.appendChild(li);
-    }
-    if(!sessions.length) ul.innerHTML = '<li>まだありません</li>';
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <div>
+        <strong>${s.date}</strong>
+        <span class="badge">${Math.round(vol)}kg</span>
+        <span class="badge">1RM推定:${Math.round(est)}kg</span>
+        <div style="font-size:12px;color:var(--muted)">${esc(s.note||'')}</div>
+      </div>
+      <div style="display:flex; gap:6px">
+        <button class="ghost" data-act="dup"  data-id="${s.id}">複製</button>
+        <button class="ghost" data-act="edit" data-id="${s.id}">編集</button>
+        <button class="danger" data-act="del"  data-id="${s.id}">削除</button>
+      </div>`;
+    ul.appendChild(li);
+  }
+  if(!sessions.length) ul.innerHTML = '<li>まだありません</li>';
 
-    if(!ul._bound){
-      ul.addEventListener('click', async (e)=>{
-        const b = e.target.closest('button'); if(!b) return;
-        const id = Number(b.dataset.id), act=b.dataset.act;
-        if(act==='del'){ if(confirm('このセッションを削除しますか？')) await deleteSession(id); }
-        if(act==='edit'){ await editSessionNote(id); }
-        if(act==='dup'){ await duplicateSessionToToday(id); }
-      });
-      ul._bound = true;
-    }
-  }catch(err){
-    console.error('renderHistory failed', err);
+  if(!ul._bound){
+    ul.addEventListener('click', async (e)=>{
+      const b = e.target.closest('button'); if(!b) return;
+      const id = Number(b.dataset.id), act=b.dataset.act;
+      if(act==='del'){ if(confirm('このセッションを削除しますか？')) await deleteSession(id); }
+      if(act==='edit'){ await editSessionNote(id); }
+      if(act==='dup'){ await duplicateSessionToToday(id); }
+    });
+    ul._bound = true;
   }
 }
 
@@ -901,14 +899,12 @@ async function renderAnalytics(){
     const legend = $('#legend'); if (legend) legend.innerHTML = '';
   }
 
-  // e1RM trend
   await renderTrendSelect();
   await renderTrendChart();
-
   await renderWeeklySummary();
 }
 
-// === e1RM trend helpers ===
+// === Trend helpers ===
 async function renderTrendSelect(){
   const sel = $('#exTrendSelect'); if(!sel) return;
   const hint = $('#trendHint');
@@ -1240,13 +1236,12 @@ async function duplicateSessionToToday(id){
 function _isoWeekKeyLocal(dateStr){
   const d0 = new Date(dateStr);
   const d  = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate());
-  const day = d.getDay() || 7;          // 月=1 … 日=7
-  d.setDate(d.getDate() + 4 - day);     // 週の木曜へ
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() + 4 - day);
   const yearStart = new Date(d.getFullYear(), 0, 1);
   const week = Math.ceil((((d - yearStart)/86400000) + 1) / 7);
   return `${d.getFullYear()}-W${String(week).padStart(2,'0')}`;
 }
-
 async function renderWeeklySummary(){
   const el = document.getElementById('weekly-summary-body');
   if(!el) return;
