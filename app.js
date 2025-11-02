@@ -358,7 +358,7 @@ function bindSessionUI(){
         temp_id: crypto.randomUUID(),
         exercise_id: exId,
         weight: s.weight,
-        reps: s.reps,
+        reps: s.rps,
         rpe: null,
         ts: now + i,
         date,
@@ -638,6 +638,42 @@ function bindHistoryUI(){
   $('#btnExport')?.addEventListener('click', exportCSV);
   $('#importFile')?.addEventListener('change', importCSV);
 }
+
+// ★ 追加：履歴詳細（種目ごとのセット/RPE/WU/ボリューム）
+function buildSessionDetailsHTML(sets, nameById){
+  if(!sets || !sets.length){
+    return '<div class="small" style="margin-top:8px">セットがありません。</div>';
+  }
+  const byEx = new Map();
+  for(const s of sets){
+    if(!byEx.has(s.exercise_id)) byEx.set(s.exercise_id, []);
+    byEx.get(s.exercise_id).push(s);
+  }
+  const blocks = [...byEx.entries()]
+    .sort((a,b)=> String(nameById[a[0]]||'').localeCompare(nameById[b[0]]||'', 'ja'))
+    .map(([exId, arr])=>{
+      arr.sort((a,b)=> a.ts - b.ts);
+      const exName = nameById[exId] || `種目(${exId})`;
+      const vol = arr.reduce((sum,x)=> sum + (Number(x.weight)||0)*(Number(x.reps)||0), 0);
+      const list = arr.map(x=>{
+        const rpe = (typeof x.rpe==='number' && !Number.isNaN(x.rpe)) ? `@${x.rpe}` : '';
+        const wu  = x.wu ? ' <span class="badge wu">WU</span>' : '';
+        return `${x.weight}kg×${x.reps}${rpe}${wu}`;
+      }).join('、 ');
+      return `
+        <div style="margin:8px 0; padding:8px; border:1px dashed var(--line); border-radius:10px">
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+            <strong>${esc(exName)}</strong>
+            <span class="badge">${arr.length}セット</span>
+            <span class="badge">${Math.round(vol)}kg</span>
+          </div>
+          <div class="small" style="margin-top:6px; overflow-wrap:anywhere">${list}</div>
+        </div>
+      `;
+    }).join('');
+  return `<div style="margin-top:8px">${blocks}</div>`;
+}
+
 async function renderHistory(){
   const count = Number($('#historyCount')?.value || 20);
   // ← created_at が無い古いレコードを date から復元してソート
@@ -648,6 +684,11 @@ async function renderHistory(){
 
   const ul = $('#historyList'); if(!ul) return;
   ul.innerHTML = '';
+
+  // 種目名マップ（詳細表示で使用）
+  const allEx = await getAll('exercises');
+  const nameById = Object.fromEntries(allEx.map(e=>[e.id,e.name]));
+  ul._nameById = nameById;
 
   for(const s of sessions){
     const sets = await indexGetAll('sets','by_session', s.id);
@@ -660,13 +701,15 @@ async function renderHistory(){
         <strong>${s.date}</strong>
         <span class="badge">${Math.round(vol)}kg</span>
         <span class="badge">1RM推定:${Math.round(est)}kg</span>
-        <div style="font-size:12px;color:var(--muted)">${esc(s.note||'')}</div>
+        ${s.note ? `<div class="small" style="margin-top:4px;color:var(--muted)">${esc(s.note)}</div>` : ''}
       </div>
       <div style="display:flex; gap:6px">
-        <button class="ghost" data-act="dup"  data-id="${s.id}">複製</button>
-        <button class="ghost" data-act="edit" data-id="${s.id}">編集</button>
-        <button class="danger" data-act="del"  data-id="${s.id}">削除</button>
-      </div>`;
+        <button class="ghost" data-act="detail" data-id="${s.id}">詳細</button>
+        <button class="ghost" data-act="note"   data-id="${s.id}">メモ</button>
+        <button class="danger" data-act="del"   data-id="${s.id}">削除</button>
+      </div>
+      <div class="details" hidden></div>`;
+    li._sets = sets;
     ul.appendChild(li);
   }
   if(!sessions.length) ul.innerHTML = '<li>まだありません</li>';
@@ -675,9 +718,20 @@ async function renderHistory(){
     ul.addEventListener('click', async (e)=>{
       const b = e.target.closest('button'); if(!b) return;
       const id = Number(b.dataset.id), act=b.dataset.act;
+      const li = b.closest('li');
+
       if(act==='del'){ if(confirm('このセッションを削除しますか？')) await deleteSession(id); }
-      if(act==='edit'){ await editSessionNote(id); }
-      if(act==='dup'){ await duplicateSessionToToday(id); }
+      if(act==='note'){ await editSessionNote(id); renderHistory(); }
+      if(act==='detail'){
+        const box = li.querySelector('.details');
+        if(box.hidden || !box._loaded){
+          box.innerHTML = buildSessionDetailsHTML(li._sets || [], ul._nameById || {});
+          box._loaded = true;
+          box.hidden = false;
+        }else{
+          box.hidden = true;
+        }
+      }
     });
     ul._bound = true;
   }
