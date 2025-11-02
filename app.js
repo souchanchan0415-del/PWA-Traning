@@ -1,4 +1,4 @@
-// Train Punch — v1.5.1 (+ Warm-up generator)
+// Train Punch — v1.5.1 (+ Warm-up generator finished)
 // (auto-timer default + smart input "40x8@8" + today edit & undo + watch-only PR + e1RM trend)
 // 追加: ヘッダーブラー抑制 / チャートresizeデバウンス / 最後のタブ復元 / 週次サマリー
 // 修正: 日付をローカル基準（UTCズレ解消）
@@ -140,7 +140,7 @@ function guessSchemeByReps(reps){
   if(r <= 10) return 'hypertrophy';
   return 'endurance';
 }
-// 進行はトップセット重量からの割合で作成
+// 進行はトップセット重量からの割合で作成（重複・トップ同値を回避）
 const WU_PLANS = {
   strength:   [{p:0.40,r:5},{p:0.55,r:3},{p:0.70,r:2},{p:0.80,r:1}],
   hypertrophy:[{p:0.50,r:8},{p:0.70,r:5},{p:0.85,r:2}],
@@ -160,7 +160,6 @@ function suggestWarmupByTop(topW, topR, schemeSel='auto', roundStep=2.5){
     seen.add(key);
     out.push({weight:w, reps:s.r});
   }
-  // 昇順で気持ちよく並ぶように
   out.sort((a,b)=>a.weight - b.weight);
   return out;
 }
@@ -206,6 +205,12 @@ async function init(){
   // Session
   $('#sessDate').value = todayStr();
   bindSessionUI();
+
+  // WU 設定を復元
+  const wuSchemePref = (await get('prefs','wu_scheme'))?.value || 'auto';
+  const wuRoundPref  = String((await get('prefs','wu_round'))?.value ?? '2.5');
+  if($('#wuScheme')) $('#wuScheme').value = wuSchemePref;
+  if($('#wuRound'))  $('#wuRound').value  = wuRoundPref;
 
   // Custom insert
   bindCustomInsertUI();
@@ -300,7 +305,11 @@ function bindSessionUI(){
     if(e.key==='Enter'){ e.preventDefault(); $('#btnAddSet')?.click(); }
   });
 
-  // ★ ウォームアップ自動生成
+  // ★ WU 設定保存
+  $('#wuScheme')?.addEventListener('change', (e)=> put('prefs',{key:'wu_scheme', value: e.target.value}).catch(()=>{}));
+  $('#wuRound') ?.addEventListener('change', (e)=> put('prefs',{key:'wu_round',  value: Number(e.target.value)||2.5}).catch(()=>{}));
+
+  // ★ ウォームアップ自動生成（同種目WUは置き換え）
   $('#btnGenWarmup')?.addEventListener('click', async ()=>{
     const exId = Number($('#exSelect').value);
     const wTop = Number($('#weight').value);
@@ -314,9 +323,18 @@ function bindSessionUI(){
     if(!plan.length){ showToast('生成できるWUがありません'); return; }
 
     pushUndo();
+
+    // 既存WU（当日・同種目）を置き換え
+    const before = currentSession.sets.length;
+    currentSession.sets = currentSession.sets.filter(s => !(s.wu && s.exercise_id===exId));
+    // 既存（非WU）と重複する重量×回数はスキップ
+    const hasSame = (w,r)=> currentSession.sets.some(s=> s.exercise_id===exId && !s.wu && s.weight===w && s.reps===r);
+
     const date = $('#sessDate').value;
     const now  = Date.now();
+    let added = 0;
     plan.forEach((s,i)=>{
+      if(hasSame(s.weight, s.reps)) return;
       currentSession.sets.push({
         temp_id: crypto.randomUUID(),
         exercise_id: exId,
@@ -327,9 +345,32 @@ function bindSessionUI(){
         date,
         wu: true
       });
+      added++;
     });
     renderTodaySets();
-    showToast('ウォームアップを追加しました');
+    const label = scheme==='auto' ? `自動(${guessSchemeByReps(rTop)})` : scheme;
+    showToast(`WU ${added}セットを追加（${label} / ±${step}kg）`);
+  });
+
+  // ★ WU一括削除（ボタンがある場合のみ有効）
+  $('#btnClearWarmup')?.addEventListener('click', ()=>{
+    if(!currentSession.sets.length){ showToast('削除対象がありません'); return; }
+    pushUndo();
+    const exId = Number($('#exSelect').value||0);
+    let removed = 0;
+    if(exId){
+      const lenBefore = currentSession.sets.length;
+      currentSession.sets = currentSession.sets.filter(s=> !(s.wu && s.exercise_id===exId));
+      removed = lenBefore - currentSession.sets.length;
+      renderTodaySets();
+      showToast(removed>0 ? `WUを削除（この種目: ${removed}）` : 'この種目のWUはありません');
+    }else{
+      const lenBefore = currentSession.sets.length;
+      currentSession.sets = currentSession.sets.filter(s=> !s.wu);
+      removed = lenBefore - currentSession.sets.length;
+      renderTodaySets();
+      showToast(removed>0 ? `WUをすべて削除（${removed}）` : 'WUはありません');
+    }
   });
 
   // カスタム種目追加
@@ -400,7 +441,16 @@ function bindSessionUI(){
 
     const sessionId = await put('sessions',{date, note, created_at: Date.now()});
     for(const s of currentSession.sets){
-      await put('sets',{session_id:sessionId, exercise_id:s.exercise_id, weight:s.weight, reps:s.reps, rpe:s.rpe, ts:s.ts, date});
+      await put('sets',{
+        session_id:sessionId,
+        exercise_id:s.exercise_id,
+        weight:s.weight,
+        reps:s.reps,
+        rpe:s.rpe,
+        ts:s.ts,
+        date,
+        ...(s.wu ? { wu:true } : {})
+      });
     }
     currentSession = { date: todayStr(), note:'', sets: [] };
     $('#sessDate').value = todayStr(); $('#sessNote').value = '';
@@ -482,7 +532,7 @@ function renderTodaySets(){
   const ul = $('#todaySets'); if(!ul) return;
   if(!currentSession.sets.length){ ul.innerHTML = '<li>まだありません</li>'; return; }
   ul.innerHTML = currentSession.sets.map(s=>{
-    const wu = s.wu ? `<span class="badge">WU</span> ` : '';
+    const wu = s.wu ? `<span class="badge wu">WU</span> ` : '';
     return `<li>
       <span>${wu}<strong>${esc(exNameById(s.exercise_id))}</strong> ${s.weight}kg × ${s.reps}${s.rpe?` RPE${s.rpe}`:''}</span>
       <span style="display:flex; gap:6px">
