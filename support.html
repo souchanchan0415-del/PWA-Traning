@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja" data-theme="light">
+<html lang="ja">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
@@ -8,20 +8,23 @@
   <meta name="theme-color" content="#111111" />
   <meta name="format-detection" content="telephone=no, email=no, address=no" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css?v=1.4.3b" />
+  <link rel="icon" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="styles.css?v=1.5.1" />
 
-  <!-- パフォーマンス（任意） -->
+  <!-- パフォーマンス最適化 -->
   <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin>
   <link rel="preconnect" href="https://googleads.g.doubleclick.net" crossorigin>
   <link rel="preconnect" href="https://tpc.googlesyndication.com" crossorigin>
 
-  <!-- AdSense ベースコード（審査中でもOK / まだ表示は出ない） -->
+  <!-- AdSense ベースコード（審査中でもOK / まだ広告枠は空） -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6494792718518447" crossorigin="anonymous"></script>
 
-  <!-- （任意）将来 自動広告を使うなら有効化 -->
-  <!-- <meta name="google-adsense-account" content="ca-pub-6494792718518447"> -->
+  <!-- 将来：自動広告を使うなら meta を有効化
+  <meta name="google-adsense-account" content="ca-pub-6494792718518447">
+  -->
 
-  <!-- 追加：スポンサー枠のプレースホルダー見た目と最低高（CLS対策） -->
+  <!-- 最低高の広告プレースホルダー（CLS対策） -->
   <style>
     .ad-placeholder{
       border:1px dashed var(--line);
@@ -33,24 +36,24 @@
   </style>
 </head>
 <body>
-  <header class="appbar">
+  <header class="appbar" role="banner">
+    <button class="iconbtn" title="戻る" aria-label="戻る" type="button"
+            onclick="if(history.length>1){history.back();}else{location.href='./index.html';}">←</button>
     <h1 class="logo">サポート ＆ お知らせ</h1>
   </header>
 
   <main class="container">
     <!-- 概要 -->
-    <div class="card">
+    <section class="card" aria-labelledby="about">
+      <h3 id="about">概要</h3>
       <p>いつもご利用ありがとうございます。以下の広告・紹介リンク／投げ銭からのご支援は、開発継続に充てられます🙏</p>
-      <!-- 追加：Stripe向けの明記（販売はしていない） -->
       <p><small>このページではアプリ開発の継続を目的とした支援（チップ／寄付）を受け付けています。物品やデジタル商品の販売は行っていません。</small></p>
-      <a class="btnlike ghost" href="./"
-         onclick="if(history.length>1){history.back();return false;}"
-         rel="noopener">← アプリに戻る</a>
-    </div>
+      <a class="btnlike" href="./index.html">アプリへ戻る</a>
+    </section>
 
     <!-- スポンサー枠（AdSense：承認後に有効化） -->
-    <div class="card" id="sponsor">
-      <h3>スポンサー枠</h3>
+    <section class="card" id="sponsor" aria-labelledby="sponsor-title">
+      <h3 id="sponsor-title">スポンサー枠</h3>
 
       <!-- 審査中はプレースホルダーだけ表示（レイアウト安定のため） -->
       <div class="ad-placeholder">スポンサー枠（審査通過後に広告が表示されます）</div>
@@ -70,11 +73,11 @@
       <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
       -->
       <small>※ 審査中は空白のままです。通過後に広告が表示されます。</small>
-    </div>
+    </section>
 
-    <!-- おすすめ器具・サプリ（例：アフィリエイト） -->
-    <div class="card">
-      <h3>おすすめ器具・サプリ</h3>
+    <!-- おすすめ（アフィリエイト枠の雛形） -->
+    <section class="card" aria-labelledby="reco">
+      <h3 id="reco">おすすめギア・サービス</h3>
       <ul class="list">
         <li>
           <span>可変式ダンベル</span>
@@ -89,12 +92,12 @@
              rel="sponsored nofollow noopener noreferrer">見る</a>
         </li>
       </ul>
-      <small>※ リンクにはアフィリエイト（広告）を含みます。</small>
-    </div>
+      <small>※ 上記リンクにはアフィリエイト（広告）を含む場合があります。詳細は <a href="./privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a> をご確認ください。</small>
+    </section>
 
     <!-- 投げ銭 / 月額サポート -->
-    <div class="card" id="donation">
-      <h3>その他のサポート</h3>
+    <section class="card" id="donation" aria-labelledby="support-links">
+      <h3 id="support-links">投げ銭・月額サポート</h3>
       <div class="chipset" aria-label="支援リンク">
         <!-- 単発：Ko-fi（YOUR_KOFI_ID を差し替え） -->
         <a class="btnlike ghost" target="_blank"
@@ -106,16 +109,37 @@
            href="https://github.com/sponsors/YOUR_GITHUB_USERNAME"
            rel="nofollow noopener noreferrer">月額で応援（GitHub Sponsors）</a>
       </div>
-      <small>※ 決済は各サービスで処理されます。カード情報が本アプリに保存されることはありません。</small>
-    </div>
+      <small>※ 決済は各サービスで処理されます。本アプリや開発者がカード情報を保持することはありません。</small>
+    </section>
 
-    <!-- 追加：法定表示リンク（Stripeの要件を満たすため） -->
-    <div class="card">
-      <p><small>
-        <a href="./tokushoho.html">特定商取引法に基づく表記</a> ／
-        <a href="./privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>
-      </small></p>
-    </div>
+    <!-- お知らせ -->
+    <section class="card" aria-labelledby="news">
+      <h3 id="news">お知らせ</h3>
+      <ul class="list">
+        <li><span>v1.5.5-hotfix1：一部端末でのオフライン起動性を改善、WU 自動生成の安定化</span><span class="badge">2025-11-02</span></li>
+        <!-- 以後、最新が上に来るよう追記 -->
+      </ul>
+    </section>
+
+    <!-- ポリシー／法定表示 -->
+    <section class="card" aria-labelledby="policy">
+      <h3 id="policy">ポリシー／法定表示</h3>
+      <div class="kv">
+        <div>プライバシーポリシー</div><div><a href="./privacy.html">privacy.html</a></div>
+        <div>特定商取引法に基づく表記</div><div><a href="./tokusho.html">tokusho.html</a></div>
+        <div>お問い合わせ</div><div><a href="./contact.html">contact.html</a></div>
+      </div>
+      <small>※ これらのページは PWA としてプリキャッシュされ、オフラインでも閲覧できます。</small>
+    </section>
   </main>
+
+  <noscript><div class="card"><p>JavaScript を有効にしてください。</p></div></noscript>
+
+  <script>
+    // PWA: サービスワーカー登録（存在すれば）
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.register('./sw.js').catch(()=>{ /* 無視 */ });
+    }
+  </script>
 </body>
 </html>
