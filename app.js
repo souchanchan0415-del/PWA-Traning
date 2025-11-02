@@ -358,7 +358,7 @@ function bindSessionUI(){
         temp_id: crypto.randomUUID(),
         exercise_id: exId,
         weight: s.weight,
-        reps: s.rps,
+        reps: s.reps,
         rpe: null,
         ts: now + i,
         date,
