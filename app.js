@@ -1,4 +1,4 @@
-// Train Punch — v1.5.4 (fix: Safe indexGetAll for iOS Safari)
+// Train Punch — v1.5.4 (fix: Safe indexGetAll for iOS Safari + history sort fallback)
 // NOTE: あなたが貼ってくれた bindSessionUI() をそのまま利用
 
 const DB_NAME = 'trainpunch_v3';
@@ -31,11 +31,11 @@ async function hardRefresh(){
   try{
     if('serviceWorker' in navigator){
       const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map(r => r.unregister()));
+      await Promise.all(regs.map(r => r.unregister().catch(()=>{})));
     }
     if('caches' in window){
       const keys = await caches.keys();
-      await Promise.all(keys.map(k => caches.delete(k)));
+      await Promise.all(keys.map(k => caches.delete(k).catch(()=>{})));
     }
   }catch(e){ console.warn(e); }
   location.reload();
@@ -90,7 +90,7 @@ const del  = (store, key)=> new Promise((res,rej)=>{ const r=tx([store],'readwri
 const get  = (store, key)=> new Promise((res,rej)=>{ const r=tx([store]).objectStore(store).get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
 const getAll = (store)=> new Promise((res,rej)=>{ const r=tx([store]).objectStore(store).getAll(); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
 
-// ← ← ここが修正ポイント：安全な index 存在判定＆フォールバック
+// ← 安全な indexGetAll（インデックスが無くても手動フィルタで代替）
 const indexGetAll = (store, idx, q)=> new Promise((res)=>{
   try{
     const os = tx([store]).objectStore(store);
@@ -640,7 +640,12 @@ function bindHistoryUI(){
 }
 async function renderHistory(){
   const count = Number($('#historyCount')?.value || 20);
-  const sessions = (await getAll('sessions')).sort((a,b)=>b.created_at-a.created_at).slice(0,count);
+  // ← created_at が無い古いレコードを date から復元してソート
+  const sessions = (await getAll('sessions'))
+    .map(s => ({...s, created_at: s.created_at ?? new Date(s.date).getTime() || 0}))
+    .sort((a,b)=>b.created_at - a.created_at)
+    .slice(0,count);
+
   const ul = $('#historyList'); if(!ul) return;
   ul.innerHTML = '';
 
