@@ -46,7 +46,7 @@ body{
        "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol", sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  font-variant-numeric: tabular-nums; /* 数字の視認性UP */
+  font-variant-numeric: tabular-nums;
 }
 a{ color:var(--primary); text-decoration:none; }
 a:hover{ text-decoration:underline; }
@@ -79,21 +79,19 @@ a:hover{ text-decoration:underline; }
 .card{
   background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px;
   box-shadow:var(--shadow); margin:20px 0; position:relative; z-index:0;
-  overflow:visible; /* キャンバスのツールチップ等が切れないように */
+  overflow:visible;
 }
 h3{ margin:0 0 12px; font-size:18px; }
 
 .row{ display:flex; gap:12px; align-items:center; margin:10px 0; flex-wrap:wrap; }
 .grid{ display:grid; gap:12px; }
 .grid-2{ grid-template-columns: 1fr 160px; }
-/* minmax(0,1fr) で Safari の shrink 問題を回避 */
 .grid-3{ grid-template-columns: repeat(3, minmax(0,1fr)); }
 .end{ justify-content:flex-end; }
 
 /* ===== Inputs ===== */
 input, select, textarea, button{ font:inherit; color:inherit; }
 
-/* ← チェック/ラジオは除外してテキスト系だけ装飾 */
 input:not([type="checkbox"]):not([type="radio"]), select{
   background:color-mix(in oklab, var(--card), #000 5%); color:var(--text);
   border:1px solid var(--line); border-radius:12px; padding:12px 14px; min-height:44px;
@@ -101,7 +99,6 @@ input:not([type="checkbox"]):not([type="radio"]), select{
 }
 input::placeholder{ color: color-mix(in oklab, var(--muted), #000 10%); }
 
-/* ← フォーカス影もチェック/ラジオを除外 */
 input:not([type="checkbox"]):not([type="radio"]):focus, select:focus{
   border-color: color-mix(in oklab, var(--primary), #000 20%);
   box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary), transparent 84%);
@@ -110,10 +107,8 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus{
 select{ padding-right:40px; }
 label{ min-width:56px; color:var(--muted); }
 
-/* アクセント色の統一 */
 input[type="checkbox"], input[type="radio"]{ accent-color: var(--primary); }
 
-/* disabled option が選択されている間の見た目 */
 @supports(selector(:has(*))){
   select:has(option[disabled]:checked){ color: var(--muted); }
 }
@@ -129,7 +124,7 @@ button:disabled{ opacity:.55; cursor:not-allowed; filter:none; }
 button.ghost{ background:transparent; color:var(--text); }
 button.ghost:hover{ border-color: color-mix(in oklab, var(--primary), #000 45%); }
 button.danger{ background:var(--danger); border-color:transparent; color:#fff; }
-/* 追加: 透明×危険色の組合せ（WU削除ボタン用） */
+/* 透明×危険色（WU削除ボタン用） */
 button.ghost.danger{
   color: var(--danger);
   border-color: color-mix(in oklab, var(--danger), #000 35%);
@@ -168,7 +163,7 @@ button.ghost.danger:hover{
   background:color-mix(in oklab, var(--card), #000 8%); border:1px solid var(--line); font-size:12px;
   font-variant-numeric: tabular-nums;
 }
-/* 追加: WU バッジ（生成したウォームアップの可視化） */
+/* 生成WUの可視化 */
 .badge.wu{
   background: color-mix(in oklab, var(--danger), transparent 86%);
   color: color-mix(in oklab, var(--danger), #fff 10%);
@@ -183,7 +178,7 @@ button.ghost.danger:hover{
 .kv > *{ min-width:0; }
 .kv a, .kv div:nth-child(2n){ overflow-wrap:anywhere; word-break:break-word; }
 
-/* small要素 ＆ .small クラスを同一扱いに */
+/* small要素 ＆ .small クラス */
 small, .small{ color:var(--muted); font-size:12.5px; }
 
 /* メトリクス（直近7日など） */
@@ -216,8 +211,8 @@ small, .small{ color:var(--muted); font-size:12.5px; }
   display:block;
   touch-action:none;
   user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
-  margin-left:2px; /* 左端の縦軸数字がカード境界で視覚的に欠けないように微オフセット */
-  image-rendering:-webkit-optimize-contrast; /* モバイルでの数字にじみ軽減 */
+  margin-left:2px;
+  image-rendering:-webkit-optimize-contrast;
 }
 
 /* === Custom Insert spacing tweaks === */
@@ -225,7 +220,7 @@ small, .small{ color:var(--muted); font-size:12.5px; }
 #tplPartChips .chip{ padding:9px 14px; }
 #tplExCustom{ margin-top:6px; }
 
-/* レイアウトの安定化（iOS/Safari shrink対策） */
+/* レイアウト安定化 */
 .row > *, .grid > *{ min-width:0; }
 
 /* ← 幅指定もチェック/ラジオを除外 */
@@ -249,7 +244,7 @@ small, .small{ color:var(--muted); font-size:12.5px; }
 .iconbtn:hover{ border-color: color-mix(in oklab, var(--primary), #000 45%); }
 .iconbtn:active{ transform:translateY(1px); }
 
-/* --- 追加: ↻ に「更新あり」ドット（低コスト） --- */
+/* 更新ありドット */
 .iconbtn.update{ border-color: color-mix(in oklab, var(--primary), #000 35%); }
 .iconbtn.update::after{
   content:""; position:absolute; right:6px; top:6px;
@@ -257,7 +252,6 @@ small, .small{ color:var(--muted); font-size:12.5px; }
   background:var(--primary);
   pointer-events:none;
 }
-/* おまけ：軽い点滅（低モーションは無効） */
 @media (prefers-reduced-motion: no-preference){
   @keyframes tp-blink { 0%, 55% { opacity:1 } 56%, 100% { opacity:.3 } }
   .iconbtn.update::after{ animation: tp-blink 1.6s infinite; }
@@ -286,7 +280,7 @@ small, .small{ color:var(--muted); font-size:12.5px; }
   .grid-3 > :nth-child(3){ grid-column:1 / -1; }
 }
 
-/* モバイル最適化：高コスト描画を抑制 */
+/* モバイル最適化 */
 @media (max-width:600px){
   .appbar{
     backdrop-filter:none;
@@ -299,7 +293,7 @@ small, .small{ color:var(--muted); font-size:12.5px; }
 @media (max-width:560px){
   #tplPartChips{ gap:10px; margin:6px 0 8px; }
   #tplPartChips .chip{ padding:8px 12px; }
-  #btnAddEx{ flex-basis:100%; }
+  /* #btnAddEx はセッションから削除したため、関連スタイルも撤去 */
 }
 @media (max-width:360px){
   .grid-3{ grid-template-columns:1fr; }
@@ -314,7 +308,7 @@ button, select, input { touch-action:manipulation; }
 .card::before, .card::after,
 #toast { pointer-events:none; }
 
-/* 解析/各タブのスタッキング保険 */
+/* スタッキング保険 */
 #tab-analytics, #tab-session, #tab-history, #tab-settings {
   position:relative; z-index:0;
 }
@@ -324,7 +318,7 @@ button, select, input { touch-action:manipulation; }
   *{ transition:none !important; animation:none !important; }
 }
 
-/* === 追加: スクロール中は blur を殺して jank を抑える（app.js が .scrolling を付与） === */
+/* スクロール中は blur を殺す（app.js が .scrolling を付与） */
 body.scrolling .appbar{
   backdrop-filter:none;
   -webkit-backdrop-filter:none;
