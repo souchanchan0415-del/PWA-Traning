@@ -1,32 +1,38 @@
-// sw-register.js — v1.5.2（サブパス対応 / 更新バナー / ユーザー主導適用）
+// sw-register.js — v1.5.5-hotfix1
+// ・サブパス対応（GitHub Pages 等）
+// ・更新ドット / 画面下バナー
+// ・ユーザーが明示した時だけ適用＆リロード
 (() => {
   if (!('serviceWorker' in navigator)) return;
 
-  // ▼必要に応じて上げる（sw.js の VERSION を上げた時に合わせる）
-  const SW_VERSION = '1.5.2';
-  const SW_URL     = `./sw.js?v=${encodeURIComponent(SW_VERSION)}`; // キャッシュバスト
-  const SW_SCOPE   = './';                                          // /repo/ 配下のみ制御
+  // sw.js の更新に合わせて上げる（キャッシュバスト目的）
+  const SW_VERSION = '1.5.5-hotfix1';
 
-  // --- UI: 既存の ↻ ボタンをハイライト（互換維持） ---
+  // サブパスでも壊れない絶対URLを生成
+  const SW_ABS_URL = new URL('./sw.js', location.href);
+  SW_ABS_URL.searchParams.set('v', SW_VERSION);
+
+  // 現ディレクトリ配下のみを制御（/repo-name/ 配下）
+  const SW_SCOPE = new URL('./', location.href).pathname;
+
+  // ---- UI: 更新ドット（↻ボタンを強調） ----
   const markUpdate = () => {
     const btn = document.getElementById('btnHardRefresh');
     if (btn) {
       btn.classList.add('update');
       btn.title = '新しいバージョンがあります。押して更新';
     }
-    if (typeof window.showToast === 'function') {
-      try { showToast('新しいバージョンがあります。↻で更新'); } catch (_) {}
-    }
+    toast('新しいバージョンがあります。↻で更新できます');
   };
 
-  // --- UI: 画面下に小さな更新バナー（今すぐ更新／あとで） ---
+  // ---- UI: 下部に更新バナー（今すぐ更新／あとで）----
   const BANNER_ID = 'tp-update-banner';
   const showBanner = (onConfirm) => {
     if (document.getElementById(BANNER_ID)) return;
     const el = document.createElement('div');
     el.id = BANNER_ID;
-    el.setAttribute('role','status');
-    el.setAttribute('aria-live','polite');
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
     el.style.cssText = `
       position:fixed;left:12px;right:12px;bottom:12px;z-index:2147483647;
       background:#0fb6a9;color:#fff;border-radius:12px;padding:12px 14px;
@@ -46,41 +52,71 @@
     el.querySelector('#tp-later').onclick = () => el.remove();
   };
 
-  // --- 更新監視（waiting/installed を検知して UI 表示） ---
+  // ---- 軽量トースト（app.js の showToast が無い環境のフォールバック）----
+  function toast(msg){
+    if (typeof window.showToast === 'function') {
+      try { window.showToast(msg); return; } catch(_){}
+    }
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._tid);
+    t._tid = setTimeout(()=> t.classList.remove('show'), 1600);
+  }
+
+  // ---- 更新検知（waiting/installed を監視）----
   const attachUpdateWatchers = (reg) => {
     if (!reg) return;
 
-    // 既に waiting がいれば即表示
+    // すでに waiting がいれば即通知
     if (reg.waiting) {
       markUpdate();
       showBanner(() => reg.waiting.postMessage({ type:'SKIP_WAITING' }));
     }
 
-    // 新しい SW の検知
+    // 新しい SW のインストールを検知
     reg.addEventListener('updatefound', () => {
       const sw = reg.installing;
       if (!sw) return;
       sw.addEventListener('statechange', () => {
-        // 旧コントローラが存在＝更新時（初回インストールではない）
+        // 旧コントローラが存在＝更新時（初回は除外）
         if (sw.state === 'installed' && navigator.serviceWorker.controller) {
           markUpdate();
           showBanner(() => {
             // installed 直後は reg.waiting に切り替わる
             const w = reg.waiting || sw;
-            try { w.postMessage({ type:'SKIP_WAITING' }); } catch (_) {}
+            try { w.postMessage({ type:'SKIP_WAITING' }); } catch(_){}
           });
         }
       });
     });
   };
 
-  // --- ユーザーが更新を明示した時だけリロード ---
+  // ---- 複数タブ連携：BroadcastChannel で「更新あり」を周知 ----
+  let bc = null;
+  try { bc = new BroadcastChannel('tp-sw'); } catch(_) {}
+  const broadcast = (type) => { try { bc?.postMessage({ type }); } catch(_) {} };
+  bc && bc.addEventListener('message', (e) => {
+    if (e?.data?.type === 'SW_WAITING') {
+      markUpdate();
+      showBanner(() => {
+        // 他タブで SKIP_WAITING をトリガー
+        navigator.serviceWorker.getRegistration().then(reg=>{
+          const w = reg?.waiting;
+          if (w) w.postMessage({ type:'SKIP_WAITING' });
+        });
+      });
+    }
+  });
+
+  // ---- 「今すぐ更新」を押したタブだけリロード ----
   let userRequestedReload = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (userRequestedReload) location.reload();
   });
 
-  // 既存の ↻ ボタンでも適用可能（互換）
+  // ↻ボタンでも更新適用（互換）
   const bindRefreshButton = (reg) => {
     const btn = document.getElementById('btnHardRefresh');
     if (!btn || btn._tpBound) return;
@@ -89,17 +125,19 @@
       if (reg.waiting) {
         userRequestedReload = true;
         reg.waiting.postMessage({ type:'SKIP_WAITING' });
-      } else if (typeof window.hardRefresh === 'function') {
-        window.hardRefresh();
+      } else if (typeof window.__tpHardRefresh === 'function') {
+        // index.html のフォールバック関数
+        window.__tpHardRefresh();
       } else {
         location.reload();
       }
     });
   };
 
+  // ---- 登録本体 ----
   const register = async () => {
     try {
-      const reg = await navigator.serviceWorker.register(SW_URL, {
+      const reg = await navigator.serviceWorker.register(SW_ABS_URL.toString(), {
         scope: SW_SCOPE,
         updateViaCache: 'none'
       });
@@ -107,16 +145,29 @@
       attachUpdateWatchers(reg);
       bindRefreshButton(reg);
 
-      // 起動直後＆復帰時に軽く更新チェック
+      // 起動直後＆復帰時＆オンライン復帰で軽く update チェック
       const ping = () => reg.update().catch(()=>{});
-      setTimeout(ping, 2000);
+      setTimeout(ping, 1200);
       document.addEventListener('visibilitychange', () => { if (!document.hidden) ping(); });
+      window.addEventListener('online', ping);
 
-      // 「今すぐ更新」ボタン経由のときだけ自動リロード
+      // 「今すぐ更新」経由のときだけ自動リロード
       document.addEventListener('click', (e) => {
         const t = e.target;
         if (t && t.id === 'tp-upd') userRequestedReload = true;
       }, true);
+
+      // reg.waiting を他タブにも伝える（SW からの postMessage が無い場合の保険）
+      if (reg.waiting) broadcast('SW_WAITING');
+
+      // SW 側からの任意メッセージに対応（オプショナル）
+      navigator.serviceWorker.addEventListener('message', (evt) => {
+        if (evt?.data?.type === 'SW_WAITING') {
+          markUpdate();
+          showBanner(() => reg.waiting?.postMessage({ type:'SKIP_WAITING' }));
+          broadcast('SW_WAITING');
+        }
+      });
     } catch (e) {
       console.warn('SW register failed:', e);
     }
