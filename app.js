@@ -1,5 +1,5 @@
-// Train Punch — v1.5.7-no-timer-sets (full replace)
-// change: RPE → セット数入力（40x8x3対応）/ 追加時に同一セットを複数投入
+// Train Punch — v1.5.7-no-timer-sets (full replace, sets+RPE)
+// change: RPE入力を復活＋セット数（40x8x3@8対応）, 複数セット一括投入
 // drop : rest timer（状態・設定・通知）
 // fix  : Safari-safe ?? / stray bracket / smaller bundle
 // keep : IDB+LS fallback, CSV import/export, charts, watchlist
@@ -322,12 +322,12 @@ function bindSessionUI(){
     chips.addEventListener('click',async e=>{
       const b=e.target.closest('.chip'); if(!b) return;
       selectedPart=b.dataset.part; renderPartChips(); await renderExSelect();
-      $('#weight').value=''; $('#reps').value=''; $('#sets').value='';
+      $('#weight').value=''; $('#reps').value=''; $('#sets').value=''; $('#rpe') && ($('#rpe').value='');
     });
   }
 
-  // スマート入力（weight/reps/sets）
-  ['weight','reps','sets'].forEach(id=>{
+  // スマート入力（weight/reps/sets/@rpe）
+  ['weight','reps','sets','rpe'].forEach(id=>{
     const el=$('#'+id);
     el?.addEventListener('input',handleSmartInput,{passive:true});
     el?.addEventListener('change',handleSmartInput);
@@ -335,6 +335,7 @@ function bindSessionUI(){
   });
   // Enterで追加
   $('#sets')?.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#btnAddSet')?.click(); } });
+  $('#rpe') ?.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#btnAddSet')?.click(); } });
 
   $('#wuScheme')?.addEventListener('change',e=>put('prefs',{key:'wu_scheme',value:e.target.value}).catch(()=>{}));
   $('#wuRound') ?.addEventListener('change',e=>put('prefs',{key:'wu_round', value:Number(e.target.value)||2.5}).catch(()=>{}));
@@ -389,6 +390,8 @@ function bindSessionUI(){
     const weight=Number($('#weight').value);
     const reps=Number($('#reps').value);
     let setsN=Number($('#sets').value||'1');
+    const rpeValRaw=$('#rpe')?.value?.trim();
+    const rpeVal=(rpeValRaw===''||rpeValRaw==null)?null:Number(rpeValRaw);
     if(!Number.isFinite(setsN) || setsN<=0) setsN=1;
 
     if(!exId||!weight||!reps){ showToast('種目・重量・回数は必須です'); return; }
@@ -406,12 +409,12 @@ function bindSessionUI(){
     pushUndo();
     const date=$('#sessDate').value; const now=Date.now();
     for(let i=0;i<setsN;i++){
-      currentSession.sets.push({ temp_id:(crypto?.randomUUID?.()||now+'_'+Math.random().toString(16).slice(2)+'_'+i), exercise_id:exId, weight, reps, rpe:null, ts:now+i, date });
+      currentSession.sets.push({ temp_id:(crypto?.randomUUID?.()||now+'_'+Math.random().toString(16).slice(2)+'_'+i), exercise_id:exId, weight, reps, rpe:(Number.isFinite(rpeVal)?rpeVal:null), ts:now+i, date });
     }
 
     if(willPR){ showToast('e1RM更新！（ウォッチ）'); if('vibrate' in navigator) navigator.vibrate([60,40,60]); }
 
-    $('#weight').value=''; $('#reps').value=''; $('#sets').value='';
+    $('#weight').value=''; $('#reps').value=''; $('#sets').value=''; $('#rpe') && ($('#rpe').value='');
     renderTodaySets();
   });
 
@@ -434,25 +437,26 @@ function bindSessionUI(){
 
   $('#exSelect')?.addEventListener('change',async()=>{
     const exId=Number($('#exSelect').value);
-    if(!exId){ $('#weight').value=''; $('#reps').value=''; $('#sets').value=''; return; }
+    if(!exId){ $('#weight').value=''; $('#reps').value=''; $('#sets').value=''; $('#rpe') && ($('#rpe').value=''); return; }
     const sets=(await getAll('sets')).filter(s=>s.exercise_id===exId).sort((a,b)=>b.ts-a.ts);
-    if(sets[0]){ $('#weight').value=sets[0].weight; $('#reps').value=sets[0].reps; $('#sets').value=''; }
-    else { $('#weight').value=''; $('#reps').value=''; $('#sets').value=''; }
+    if(sets[0]){ $('#weight').value=sets[0].weight; $('#reps').value=sets[0].reps; $('#sets').value=''; $('#rpe') && ($('#rpe').value=''); }
+    else { $('#weight').value=''; $('#reps').value=''; $('#sets').value=''; $('#rpe') && ($('#rpe').value=''); }
   });
 }
 
-// smart input（40x8x3 / 40*8*3 / 40x8 / 40*8）
+// smart input（40x8x3@8 / 40*8*3@7.5 / 40x8 / 40*8）
 function parseSmart(s){
   if(!s||typeof s!=='string') return null;
   const str=s.trim().replace(/＊/g,'*').replace(/×/g,'x').toLowerCase();
   const m=str.match(/^(\d+(?:\.\d+)?)\s*[x\*]\s*(\d+)(?:\s*[x\*]\s*(\d+))?(?:\s*@\s*(\d+(?:\.\d+)?))?$/);
   if(!m) return null;
-  return {w:Number(m[1]), r:Number(m[2]), s:m[3]!==undefined?Number(m[3]):null};
+  return {w:Number(m[1]), r:Number(m[2]), s:m[3]!==undefined?Number(m[3]):null, rp:m[4]!==undefined?Number(m[4]):null};
 }
 function handleSmartInput(e){
   const v=e?.target?.value ?? ''; const parsed=parseSmart(v); if(!parsed) return;
   $('#weight').value=String(parsed.w); $('#reps').value=String(parsed.r);
   if(parsed.s!=null) $('#sets').value=String(parsed.s);
+  if(parsed.rp!=null && $('#rpe')) $('#rpe').value=String(parsed.rp);
   showToast('スマート入力を適用');
 }
 
@@ -486,8 +490,9 @@ function renderTodaySets(){
   if(!currentSession.sets.length){ ul.innerHTML='<li>まだありません</li>'; return; }
   ul.innerHTML=currentSession.sets.map(s=>{
     const wu=s.wu?`<span class="badge wu">WU</span> `:'';
+    const rpe=(typeof s.rpe==='number' && !Number.isNaN(s.rpe))?` RPE${s.rpe}`:'';
     return `<li>
-      <span>${wu}<strong>${esc(exNameById(s.exercise_id))}</strong> ${s.weight}kg × ${s.reps}</span>
+      <span>${wu}<strong>${esc(exNameById(s.exercise_id))}</strong> ${s.weight}kg × ${s.reps}${rpe}</span>
       <span style="display:flex; gap:6px">
         <button class="ghost" data-act="edit" data-id="${s.temp_id}">編集</button>
         <button class="ghost" data-act="del"  data-id="${s.temp_id}">削除</button>
@@ -504,6 +509,7 @@ function renderTodaySets(){
         const ex=(await getAll('exercises')).find(e=>e.id===item.exercise_id);
         if(ex && ex.group && ex.group!==selectedPart){ selectedPart=ex.group; renderPartChips(); await renderExSelect(); }
         $('#exSelect').value=String(item.exercise_id); $('#weight').value=String(item.weight); $('#reps').value=String(item.reps); $('#sets').value='1';
+        if($('#rpe')) $('#rpe').value=(item.rpe!=null?String(item.rpe):'');
         showToast('編集用に読み込みました'); window.scrollTo({top:0,behavior:'smooth'});
       }
     });
@@ -757,7 +763,7 @@ async function renderTrendSelect(){
 }
 async function renderTrendChart(){
   const canvas=$('#trendChart'); if(!canvas) return;
-  const sel=$('#exTrendSelect'); const rangeSel=$('#trendRange'); // fixed
+  const sel=$('#exTrendSelect'); const rangeSel=$('#trendRange');
   const exId=Number(sel?.value||0);
   const range=(rangeSel?.value||'10');
 
