@@ -1,12 +1,13 @@
-// sw-register.js — v1.5.5-hotfix1
+// sw-register.js — v1.5.7-update-notify
 // ・サブパス対応（GitHub Pages 等）
 // ・更新ドット / 画面下バナー
 // ・ユーザーが明示した時だけ適用＆リロード
+// ・通知は「更新検知時のみ」（許可済みかつ画面が非表示のときだけローカル通知）
 (() => {
   if (!('serviceWorker' in navigator)) return;
 
   // sw.js の更新に合わせて上げる（キャッシュバスト目的）
-  const SW_VERSION = '1.5.5-hotfix1';
+  const SW_VERSION = '1.5.7-update-notify';
 
   // サブパスでも壊れない絶対URLを生成
   const SW_ABS_URL = new URL('./sw.js', location.href);
@@ -14,6 +15,41 @@
 
   // 現ディレクトリ配下のみを制御（/repo-name/ 配下）
   const SW_SCOPE = new URL('./', location.href).pathname;
+
+  // ---- 軽量トースト（app.js の showToast が無い環境のフォールバック）----
+  function toast(msg){
+    if (typeof window.showToast === 'function') {
+      try { window.showToast(msg); return; } catch(_){}
+    }
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._tid);
+    t._tid = setTimeout(()=> t.classList.remove('show'), 1600);
+  }
+
+  // ---- 更新時のみ OS 通知（許可済み＆画面が非表示のときだけ）----
+  let notifiedOnce = false;
+  function notifyUpdateOnly() {
+    if (notifiedOnce) return;
+    if (!('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+    if (document.visibilityState !== 'hidden') return;
+
+    try {
+      const n = new Notification('Train Punch 更新', {
+        body: '新しいバージョンの準備ができました。↻で適用できます。',
+        tag: 'tp-update',
+        renotify: true,
+      });
+      n.onclick = () => {
+        try { window.focus(); } catch(_) {}
+        n.close();
+      };
+      notifiedOnce = true;
+    } catch (_) {}
+  }
 
   // ---- UI: 更新ドット（↻ボタンを強調） ----
   const markUpdate = () => {
@@ -23,6 +59,7 @@
       btn.title = '新しいバージョンがあります。押して更新';
     }
     toast('新しいバージョンがあります。↻で更新できます');
+    notifyUpdateOnly(); // ★更新検知のときだけ通知
   };
 
   // ---- UI: 下部に更新バナー（今すぐ更新／あとで）----
@@ -52,19 +89,6 @@
     el.querySelector('#tp-later').onclick = () => el.remove();
   };
 
-  // ---- 軽量トースト（app.js の showToast が無い環境のフォールバック）----
-  function toast(msg){
-    if (typeof window.showToast === 'function') {
-      try { window.showToast(msg); return; } catch(_){}
-    }
-    const t = document.getElementById('toast');
-    if (!t) return;
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(t._tid);
-    t._tid = setTimeout(()=> t.classList.remove('show'), 1600);
-  }
-
   // ---- 更新検知（waiting/installed を監視）----
   const attachUpdateWatchers = (reg) => {
     if (!reg) return;
@@ -84,7 +108,6 @@
         if (sw.state === 'installed' && navigator.serviceWorker.controller) {
           markUpdate();
           showBanner(() => {
-            // installed 直後は reg.waiting に切り替わる
             const w = reg.waiting || sw;
             try { w.postMessage({ type:'SKIP_WAITING' }); } catch(_){}
           });
@@ -101,7 +124,6 @@
     if (e?.data?.type === 'SW_WAITING') {
       markUpdate();
       showBanner(() => {
-        // 他タブで SKIP_WAITING をトリガー
         navigator.serviceWorker.getRegistration().then(reg=>{
           const w = reg?.waiting;
           if (w) w.postMessage({ type:'SKIP_WAITING' });
@@ -126,7 +148,6 @@
         userRequestedReload = true;
         reg.waiting.postMessage({ type:'SKIP_WAITING' });
       } else if (typeof window.__tpHardRefresh === 'function') {
-        // index.html のフォールバック関数
         window.__tpHardRefresh();
       } else {
         location.reload();
