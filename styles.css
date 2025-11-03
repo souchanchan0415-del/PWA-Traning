@@ -1,7 +1,7 @@
-/* Train Punch styles — v1.5.5-hotfix1
-   - dark/light テーマ
-   - axis legibility tweaks（キャンバス描画の視認性向上）
-   - WU（ウォームアップ）バッジ強調
+/* Train Punch styles — v1.5.9-safari-fix
+   - ダーク/ライトテーマ
+   - 軽量・視認性微調整
+   - color-mix を SRGB 統一（互換性安定）
 */
 
 /* ===== Design tokens ===== */
@@ -17,12 +17,10 @@
   --radius:16px;
   --shadow:0 6px 24px rgba(0,0,0,.25);
 
-  /* charts */
   --chart-h:260px;
 
   color-scheme: dark;
 }
-
 html[data-theme="light"]{
   --bg:#f6f7fb;
   --card:#ffffff;
@@ -30,25 +28,17 @@ html[data-theme="light"]{
   --muted:#5b6a79;
   --line:#e7ebf2;
   --shadow:0 6px 20px rgba(27,36,48,.08);
-
   color-scheme: light;
 }
 
 /* ===== Base ===== */
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
-html{
-  scrollbar-gutter: stable both-edges;
-  overscroll-behavior-y: contain;
-}
+html{ scrollbar-gutter: stable both-edges; overscroll-behavior-y: contain; }
 body{
   margin:0; color:var(--text);
-  background:
-    radial-gradient(1200px 600px at 50% -200px, rgba(15,182,169,.07), transparent 60%),
-    var(--bg);
-  font:16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP",
-       "Hiragino Kaku Gothic ProN", "Yu Gothic", "Helvetica Neue", Arial,
-       "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol", sans-serif;
+  background: radial-gradient(1200px 600px at 50% -200px, rgba(15,182,169,.07), transparent 60%), var(--bg);
+  font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic","Helvetica Neue",Arial,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol",sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   font-variant-numeric: tabular-nums;
@@ -72,10 +62,10 @@ a:hover{ text-decoration:underline; }
   appearance:none; border:1px solid var(--line); cursor:pointer;
   padding:10px 16px; border-radius:999px;
   background:var(--card); color:var(--text); box-shadow:var(--shadow);
-  transition: transform .02s ease-in-out, background .15s, border-color .15s;
+  transition: transform .02s, background .15s, border-color .15s;
   -webkit-tap-highlight-color: transparent;
 }
-.tabs button:hover{ border-color: color-mix(in oklab, var(--primary), #000 50%); }
+.tabs button:hover{ border-color: color-mix(in srgb, var(--primary) 50%, #000 50%); }
 .tabs button:active{ transform: translateY(1px); }
 .tabs button.active{ background:var(--primary); color:#fff; border-color:transparent; }
 
@@ -83,8 +73,7 @@ a:hover{ text-decoration:underline; }
 .container{ max-width:1000px; margin:20px auto 80px; padding:0 16px; }
 .card{
   background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px;
-  box-shadow:var(--shadow); margin:20px 0; position:relative; z-index:0;
-  overflow:visible;
+  box-shadow:var(--shadow); margin:20px 0; position:relative; z-index:0; overflow:visible;
 }
 h3{ margin:0 0 12px; font-size:18px; }
 
@@ -97,24 +86,22 @@ h3{ margin:0 0 12px; font-size:18px; }
 
 /* ===== Inputs & Buttons ===== */
 input, select, textarea, button{ font:inherit; color:inherit; }
-
 input:not([type="checkbox"]):not([type="radio"]), select, textarea{
-  background:color-mix(in oklab, var(--card), #000 5%); color:var(--text);
+  background:color-mix(in srgb, var(--card) 95%, #000 5%); color:var(--text);
   border:1px solid var(--line); border-radius:12px; padding:12px 14px; min-height:44px;
   flex:1 1 220px; transition:border-color .12s, box-shadow .12s;
 }
 textarea{ resize:vertical; }
-input::placeholder, textarea::placeholder{ color: color-mix(in oklab, var(--muted), #000 10%); }
+input::placeholder, textarea::placeholder{ color: color-mix(in srgb, var(--muted) 90%, #000 10%); }
 
 input:not([type="checkbox"]):not([type="radio"]):focus,
 select:focus, textarea:focus{
-  border-color: color-mix(in oklab, var(--primary), #000 20%);
-  box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary), transparent 84%);
+  border-color: color-mix(in srgb, var(--primary) 80%, #000 20%);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 16%, transparent);
   outline: none;
 }
 select{ padding-right:40px; }
 label{ min-width:56px; color:var(--muted); }
-
 input[type="checkbox"], input[type="radio"]{ accent-color: var(--primary); }
 
 @supports(selector(:has(*))){
@@ -124,36 +111,35 @@ input[type="checkbox"], input[type="radio"]{ accent-color: var(--primary); }
 button{
   appearance:none; border:1px solid var(--line); background:var(--primary); color:#fff;
   padding:12px 16px; border-radius:12px; cursor:pointer; min-height:44px;
-  transition: filter .1s ease, transform .02s ease-in-out, background .15s, border-color .15s;
+  transition: filter .1s, transform .02s, background .15s, border-color .15s;
 }
 button:hover{ filter: brightness(1.02); }
 button:active{ transform: translateY(1px); }
 button:disabled{ opacity:.55; cursor:not-allowed; filter:none; }
 button.ghost{ background:transparent; color:var(--text); }
-button.ghost:hover{ border-color: color-mix(in oklab, var(--primary), #000 45%); }
+button.ghost:hover{ border-color: color-mix(in srgb, var(--primary) 55%, #000 45%); }
 button.danger{ background:var(--danger); border-color:transparent; color:#fff; }
-/* 透明×危険色（WU削除ボタン用） */
 button.ghost.danger{
   color: var(--danger);
-  border-color: color-mix(in oklab, var(--danger), #000 35%);
+  border-color: color-mix(in srgb, var(--danger) 65%, #000 35%);
   background: transparent;
 }
 button.ghost.danger:hover{
-  border-color: color-mix(in oklab, var(--danger), #000 15%);
+  border-color: color-mix(in srgb, var(--danger) 85%, #000 15%);
 }
 .btnlike{
   display:inline-block; padding:12px 16px; border:1px solid var(--line); border-radius:12px; cursor:pointer;
 }
-.btnlike:hover{ border-color: color-mix(in oklab, var(--primary), #000 45%); }
+.btnlike:hover{ border-color: color-mix(in srgb, var(--primary) 55%, #000 45%); }
 
-/* ===== Chipset (部位) ===== */
+/* ===== Chipset ===== */
 .chipset{ display:flex; gap:10px; flex-wrap:wrap; position:relative; z-index:2; }
 .chip{
   padding:10px 14px; border-radius:999px; border:1px solid var(--line);
-  background:color-mix(in oklab, var(--card), #000 6%); color:var(--text); cursor:pointer;
+  background:color-mix(in srgb, var(--card) 94%, #000 6%); color:var(--text); cursor:pointer;
   transition: background .15s, border-color .15s, transform .02s;
 }
-.chip:hover{ border-color: color-mix(in oklab, var(--primary), #000 40%); }
+.chip:hover{ border-color: color-mix(in srgb, var(--primary) 60%, #000 40%); }
 .chip:active{ transform: translateY(1px); }
 .chip.active{ background:var(--primary); color:#fff; border-color:transparent; }
 
@@ -168,14 +154,13 @@ button.ghost.danger:hover{
 .list li button{ white-space:nowrap; }
 .badge{
   display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px;
-  background:color-mix(in oklab, var(--card), #000 8%); border:1px solid var(--line); font-size:12px;
+  background:color-mix(in srgb, var(--card) 92%, #000 8%); border:1px solid var(--line); font-size:12px;
   font-variant-numeric: tabular-nums;
 }
-/* 生成WUの可視化 */
 .badge.wu{
-  background: color-mix(in oklab, var(--danger), transparent 86%);
-  color: color-mix(in oklab, var(--danger), #fff 10%);
-  border-color: color-mix(in oklab, var(--danger), transparent 65%);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: color-mix(in srgb, var(--danger) 10%, #fff);
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
 }
 
 .legend{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
@@ -186,10 +171,10 @@ button.ghost.danger:hover{
 .kv > *{ min-width:0; }
 .kv a, .kv div:nth-child(2n){ overflow-wrap:anywhere; word-break:break-word; }
 
-/* small要素 ＆ .small クラス */
+/* small */
 small, .small{ color:var(--muted); font-size:12.5px; }
 
-/* メトリクス（直近7日など） */
+/* メトリクス */
 #metrics{
   display:grid; grid-template-columns:auto 1fr; gap:6px 12px;
   align-items:center; margin-top:8px; color:var(--muted);
@@ -230,8 +215,6 @@ small, .small{ color:var(--muted); font-size:12.5px; }
 
 /* レイアウト安定化 */
 .row > *, .grid > *{ min-width:0; }
-
-/* ← 幅指定もチェック/ラジオを除外 */
 .grid-3 input:not([type="checkbox"]):not([type="radio"]), .grid-3 select,
 .grid-2 input:not([type="checkbox"]):not([type="radio"]), .grid-2 select{ width:100%; }
 
@@ -249,16 +232,12 @@ small, .small{ color:var(--muted); font-size:12.5px; }
   z-index:3; touch-action:manipulation;
   transition: transform .02s, border-color .15s, background .15s;
 }
-.iconbtn:hover{ border-color: color-mix(in oklab, var(--primary), #000 45%); }
+.iconbtn:hover{ border-color: color-mix(in srgb, var(--primary) 55%, #000 45%); }
 .iconbtn:active{ transform:translateY(1px); }
-
-/* 更新ありドット */
-.iconbtn.update{ border-color: color-mix(in oklab, var(--primary), #000 35%); }
+.iconbtn.update{ border-color: color-mix(in srgb, var(--primary) 65%, #000 35%); }
 .iconbtn.update::after{
   content:""; position:absolute; right:6px; top:6px;
-  width:8px; height:8px; border-radius:999px;
-  background:var(--primary);
-  pointer-events:none;
+  width:8px; height:8px; border-radius:999px; background:var(--primary); pointer-events:none;
 }
 @media (prefers-reduced-motion: no-preference){
   @keyframes tp-blink { 0%, 55% { opacity:1 } 56%, 100% { opacity:.3 } }
@@ -267,7 +246,7 @@ small, .small{ color:var(--muted); font-size:12.5px; }
 
 /* アクセシビリティ：フォーカスリング */
 :focus-visible{
-  outline:2px solid color-mix(in oklab, var(--primary), #fff 20%);
+  outline:2px solid color-mix(in srgb, var(--primary) 80%, #fff 20%);
   outline-offset:2px; border-radius:12px;
 }
 
@@ -281,14 +260,12 @@ small, .small{ color:var(--muted); font-size:12.5px; }
   font-size:14px;
 }
 
-/* ===== Responsive tweaks ===== */
+/* ===== Responsive ===== */
 @media (max-width:700px){
   .grid-2{ grid-template-columns:1fr; }
   .grid-3{ grid-template-columns:1fr 1fr; }
   .grid-3 > :nth-child(3){ grid-column:1 / -1; }
 }
-
-/* モバイル最適化 */
 @media (max-width:600px){
   .appbar{
     backdrop-filter:none;
@@ -297,7 +274,6 @@ small, .small{ color:var(--muted); font-size:12.5px; }
   }
   body{ background:var(--bg); }
 }
-
 @media (max-width:560px){
   #tplPartChips{ gap:10px; margin:6px 0 8px; }
   #tplPartChips .chip{ padding:8px 12px; }
@@ -316,9 +292,7 @@ button, select, input { touch-action:manipulation; }
 #toast { pointer-events:none; }
 
 /* スタッキング保険 */
-#tab-analytics, #tab-session, #tab-history, #tab-settings {
-  position:relative; z-index:0;
-}
+#tab-analytics, #tab-session, #tab-history, #tab-settings { position:relative; z-index:0; }
 
 /* 低モーション派生 */
 @media (prefers-reduced-motion: reduce){
@@ -332,10 +306,10 @@ body.scrolling .appbar{
   background:linear-gradient(to bottom, rgba(0,0,0,.18), transparent), var(--bg);
   transition:none;
 }
+
 /* === Sticky Save footer === */
 .sticky-save{
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
+  position: fixed; left: 0; right: 0; bottom: 0;
   z-index: 999;
   padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
   background: var(--card, #fffffff2);
@@ -351,31 +325,16 @@ body.scrolling .appbar{
 }
 .sticky-save button{
   width: min(640px, 100%);
-  margin: 0 auto;
-  display: block;
+  margin: 0 auto; display: block;
 }
-
 /* Sticky が被らないように下余白を確保 */
-.container{
-  padding-bottom: calc(96px + env(safe-area-inset-bottom));
-}
+.container{ padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 
 /* === 折りたたみメモ === */
-details.memo{
-  margin: 8px 0 0;
-}
+details.memo{ margin: 8px 0 0; }
 details.memo > summary{
-  cursor: pointer;
-  user-select: none;
-  font-weight: 600;
-  color: var(--muted, #6b7280);
-  padding: 6px 2px;
-  list-style: disclosure-closed;
+  cursor: pointer; user-select: none; font-weight: 600; color: var(--muted, #6b7280);
+  padding: 6px 2px; list-style: disclosure-closed;
 }
-details.memo[open] > summary{
-  list-style: disclosure-open;
-  margin-bottom: 6px;
-}
-details.memo textarea{
-  width: 100%;
-}
+details.memo[open] > summary{ list-style: disclosure-open; margin-bottom: 6px; }
+details.memo textarea{ width: 100%; }
