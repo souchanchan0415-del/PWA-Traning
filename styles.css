@@ -332,3 +332,50 @@ body.scrolling .appbar{
   background:linear-gradient(to bottom, rgba(0,0,0,.18), transparent), var(--bg);
   transition:none;
 }
+/* === Sticky Save footer === */
+.sticky-save{
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 999;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: var(--card, #fffffff2);
+  border-top: 1px solid var(--line, #e5e7eb);
+  backdrop-filter: saturate(1.1) blur(6px);
+  -webkit-backdrop-filter: saturate(1.1) blur(6px);
+}
+@media (prefers-color-scheme: dark){
+  .sticky-save{
+    background: color-mix(in srgb, #0b1216 85%, transparent);
+    border-top-color: #ffffff1a;
+  }
+}
+.sticky-save button{
+  width: min(640px, 100%);
+  margin: 0 auto;
+  display: block;
+}
+
+/* Sticky が被らないように下余白を確保 */
+.container{
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
+
+/* === 折りたたみメモ === */
+details.memo{
+  margin: 8px 0 0;
+}
+details.memo > summary{
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+  color: var(--muted, #6b7280);
+  padding: 6px 2px;
+  list-style: disclosure-closed;
+}
+details.memo[open] > summary{
+  list-style: disclosure-open;
+  margin-bottom: 6px;
+}
+details.memo textarea{
+  width: 100%;
+}
