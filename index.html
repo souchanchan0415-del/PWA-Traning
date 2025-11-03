@@ -46,10 +46,10 @@
   <!-- 強制更新（起動直後に旧SW/Cacheを全削除） -->
   <script>
     (function(){
-      // デバッグオーバーレイ
+      // デバッグオーバーレイ（既存DOMがあれば再利用）
       (function mountDebug(){
-        var box=document.createElement('div'); box.id='tp-debug'; box.innerHTML='<b>Debug</b>（一時表示）';
-        document.addEventListener('DOMContentLoaded',function(){ document.body.appendChild(box); },{once:true});
+        var box=document.getElementById('tp-debug')||document.createElement('div');
+        box.id='tp-debug'; if(!box.parentNode){ document.addEventListener('DOMContentLoaded',function(){ document.body.appendChild(box); },{once:true}); }
         function show(){ box.style.display='block'; }
         function esc(s){ return String(s).replace(/[<&]/g,function(m){return ({'<':'&lt;','&':'&amp;'})[m];}); }
         window.addEventListener('error',function(e){ show(); box.innerHTML+='<div>Error: '+esc(e.message)+' @ '+esc(e.filename)+':'+(e.lineno||'')+'</div>'; });
@@ -354,12 +354,12 @@
 
   <!-- Toast & Debug -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <div id="tp-debug"></div>
+  <!-- ※ #tp-debug はスクリプトが必要に応じて挿入/再利用します -->
 
   <noscript><p class="nojs">JavaScript を有効にしてください。</p></noscript>
 
   <!-- scripts（“ファイル名ごと”更新してキャッシュ回避） -->
-  <script defer src="./app.1.5.9-safari-fix.js"></script>
+  <script defer src="./app.1.5.9-safari-fix.js?v=1"></script>
   <script defer src="sw-register.js?v=1.5.9"></script>
 
   <!-- 折りたたみメモのUX補助（任意だが軽い） -->
