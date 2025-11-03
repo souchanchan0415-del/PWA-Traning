@@ -116,8 +116,8 @@
     <section class="card" aria-labelledby="news">
       <h3 id="news">お知らせ</h3>
       <ul class="list">
+        <li><span>v1.5.8-sets-rpe：タイマー廃止／セット数＋RPE入力対応／WU生成UI調整／更新バナー導入</span><span class="badge">2025-11-03</span></li>
         <li><span>v1.5.5-hotfix1：一部端末でのオフライン起動性を改善、WU 自動生成の安定化</span><span class="badge">2025-11-02</span></li>
-        <!-- 以後、最新が上に来るよう追記 -->
       </ul>
     </section>
 
@@ -133,13 +133,12 @@
     </section>
   </main>
 
+  <!-- Toast（更新通知のフォールバック表示用。styles.css に .toast 定義あり） -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
   <noscript><div class="card"><p>JavaScript を有効にしてください。</p></div></noscript>
 
-  <script>
-    // PWA: サービスワーカー登録（存在すれば）
-    if('serviceWorker' in navigator){
-      navigator.serviceWorker.register('./sw.js').catch(()=>{ /* 無視 */ });
-    }
-  </script>
+  <!-- PWA: index.html と同じ更新検知ロジックを使用（直接 register は廃止） -->
+  <script defer src="sw-register.js?v=1.5.6-update-only"></script>
 </body>
 </html>
