@@ -286,7 +286,7 @@ async function ensureInitialExercises(){
   const all=await getAll('exercises');
   if(all && all.length){
     const byName=Object.fromEntries(all.map(e=>[e.name,e]));
-    for(const p of PARTS){
+    for(const p of PARTS{
       for(const name of EX_GROUPS[p]){
         const hit=byName[name];
         if(hit && !hit.group) await put('exercises',{...hit,group:p});
