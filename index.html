@@ -82,7 +82,7 @@
     })();
   </script>
 
-  <script>console.log('TP index v1.5.8-sets-rpe + memo-collapsible + sticky-save');</script>
+  <script>console.log('TP index v1.5.8-sets-rpe + memo-collapsible + sticky-save + templates');</script>
 </head>
 <body>
   <!-- App bar -->
@@ -120,11 +120,21 @@
           </div>
         </div>
 
+        <!-- 種目 -->
         <div class="row">
           <label for="exSelect">種目</label>
           <select id="exSelect" aria-label="種目選択">
             <option value="" disabled selected>（選択する）</option>
           </select>
+        </div>
+
+        <!-- テンプレ呼び出し（選ぶと自動入力） -->
+        <div class="row">
+          <label for="sessTplSelect">テンプレ</label>
+          <select id="sessTplSelect" aria-label="テンプレ選択">
+            <option value="" selected>（テンプレを選ぶと自動入力）</option>
+          </select>
+          <button id="btnApplyTpl" class="ghost" type="button">適用</button>
         </div>
 
         <!-- 入力欄：重量 / 回数 / （セット数 + RPE） -->
@@ -175,27 +185,6 @@
         <ul id="todaySets" class="list" aria-live="polite">
           <li>まだありません</li>
         </ul>
-      </div>
-
-      <!-- カスタム投入 -->
-      <div class="card">
-        <h3>カスタム投入</h3>
-        <div id="tplPartChips" class="chipset" aria-label="カスタム投入の部位選択">
-          <div class="chip active" data-part="胸" tabindex="0">胸</div>
-          <div class="chip" data-part="背中" tabindex="0">背中</div>
-          <div class="chip" data-part="肩" tabindex="0">肩</div>
-          <div class="chip" data-part="脚" tabindex="0">脚</div>
-          <div class="chip" data-part="腕" tabindex="0">腕</div>
-        </div>
-        <div class="grid grid-3">
-          <select id="tplExCustom" aria-label="カスタム種目"><option value="">（選択する）</option></select>
-          <input id="tplCustomSets"  inputmode="numeric" autocomplete="off" placeholder="セット数（例:5）" aria-label="セット数">
-          <input id="tplCustomReps"  inputmode="numeric" autocomplete="off" placeholder="回数（例:5）" aria-label="回数">
-          <input id="tplCustomWeight" inputmode="decimal" autocomplete="off" placeholder="重量 kg（例:0）" aria-label="重量">
-        </div>
-        <div class="row end">
-          <button id="btnTplCustom" type="button">投入</button>
-        </div>
       </div>
     </section>
 
@@ -294,6 +283,30 @@
           <button id="btnWatchAdd" type="button">追加</button>
         </div>
         <ul id="watchList" class="list"></ul>
+      </div>
+
+      <!-- ===== My Templates（マイテンプレ） ===== -->
+      <div class="card" id="card-templates">
+        <h3>マイテンプレ</h3>
+        <div id="tpl2PartChips" class="chipset" aria-label="テンプレの部位選択">
+          <div class="chip active" data-part="胸" tabindex="0">胸</div>
+          <div class="chip" data-part="背中" tabindex="0">背中</div>
+          <div class="chip" data-part="肩" tabindex="0">肩</div>
+          <div class="chip" data-part="脚" tabindex="0">脚</div>
+          <div class="chip" data-part="腕" tabindex="0">腕</div>
+        </div>
+
+        <div class="grid grid-3" style="margin-top:8px">
+          <select id="tpl2ExSelect" aria-label="テンプレ種目"><option value="">（種目を選ぶ）</option></select>
+          <input id="tpl2Sets" inputmode="numeric" autocomplete="off" placeholder="セット数（例:5）" aria-label="セット数">
+          <input id="tpl2Reps" inputmode="numeric" autocomplete="off" placeholder="回数（例:5）" aria-label="回数">
+        </div>
+        <div class="row end">
+          <button id="btnTpl2Add" type="button">テンプレ追加</button>
+        </div>
+
+        <ul id="tpl2List" class="list"></ul>
+        <small class="small">※ テンプレは「種目／セット数／回数」を保存します。セッション側では選ぶと入力欄に自動反映します（重量は都度入力）。</small>
       </div>
 
       <div class="card">
