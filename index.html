@@ -46,50 +46,10 @@
   <!-- 強制更新（起動直後に旧SW/Cacheを全削除） -->
   <script>
     (function(){
-      // デバッグオーバーレイ（既存DOMがあれば再利用）
+      // デバッグオーバーレイ（既存#tp-debugがあれば再利用）
       (function mountDebug(){
-        var box=document.getElementById('tp-debug')||document.createElement('div');
-        box.id='tp-debug'; if(!box.parentNode){ document.addEventListener('DOMContentLoaded',function(){ document.body.appendChild(box); },{once:true}); }
-        function show(){ box.style.display='block'; }
-        function esc(s){ return String(s).replace(/[<&]/g,function(m){return ({'<':'&lt;','&':'&amp;'})[m];}); }
-        window.addEventListener('error',function(e){ show(); box.innerHTML+='<div>Error: '+esc(e.message)+' @ '+esc(e.filename)+':'+(e.lineno||'')+'</div>'; });
-        window.addEventListener('unhandledrejection',function(e){
-          var r=e && e.reason; var msg=(r && r.message)?r.message:String(r);
-          show(); box.innerHTML+='<div>Promise: '+esc(msg)+'</div>';
-        });
+        function esc(s){ return String(s).replace(/[<&]/g,function(m){return ({'<':'&':'&amp;'})[m];}); }
       })();
-
-      // 手動ハードリフレッシュ（ボタン用）
-      window.__tpHardRefresh = async function(){
-        if(window.__tpHRRunning) return; window.__tpHRRunning=true;
-        var btn=document.getElementById('btnHardRefresh'); if(btn){btn.disabled=true;btn.textContent='更新…'}
-        try{
-          if('serviceWorker' in navigator){
-            var regs=await navigator.serviceWorker.getRegistrations();
-            await Promise.all(regs.map(function(r){ return r.unregister().catch(function(){}); }));
-          }
-          if('caches' in window){
-            var keys=await caches.keys();
-            await Promise.all(keys.map(function(k){ return caches.delete(k).catch(function(){}); }));
-          }
-        }catch(_){}
-        location.reload();
-      };
-
-      // 起動直後に旧キャッシュを掃除（新ファイルを確実に読み込ませる）
-      try{
-        if('serviceWorker' in navigator){
-          navigator.serviceWorker.getRegistrations()
-            .then(function(rs){ return Promise.all(rs.map(function(r){ return r.unregister().catch(function(){}); })); });
-        }
-      }catch(_){}
-      try{
-        if('caches' in window){
-          caches.keys().then(function(keys){
-            return Promise.all(keys.map(function(k){ return caches.delete(k).catch(function(){}); }));
-          });
-        }
-      }catch(_){}
     })();
   </script>
 
@@ -98,7 +58,7 @@
 <body>
   <!-- App bar -->
   <header class="appbar">
-    <button id="btnHardRefresh" class="iconbtn" title="更新" aria-label="強制更新" type="button" onclick="window.__tpHardRefresh()">↻</button>
+    <button id="btnHardRefresh" class="iconbtn" title="更新" aria-label="強制更新" type="button" onclick="window.__tpHardRefresh && window.__tpHardRefresh()">↻</button>
     <h1 class="logo">Train Punch</h1>
     <nav class="tabs" aria-label="Main tabs" role="tablist">
       <button class="active" data-tab="session" aria-selected="true" role="tab" type="button">セッション</button>
@@ -354,12 +314,12 @@
 
   <!-- Toast & Debug -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <!-- ※ #tp-debug はスクリプトが必要に応じて挿入/再利用します -->
 
   <noscript><p class="nojs">JavaScript を有効にしてください。</p></noscript>
 
   <!-- scripts（“ファイル名ごと”更新してキャッシュ回避） -->
-  <script defer src="./app.1.5.9-safari-fix.js?v=1"></script>
+  <!-- ※ app.js を読み込む（以前の app.1.5.9-safari-fix.js ではなく） -->
+  <script defer src="./app.js?v=1.5.9-safari-fix"></script>
   <script defer src="sw-register.js?v=1.5.9"></script>
 
   <!-- 折りたたみメモのUX補助（任意だが軽い） -->
@@ -371,6 +331,43 @@
       if(ta.value && ta.value.trim()!=='') box.open = true;
       ta.addEventListener('focus', function(){ box.open = true; }, {passive:true});
     });
+  </script>
+
+  <!-- 強制更新（ボタンクリック用）と起動時キャッシュ掃除 -->
+  <script>
+    (function(){
+      // 手動ハードリフレッシュ
+      window.__tpHardRefresh = async function(){
+        if(window.__tpHRRunning) return; window.__tpHRRunning=true;
+        var btn=document.getElementById('btnHardRefresh'); if(btn){btn.disabled=true;btn.textContent='更新…'}
+        try{
+          if('serviceWorker' in navigator){
+            var regs=await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(function(r){ return r.unregister().catch(function(){}); }));
+          }
+          if('caches' in window){
+            var keys=await caches.keys();
+            await Promise.all(keys.map(function(k){ return caches.delete(k).catch(function(){}); }));
+          }
+        }catch(_){}
+        location.reload();
+      };
+
+      // 起動直後に旧キャッシュも掃除（新ファイルを確実に読み込ませる）
+      try{
+        if('serviceWorker' in navigator){
+          navigator.serviceWorker.getRegistrations()
+            .then(function(rs){ return Promise.all(rs.map(function(r){ return r.unregister().catch(function(){}); })); });
+        }
+      }catch(_){}
+      try{
+        if('caches' in window){
+          caches.keys().then(function(keys){
+            return Promise.all(keys.map(function(k){ return caches.delete(k).catch(function(){}); }));
+          });
+        }
+      }catch(_){}
+    })();
   </script>
 </body>
 </html>
