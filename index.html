@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0e1116">
   <meta name="format-detection" content="telephone=no">
   <meta name="color-scheme" content="light dark">
-  <!-- HTML 自体は極力キャッシュさせない（保険） -->
+  <!-- HTMLは極力キャッシュさせない -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -15,17 +15,14 @@
   <link rel="icon" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
 
-  <title>Train Punch v1.5.6-safari-fix2</title>
+  <title>Train Punch v1.5.6-safari-fix3-sets</title>
 
   <!-- styles -->
   <link rel="preload" href="styles.css?v=1.5.1" as="style">
   <link rel="stylesheet" href="styles.css?v=1.5.1">
   <noscript><style>noscript{display:block;padding:12px}.nojs{display:block}</style></noscript>
 
-  <!-- audio -->
-  <link rel="preload" href="beep.wav" as="audio" type="audio/wav">
-
-  <!-- 最小フォールバックCSS（SW更新ドット / WUバッジ） -->
+  <!-- 最小フォールバックCSS（SW更新ドット / WUバッジ / デバッグ） -->
   <style>
     .iconbtn.update{position:relative}
     .iconbtn.update::after{
@@ -36,20 +33,17 @@
     .badge.wu{ padding:2px 6px; border-radius:10px; background:#ffe6e6; color:#b21c1c; font-size:12px }
     @media (prefers-color-scheme: dark){ .badge.wu{ background:#3a1f1f; color:#ffb3b3 } }
 
-    /* デバッグ枠（エラー時のみ自動表示） */
     #tp-debug{position:fixed;left:8px;right:8px;bottom:8px;max-height:40vh;overflow:auto;background:#111c;color:#fff;
       font:12px/1.5 system-ui;padding:8px;border-radius:8px;z-index:2147483647;box-shadow:0 8px 30px rgba(0,0,0,.35);display:none}
     #tp-debug b{display:inline-block;margin-right:.5em}
-    #tp-test{position:fixed;right:10px;top:56px;z-index:2147483646;display:none}
   </style>
 
-  <!-- フォールバック：強制更新（SW全解除＋キャッシュ全削除） -->
+  <!-- 強制更新（SW解除＋キャッシュ削除）＆下部デバッグ -->
   <script>
     (function(){
       const q = new URL(location.href).searchParams;
       const has = k => q.has(k) && (q.get(k)==='' || q.get(k)==='1' || q.get(k)==='true');
 
-      // 画面下デバッグ（エラー出たら自動で開く / ?debug=1 でも開く）
       function mountDebug(){
         const box = document.createElement('div');
         box.id='tp-debug'; box.innerHTML='<b>Debug</b>（一時表示）';
@@ -62,7 +56,6 @@
       }
       mountDebug();
 
-      // ハードリフレッシュ関数（UIボタン/直呼び双方対応）
       window.__tpHardRefresh = async function(){
         if (window.__tpHRRunning) return;
         window.__tpHRRunning = true;
@@ -81,7 +74,6 @@
         location.reload();
       };
 
-      // 起動時キルスイッチ： /?kill=1 を付けて開くと即全解除→再読み込み
       if (has('kill')) {
         const cleanURL = location.href.replace(/([?&])(kill(=1|=true)?)(&|$)/,'$1').replace(/[?&]$/,'');
         history.replaceState(null,'',cleanURL);
@@ -90,8 +82,7 @@
     })();
   </script>
 
-  <!-- バージョン確認用ログ（読み替わり確認） -->
-  <script>console.log('TP index v1.5.6-safari-fix2');</script>
+  <script>console.log('TP index v1.5.6-safari-fix3-sets');</script>
 </head>
 <body>
   <!-- App bar -->
@@ -126,13 +117,19 @@
           </select>
         </div>
 
+        <!-- 重量 / 回数 / セット数 -->
         <div class="grid grid-3">
-          <input id="weight" inputmode="decimal" autocomplete="off" placeholder="重量 kg（例: 40x8@8 もOK）" aria-label="重量">
-          <input id="reps"   inputmode="numeric" autocomplete="off" placeholder="回数" aria-label="回数">
-          <input id="rpe"    inputmode="decimal" autocomplete="off" placeholder="RPE（任意）" aria-label="RPE">
+          <input id="weight" inputmode="decimal" autocomplete="off"
+                 placeholder="重量 kg（例: 40x8x3 もOK）" aria-label="重量">
+          <input id="reps"   inputmode="numeric" autocomplete="off"
+                 placeholder="回数" aria-label="回数">
+          <input id="sets"   inputmode="numeric" autocomplete="off"
+                 placeholder="セット数" aria-label="セット数">
         </div>
+        <!-- 互換用ダミー（app.js 置換後に削除OK） -->
+        <input id="rpe" type="hidden" value="">
 
-        <!-- ★ ウォームアップ自動生成 -->
+        <!-- ウォームアップ自動生成 -->
         <div class="row">
           <label for="wuScheme">ウォームアップ</label>
           <select id="wuScheme" title="自動…回数に応じて強度/筋肥大/持久を自動判定" aria-label="ウォームアップ方式">
@@ -152,10 +149,10 @@
           <button id="btnGenWarmup" class="ghost" title="入力中のトップセットからWUを作成" type="button">↑からウォームアップ自動生成</button>
           <button id="btnClearWarmup" class="ghost danger" title="生成済みWUを削除（種目選択時はその種目のみ）" type="button">WU削除</button>
         </div>
-        <!-- ／ウォームアップここまで -->
 
         <div class="row end">
-          <button id="btnTimer" class="ghost" type="button">休憩60s</button>
+          <!-- 互換のため一時的に残す（非表示）。app.js 置換後に削除OK -->
+          <button id="btnTimer" class="ghost" type="button" style="display:none">休憩60s</button>
           <button id="btnUndo" class="ghost" type="button">一手戻す</button>
           <button id="btnAddSet" type="button">セット追加</button>
         </div>
@@ -253,11 +250,7 @@
       <div class="card">
         <h3>一般</h3>
         <div class="grid grid-3">
-          <label for="timerSec">休憩(秒)</label>
-          <select id="timerSec">
-            <option>30</option><option selected>60</option><option>90</option><option>120</option>
-          </select>
-          <label class="check"><input id="autoTimer" type="checkbox"> セット追加で自動スタート</label>
+          <!-- 休憩タイマー関連は撤去 -->
           <label class="check"><input id="darkToggle" type="checkbox"> ダークテーマ</label>
           <button id="btnNotif" class="ghost" type="button">通知を許可</button>
         </div>
@@ -332,8 +325,8 @@
 
   <noscript><p class="nojs">JavaScript を有効にしてください。</p></noscript>
 
-  <!-- scripts（バージョンを上げて確実に最新を取得） -->
-  <script defer src="app.js?v=1.5.6-safari-fix2"></script>
+  <!-- scripts（キャッシュバスター更新） -->
+  <script defer src="app.js?v=1.5.6-safari-fix3-sets"></script>
   <script defer src="sw-register.js?v=1.5.3"></script>
 </body>
 </html>
