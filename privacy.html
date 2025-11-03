@@ -1,182 +1,87 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <!--
-    Train Punch – Privacy Policy
-    v1.5.5-hotfix1 / Standalone policy page
-  -->
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>プライバシーポリシー | Train Punch</title>
-  <meta name="description" content="Train Punch（トレインパンチ）のプライバシーポリシー。端末内保存、オフライン、通知などの取扱いについて。">
-  <meta name="theme-color" content="#0fb6a9">
-  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="icon" href="./icons/icon-192.png" sizes="192x192">
-  <link rel="apple-touch-icon" href="./icons/icon-192.png">
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="プライバシーポリシー | Train Punch">
-  <meta property="og:description" content="Train Punchのプライバシーポリシー。収集情報、保存場所、外部サービス、通知の扱いを説明します。">
-  <meta property="og:image" content="./icons/icon-512.png">
+  <meta name="color-scheme" content="light dark">
+  <link rel="stylesheet" href="./styles.css">
   <style>
-    :root{
-      --bg:#f7fafc;
-      --card:#ffffff;
-      --text:#1a202c;
-      --muted:#6b7280;
-      --line:#e5e7eb;
-      --brand:#0fb6a9;
-      --brand-weak:#6cc7bf;
-      --danger:#e11d48;
-      --focus:#0fb6a940;
-      --shadow:0 2px 22px rgba(0,0,0,.06);
-    }
-    @media (prefers-color-scheme: dark){
-      :root{
-        --bg:#0b0f14;
-        --card:#10151c;
-        --text:#e5e7eb;
-        --muted:#a1a1aa;
-        --line:#1f2937;
-        --shadow:0 2px 22px rgba(0,0,0,.35);
-      }
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font:16px/1.8 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", "Meiryo", sans-serif;
-      background:var(--bg);
-      color:var(--text);
-    }
-    header{
-      position:sticky; top:0; z-index:5;
-      backdrop-filter:saturate(1.2) blur(8px);
-      background:color-mix(in oklab, var(--card) 90%, transparent);
-      border-bottom:1px solid var(--line);
-    }
-    .wrap{max-width:860px;margin:0 auto;padding:16px}
-    .headbar{display:flex;align-items:center;gap:10px;min-height:56px}
-    .logo{width:28px;height:28px;border-radius:6px;background:var(--brand);display:inline-block;box-shadow:inset 0 0 0 2px #fff3}
-    .title{font-weight:700;letter-spacing:.2px}
-    nav{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
-    nav a{color:var(--text);text-decoration:none;padding:8px 10px;border-radius:8px}
-    nav a:hover{background:var(--line)}
-    main{padding:24px 0 40px}
-    h1{font-size:22px;margin:6px 0 14px}
-    h2{font-size:16px;margin:0 0 8px}
-    p{margin:0 0 10px}
-    ul{margin:0 0 10px 18px}
-    .card{
-      background:var(--card); border:1px solid var(--line); border-radius:14px;
-      box-shadow:var(--shadow); padding:18px; margin-bottom:16px;
-    }
-    .muted{color:var(--muted)}
-    .kv{display:grid;grid-template-columns:140px 1fr;gap:8px 16px}
-    .tag{display:inline-block;padding:.1rem .5rem;border-radius:999px;background:var(--line);font-size:12px;color:var(--muted)}
-    footer{border-top:1px solid var(--line);padding:18px 0;color:var(--muted);font-size:13px}
-    a[target="_blank"]::after{content:"↗";font-size:12px;margin-left:.2em}
+    main{max-width:940px;margin:40px auto;padding:0 16px}
+    h1{margin-bottom:8px} small{color:var(--muted)}
+    section{margin:24px 0}
+    li{margin:.25em 0}
+    code{background:var(--bg-elev);padding:0 .25em;border-radius:4px}
   </style>
 </head>
 <body>
-  <header>
-    <div class="wrap headbar">
-      <span class="logo" aria-hidden="true"></span>
-      <div class="title">Train Punch</div>
-      <nav>
-        <a href="./index.html">アプリへ戻る</a>
-        <a href="./contact.html">お問い合わせ</a>
-        <a href="./tokusho.html">特商法表記</a>
-        <a href="./support.html">サポート</a>
-      </nav>
-    </div>
-  </header>
-
-  <main class="wrap">
+  <main>
     <h1>プライバシーポリシー</h1>
-    <p class="muted">最終更新日：<time id="updated">2025-11-02</time> / 本ページはオフラインでも表示できるようプリキャッシュされます。</p>
+    <small>最終更新日：2025-11-03</small>
 
-    <section class="card">
-      <h2>1. 基本方針</h2>
-      <p>Train Punch（以下「本アプリ」）は、ユーザーのトレーニング記録を<strong>端末内</strong>（主に <strong>IndexedDB</strong>・LocalStorage・Cache Storage）に保存します。開発者のサーバーへ自動送信される個人データはありません。</p>
-      <p>本アプリはアクセス解析や行動トラッキングを行いません。</p>
+    <section>
+      <p>Train Punch（以下「本アプリ」）は、ユーザーの端末上で動作するプログレッシブウェブアプリ（PWA）です。本ポリシーは、本アプリにおける情報の取扱いについて定めるものです。</p>
     </section>
 
-    <section class="card">
-      <h2>2. 収集・保存する情報（端末内）</h2>
+    <section>
+      <h2>1. 収集する情報</h2>
       <ul>
-        <li>トレーニング記録：種目・重量・回数・RPE・日付・メモ</li>
-        <li>アプリ設定：テーマ、タイマー、ウォッチ種目、通知可否 等</li>
-        <li>バックアップ/復元に使用するファイル（JSON/CSV）：ユーザー操作時のみ</li>
+        <li>トレーニング記録（種目・重量・回数・セット数・日付・メモ・ウォームアップの有無）</li>
+        <li>アプリ設定（テーマ、ウォッチ種目、表示タブ等）</li>
       </ul>
-      <p>保存期間はユーザーが削除するまでです（<span class="tag">設定 → 全データ削除</span> やブラウザのサイトデータ削除で消去されます）。</p>
+      <p>※ <strong>これらはすべてユーザー端末内</strong>（IndexedDB/LocalStorage）に保存されます。サーバーへの送信は行いません。</p>
     </section>
 
-    <section class="card">
-      <h2>3. 端末の権限・機能の利用</h2>
+    <section>
+      <h2>2. 保存場所と同期</h2>
+      <p>データは端末内の <code>IndexedDB</code> を主に使用し、利用できない環境では <code>LocalStorage</code> を用いる場合があります。クラウド同期は行いません。</p>
+    </section>
+
+    <section>
+      <h2>3. 通知の利用（アップデート時のみ）</h2>
       <ul>
-        <li><strong>通知</strong>：休憩タイマー等の通知に OS の許可が必要です。通知内容は端末内で生成・表示され、サーバー送信は行いません。</li>
-        <li><strong>音声再生</strong>：<code>beep.wav</code> を再生します。<u>録音・マイクアクセスは行いません</u>。</li>
-        <li><strong>クリップボード</strong>：メールアドレスやテンプレ文面のコピー時に使用します（ユーザー操作時のみ）。</li>
-        <li><strong>ファイルアクセス</strong>：JSON/CSV のインポート時にローカルファイルを読み込みます（ブラウザ内で完結）。</li>
-        <li><strong>PWA/オフライン</strong>：Service Worker が静的アセットをキャッシュし、オフライン動作と高速化を行います。</li>
+        <li>本アプリは<strong>アプリの更新が利用可能になったとき</strong>に限り、OSの通知を使用する場合があります。</li>
+        <li>通知の送信はユーザーの明示的な許可後にのみ行われます（設定 &gt; 「アップデート通知を許可」）。</li>
+        <li>サーバーからのプッシュ配信や通知トークンの収集は行いません。通知は端末内で即時表示されます。</li>
+        <li>かつて存在した「セット間の休憩タイマー通知」は廃止しました。</li>
+        <li>通知はOSの設定からいつでも無効化できます。</li>
       </ul>
     </section>
 
-    <section class="card">
-      <h2>4. 外部サービスと広告</h2>
-      <p>本アプリ本体は広告を表示しませんが、<strong>支援ページ（support.html）</strong>では運営費捻出のため広告（例：Google AdSense）やアフィリエイトリンクを掲載する場合があります。</p>
-      <ul>
-        <li>広告配信にはクッキー等が利用されることがあります。詳細は各事業者のポリシーをご確認ください。</li>
-        <li>EEA/英国/スイス等からのアクセスでは、Google の同意管理によりクッキー等の利用可否を確認するメッセージが表示される場合があります。</li>
-        <li>投げ銭や月額支援リンク（例：Ko-fi / GitHub Sponsors）を設置することがあります。決済は各サービス上で行われ、本アプリはクレジットカード番号等の決済情報を保持しません。</li>
-      </ul>
-      <p class="muted">※外部サイトのご利用は各サイトのポリシーが適用されます。</p>
+    <section>
+      <h2>4. オフライン・キャッシュ</h2>
+      <p>サービスワーカーにより、一部ページをキャッシュしてオフライン表示します。更新がある場合はアプリ内の更新ボタン（↻）または自動検知により、最新版へ切り替えられます。</p>
     </section>
 
-    <section class="card">
-      <h2>5. データのエクスポート/削除</h2>
-      <div class="kv">
-        <div>バックアップ</div><div><span class="tag">設定 → JSONエクスポート / CSVエクスポート</span> で出力できます。</div>
-        <div>復元</div><div><span class="tag">JSONインポート / CSVインポート</span> から端末内に読み込みます。</div>
-        <div>削除</div><div><span class="tag">設定 → 全データ削除</span> で記録を消去できます。ブラウザ側のサイトデータ削除でも消去されます。</div>
-      </div>
+    <section>
+      <h2>5. 第三者提供・外部サービス</h2>
+      <p>第三者への個人データの提供、外部解析ツールの組み込みは行っていません。</p>
     </section>
 
-    <section class="card">
-      <h2>6. セキュリティ</h2>
-      <p>端末内で完結する設計のため、サーバー漏えいリスクはありません。端末の画面ロック・OS/ブラウザの最新化・共有端末での利用回避など、基本的な対策を推奨します。</p>
+    <section>
+      <h2>6. エクスポート・インポート</h2>
+      <p>メニューからCSV/JSONでデータのエクスポート/インポートが可能です。バックアップや端末間移行にご利用ください。</p>
     </section>
 
-    <section class="card">
-      <h2>7. 児童の利用について</h2>
-      <p>本アプリは一般ユーザー向けです。13歳未満の方は、保護者の同意なく個人情報を送信しないでください（本アプリはサーバー送信を行いませんが、連絡等を行う場合の一般的な注意喚起として記載しています）。</p>
+    <section>
+      <h2>7. 保持期間と削除</h2>
+      <p>データはユーザーが削除するまで端末内に保持されます。設定の「全データ削除」でいつでも消去できます。</p>
     </section>
 
-    <section class="card">
-      <h2>8. ポリシーの変更</h2>
-      <p>内容は改善のため予告なく更新されることがあります。重要な変更は本ページでお知らせします。</p>
+    <section>
+      <h2>8. セキュリティ</h2>
+      <p>端末内保存のため通信上の送信は発生しませんが、端末の一般的なセキュリティ対策（OS更新・画面ロック等）の実施を推奨します。</p>
     </section>
 
-    <section class="card">
-      <h2>9. お問い合わせ</h2>
-      <p>開発者連絡先：<a href="mailto:toreninguguanli53@gmail.com">toreninguguanli53@gmail.com</a></p>
+    <section>
+      <h2>9. ポリシーの改定</h2>
+      <p>内容を更新する場合は本ページで告知します。重要な変更がある場合、アプリ内でもお知らせします。</p>
+    </section>
+
+    <section>
+      <h2>10. お問い合わせ</h2>
+      <p>ご不明点は <a href="./contact.html">contact.html</a> までご連絡ください。</p>
     </section>
   </main>
-
-  <footer>
-    <div class="wrap">
-      <div>© <span id="year"></span> Train Punch</div>
-      <div class="muted">v1.5.5-hotfix1 • このページは通信を行わず、外部リンクのみユーザー操作で遷移します。</div>
-    </div>
-  </footer>
-
-  <script>
-    // 年と更新日
-    document.getElementById('year').textContent = new Date().getFullYear();
-    // PWA: サービスワーカー登録（存在すれば）
-    if('serviceWorker' in navigator){
-      navigator.serviceWorker.register('./sw.js').catch(()=>{ /* 無視 */ });
-    }
-  </script>
 </body>
 </html>
