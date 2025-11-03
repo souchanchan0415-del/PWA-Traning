@@ -82,7 +82,7 @@
     })();
   </script>
 
-  <script>console.log('TP index v1.5.8-sets-rpe (memo-under-wu)');</script>
+  <script>console.log('TP index v1.5.8-sets-rpe + memo-collapsible + sticky-save');</script>
 </head>
 <body>
   <!-- App bar -->
@@ -103,7 +103,7 @@
       <div class="card">
         <h3>セッション</h3>
 
-        <!-- 日付だけ先に -->
+        <!-- 日付 -->
         <div class="row">
           <input id="sessDate" type="date" aria-label="日付">
         </div>
@@ -159,10 +159,11 @@
         </div>
         <!-- ／ウォームアップここまで -->
 
-        <!-- ▼ メモ（※位置を WU の直下へ移動） -->
-        <div class="row">
+        <!-- ▼ 折りたたみメモ（WUの直下） -->
+        <details id="memoDetails" class="memo">
+          <summary>メモを追加</summary>
           <textarea id="sessNote" rows="2" placeholder="メモ（任意）" aria-label="メモ"></textarea>
-        </div>
+        </details>
 
         <!-- 追加／Undo -->
         <div class="row end">
@@ -174,11 +175,6 @@
         <ul id="todaySets" class="list" aria-live="polite">
           <li>まだありません</li>
         </ul>
-
-        <!-- 保存 -->
-        <div class="row end">
-          <button id="btnSaveSession" type="button">セッション保存</button>
-        </div>
       </div>
 
       <!-- カスタム投入 -->
@@ -327,6 +323,11 @@
     </section>
   </main>
 
+  <!-- Sticky Save: 画面下固定の保存バー -->
+  <footer class="sticky-save" role="contentinfo">
+    <button id="btnSaveSession" type="button">セッション保存</button>
+  </footer>
+
   <!-- Toast & Debug -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div id="tp-debug"></div>
@@ -336,5 +337,16 @@
   <!-- scripts（キャッシュバスターを更新） -->
   <script defer src="app.js?v=1.5.8-sets-rpe"></script>
   <script defer src="sw-register.js?v=1.5.7-update-notify"></script>
+
+  <!-- 折りたたみメモのUX補助（任意だが軽い） -->
+  <script>
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const box=document.getElementById('memoDetails');
+      const ta=document.getElementById('sessNote');
+      if(!box||!ta) return;
+      if(ta.value && ta.value.trim()!=='') box.open = true;
+      ta.addEventListener('focus', ()=>{ box.open = true; }, {passive:true});
+    });
+  </script>
 </body>
 </html>
