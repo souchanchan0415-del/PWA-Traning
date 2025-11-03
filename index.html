@@ -14,7 +14,7 @@
   <link rel="icon" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
 
-  <title>Train Punch v1.5.8-sets-rpe</title>
+  <title>Train Punch v1.5.9-safari-fix</title>
 
   <!-- styles -->
   <link rel="preload" href="styles.css?v=1.5.1" as="style">
@@ -43,46 +43,57 @@
     .twins>input{flex:1;min-width:0}
   </style>
 
-  <!-- 強制更新（SW全解除＋キャッシュ全削除） -->
+  <!-- 強制更新（起動直後に旧SW/Cacheを全削除） -->
   <script>
     (function(){
-      const q=new URL(location.href).searchParams;
-      const has=k=>q.has(k)&&(q.get(k)===''||q.get(k)==='1'||q.get(k)==='true');
+      // デバッグオーバーレイ
+      (function mountDebug(){
+        var box=document.createElement('div'); box.id='tp-debug'; box.innerHTML='<b>Debug</b>（一時表示）';
+        document.addEventListener('DOMContentLoaded',function(){ document.body.appendChild(box); },{once:true});
+        function show(){ box.style.display='block'; }
+        function esc(s){ return String(s).replace(/[<&]/g,function(m){return ({'<':'&lt;','&':'&amp;'})[m];}); }
+        window.addEventListener('error',function(e){ show(); box.innerHTML+='<div>Error: '+esc(e.message)+' @ '+esc(e.filename)+':'+(e.lineno||'')+'</div>'; });
+        window.addEventListener('unhandledrejection',function(e){
+          var r=e && e.reason; var msg=(r && r.message)?r.message:String(r);
+          show(); box.innerHTML+='<div>Promise: '+esc(msg)+'</div>';
+        });
+      })();
 
-      function mountDebug(){
-        const box=document.createElement('div'); box.id='tp-debug'; box.innerHTML='<b>Debug</b>（一時表示）';
-        document.addEventListener('DOMContentLoaded',()=>document.body.appendChild(box),{once:true});
-        const show=()=>{box.style.display='block'};
-        const esc=s=>String(s).replace(/[<&]/g,m=>({ '<':'&lt;','&':'&amp;'}[m]));
-        window.addEventListener('error',e=>{show();box.innerHTML+='<div>Error: '+esc(e.message)+' @ '+esc(e.filename)+':'+(e.lineno||'')+'</div>'});
-        window.addEventListener('unhandledrejection',e=>{show();box.innerHTML+='<div>Promise: '+esc(e.reason&&e.reason.message?e.reason.message:e.reason)+'</div>'});
-        if(has('debug')) window.addEventListener('load',show,{once:true});
-      } mountDebug();
-
-      window.__tpHardRefresh=async function(){
+      // 手動ハードリフレッシュ（ボタン用）
+      window.__tpHardRefresh = async function(){
         if(window.__tpHRRunning) return; window.__tpHRRunning=true;
-        const btn=document.getElementById('btnHardRefresh'); if(btn){btn.disabled=true;btn.textContent='更新…'}
+        var btn=document.getElementById('btnHardRefresh'); if(btn){btn.disabled=true;btn.textContent='更新…'}
         try{
           if('serviceWorker' in navigator){
-            const regs=await navigator.serviceWorker.getRegistrations();
-            await Promise.all(regs.map(r=>r.unregister().catch(()=>{})));
+            var regs=await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(function(r){ return r.unregister().catch(function(){}); }));
           }
           if('caches' in window){
-            const keys=await caches.keys();
-            await Promise.all(keys.map(k=>caches.delete(k).catch(()=>{})));
+            var keys=await caches.keys();
+            await Promise.all(keys.map(function(k){ return caches.delete(k).catch(function(){}); }));
           }
         }catch(_){}
         location.reload();
       };
 
-      if(has('kill')){
-        const clean=location.href.replace(/([?&])(kill(=1|=true)?)(&|$)/,'$1').replace(/[?&]$/,'');
-        history.replaceState(null,'',clean); window.__tpHardRefresh();
-      }
+      // 起動直後に旧キャッシュを掃除（新ファイルを確実に読み込ませる）
+      try{
+        if('serviceWorker' in navigator){
+          navigator.serviceWorker.getRegistrations()
+            .then(function(rs){ return Promise.all(rs.map(function(r){ return r.unregister().catch(function(){}); })); });
+        }
+      }catch(_){}
+      try{
+        if('caches' in window){
+          caches.keys().then(function(keys){
+            return Promise.all(keys.map(function(k){ return caches.delete(k).catch(function(){}); }));
+          });
+        }
+      }catch(_){}
     })();
   </script>
 
-  <script>console.log('TP index v1.5.8-sets-rpe + memo-collapsible + sticky-save + templates');</script>
+  <script>console.log('TP index v1.5.9-safari-fix loaded');</script>
 </head>
 <body>
   <!-- App bar -->
@@ -347,18 +358,18 @@
 
   <noscript><p class="nojs">JavaScript を有効にしてください。</p></noscript>
 
-  <!-- scripts（キャッシュバスターを更新） -->
-  <script defer src="app.js?v=1.5.8-sets-rpe"></script>
-  <script defer src="sw-register.js?v=1.5.7-update-notify"></script>
+  <!-- scripts（“ファイル名ごと”更新してキャッシュ回避） -->
+  <script defer src="./app.1.5.9-safari-fix.js"></script>
+  <script defer src="sw-register.js?v=1.5.9"></script>
 
   <!-- 折りたたみメモのUX補助（任意だが軽い） -->
   <script>
-    document.addEventListener('DOMContentLoaded', ()=>{
-      const box=document.getElementById('memoDetails');
-      const ta=document.getElementById('sessNote');
+    document.addEventListener('DOMContentLoaded', function(){
+      var box=document.getElementById('memoDetails');
+      var ta=document.getElementById('sessNote');
       if(!box||!ta) return;
       if(ta.value && ta.value.trim()!=='') box.open = true;
-      ta.addEventListener('focus', ()=>{ box.open = true; }, {passive:true});
+      ta.addEventListener('focus', function(){ box.open = true; }, {passive:true});
     });
   </script>
 </body>
