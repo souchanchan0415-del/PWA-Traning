@@ -552,7 +552,7 @@ function buildSessionDetailsHTML(sets,nameById){
         return `${x.weight}kg×${x.reps}${rpe}${wu}`;
       }).join('、 ');
       return `
-        <div style="margin:8px 0; padding:8px; border:1px dashed var(--line); border-radius:10px">
+        <div style="margin:8px 0; padding:8px; border:1px dashed ${'var(--line)'}; border-radius:10px">
           <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
             <strong>${esc(exName)}</strong>
             <span class="badge">${arr.length}セット</span>
@@ -604,7 +604,7 @@ async function renderHistory(){
       if(act==='del'){ if(confirm('このセッションを削除しますか？')) await deleteSession(id); renderHistory(); }
       if(act==='note'){ await editSessionNote(id); renderHistory(); }
       if(act==='detail'){
-        const box=li.querySelector('.details');
+        const box=li.querySelector(' .details');
         if(box.hidden || !box._loaded){ box.innerHTML=buildSessionDetailsHTML(li._sets||[], ul._nameById||{}); box._loaded=true; box.hidden=false; }
         else box.hidden=true;
       }
