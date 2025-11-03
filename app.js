@@ -1,7 +1,8 @@
-// Train Punch — v1.5.7-no-timer (full replace)
-// fix: stray ']' syntax error / Safari-safe ?? usage / smaller bundle
-// drop: rest timer (state, prefs, UI binding, audio/notification on timer)
-// keep: your bindSessionUI flow, IDB+LS fallback, CSV import/export, analytics, watchlist
+// Train Punch — v1.5.7-no-timer-sets (full replace)
+// change: RPE → セット数入力（40x8x3対応）/ 追加時に同一セットを複数投入
+// drop : rest timer（状態・設定・通知）
+// fix  : Safari-safe ?? / stray bracket / smaller bundle
+// keep : IDB+LS fallback, CSV import/export, charts, watchlist
 
 const DB_NAME='trainpunch_v3';
 const DB_VER=3;
@@ -238,10 +239,8 @@ async function init(){
 
   await ensureInitialExercises();
 
-  // prefs (watchlist / theme / last tab) — Safari-safe
-  try{
-    watchlist = (await get('prefs','watchlist'))?.value || [];
-  }catch(e){ console.warn(e); }
+  // prefs (watchlist / theme / last tab)
+  try{ watchlist = (await get('prefs','watchlist'))?.value || []; }catch(e){ console.warn(e); }
 
   const lastTab=(await get('prefs','last_tab'))?.value;
   if(lastTab){
@@ -249,10 +248,8 @@ async function init(){
     if(btn && !btn.classList.contains('active')) btn.click();
   }
 
-  // もしHTMLにタイマーボタンが残ってても消す
+  // 念のためタイマーUIが残っていたら消す
   $('#btnTimer')?.remove();
-  $('#timerSec')?.closest?.('.row')?.remove?.();
-  $('#autoTimer')?.closest?.('.row')?.remove?.();
 
   $('#sessDate') && ($('#sessDate').value=todayStr());
   bindSessionUI();
@@ -325,16 +322,20 @@ function bindSessionUI(){
     chips.addEventListener('click',async e=>{
       const b=e.target.closest('.chip'); if(!b) return;
       selectedPart=b.dataset.part; renderPartChips(); await renderExSelect();
-      $('#weight').value=''; $('#reps').value=''; $('#rpe').value='';
+      $('#weight').value=''; $('#reps').value=''; $('#sets').value='';
     });
   }
-  ['weight','reps','rpe'].forEach(id=>{
+
+  // スマート入力（weight/reps/sets）
+  ['weight','reps','sets'].forEach(id=>{
     const el=$('#'+id);
     el?.addEventListener('input',handleSmartInput,{passive:true});
     el?.addEventListener('change',handleSmartInput);
     el?.addEventListener('paste',()=>setTimeout(handleSmartInput,0));
   });
-  $('#rpe')?.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#btnAddSet')?.click(); } });
+  // Enterで追加
+  $('#sets')?.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#btnAddSet')?.click(); } });
+
   $('#wuScheme')?.addEventListener('change',e=>put('prefs',{key:'wu_scheme',value:e.target.value}).catch(()=>{}));
   $('#wuRound') ?.addEventListener('change',e=>put('prefs',{key:'wu_round', value:Number(e.target.value)||2.5}).catch(()=>{}));
 
@@ -387,7 +388,9 @@ function bindSessionUI(){
     const exId=Number($('#exSelect').value);
     const weight=Number($('#weight').value);
     const reps=Number($('#reps').value);
-    const rpeStr=$('#rpe').value;
+    let setsN=Number($('#sets').value||'1');
+    if(!Number.isFinite(setsN) || setsN<=0) setsN=1;
+
     if(!exId||!weight||!reps){ showToast('種目・重量・回数は必須です'); return; }
 
     let willPR=false;
@@ -401,11 +404,14 @@ function bindSessionUI(){
     }
 
     pushUndo();
-    currentSession.sets.push({ temp_id:(crypto?.randomUUID?.()||Date.now()+'_'+Math.random().toString(16).slice(2)), exercise_id:exId, weight, reps, rpe: rpeStr?Number(rpeStr):null, ts:Date.now(), date:$('#sessDate').value });
+    const date=$('#sessDate').value; const now=Date.now();
+    for(let i=0;i<setsN;i++){
+      currentSession.sets.push({ temp_id:(crypto?.randomUUID?.()||now+'_'+Math.random().toString(16).slice(2)+'_'+i), exercise_id:exId, weight, reps, rpe:null, ts:now+i, date });
+    }
 
     if(willPR){ showToast('e1RM更新！（ウォッチ）'); if('vibrate' in navigator) navigator.vibrate([60,40,60]); }
 
-    $('#weight').value=''; $('#reps').value=''; $('#rpe').value='';
+    $('#weight').value=''; $('#reps').value=''; $('#sets').value='';
     renderTodaySets();
   });
 
@@ -428,23 +434,26 @@ function bindSessionUI(){
 
   $('#exSelect')?.addEventListener('change',async()=>{
     const exId=Number($('#exSelect').value);
-    if(!exId){ $('#weight').value=''; $('#reps').value=''; $('#rpe').value=''; return; }
+    if(!exId){ $('#weight').value=''; $('#reps').value=''; $('#sets').value=''; return; }
     const sets=(await getAll('sets')).filter(s=>s.exercise_id===exId).sort((a,b)=>b.ts-a.ts);
-    if(sets[0]){ $('#weight').value=sets[0].weight; $('#reps').value=sets[0].reps; $('#rpe').value=sets[0].rpe ?? ''; }
-    else { $('#weight').value=''; $('#reps').value=''; $('#rpe').value=''; }
+    if(sets[0]){ $('#weight').value=sets[0].weight; $('#reps').value=sets[0].reps; $('#sets').value=''; }
+    else { $('#weight').value=''; $('#reps').value=''; $('#sets').value=''; }
   });
 }
 
-// smart input
+// smart input（40x8x3 / 40*8*3 / 40x8 / 40*8）
 function parseSmart(s){
   if(!s||typeof s!=='string') return null;
   const str=s.trim().replace(/＊/g,'*').replace(/×/g,'x').toLowerCase();
-  const m=str.match(/^(\d+(?:\.\d+)?)\s*[x\*]\s*(\d+)(?:\s*@\s*(\d+(?:\.\d+)?))?$/);
-  if(!m) return null; return {w:Number(m[1]), r:Number(m[2]), p:m[3]!==undefined?Number(m[3]):null};
+  const m=str.match(/^(\d+(?:\.\d+)?)\s*[x\*]\s*(\d+)(?:\s*[x\*]\s*(\d+))?(?:\s*@\s*(\d+(?:\.\d+)?))?$/);
+  if(!m) return null;
+  return {w:Number(m[1]), r:Number(m[2]), s:m[3]!==undefined?Number(m[3]):null};
 }
 function handleSmartInput(e){
   const v=e?.target?.value ?? ''; const parsed=parseSmart(v); if(!parsed) return;
-  $('#weight').value=String(parsed.w); $('#reps').value=String(parsed.r); $('#rpe').value=parsed.p!=null?String(parsed.p):''; showToast('スマート入力を適用');
+  $('#weight').value=String(parsed.w); $('#reps').value=String(parsed.r);
+  if(parsed.s!=null) $('#sets').value=String(parsed.s);
+  showToast('スマート入力を適用');
 }
 
 // ======== Custom insert ========
@@ -478,7 +487,7 @@ function renderTodaySets(){
   ul.innerHTML=currentSession.sets.map(s=>{
     const wu=s.wu?`<span class="badge wu">WU</span> `:'';
     return `<li>
-      <span>${wu}<strong>${esc(exNameById(s.exercise_id))}</strong> ${s.weight}kg × ${s.reps}${s.rpe?` RPE${s.rpe}`:''}</span>
+      <span>${wu}<strong>${esc(exNameById(s.exercise_id))}</strong> ${s.weight}kg × ${s.reps}</span>
       <span style="display:flex; gap:6px">
         <button class="ghost" data-act="edit" data-id="${s.temp_id}">編集</button>
         <button class="ghost" data-act="del"  data-id="${s.temp_id}">削除</button>
@@ -494,7 +503,7 @@ function renderTodaySets(){
         pushUndo(); currentSession.sets=currentSession.sets.filter(x=>x.temp_id!==id); renderTodaySets();
         const ex=(await getAll('exercises')).find(e=>e.id===item.exercise_id);
         if(ex && ex.group && ex.group!==selectedPart){ selectedPart=ex.group; renderPartChips(); await renderExSelect(); }
-        $('#exSelect').value=String(item.exercise_id); $('#weight').value=String(item.weight); $('#reps').value=String(item.reps); $('#rpe').value=item.rpe ?? '';
+        $('#exSelect').value=String(item.exercise_id); $('#weight').value=String(item.weight); $('#reps').value=String(item.reps); $('#sets').value='1';
         showToast('編集用に読み込みました'); window.scrollTo({top:0,behavior:'smooth'});
       }
     });
@@ -748,7 +757,7 @@ async function renderTrendSelect(){
 }
 async function renderTrendChart(){
   const canvas=$('#trendChart'); if(!canvas) return;
-  const sel=$('#exTrendSelect'); const rangeSel=$('#trendRange'); // <-- fixed ) here
+  const sel=$('#exTrendSelect'); const rangeSel=$('#trendRange'); // fixed
   const exId=Number(sel?.value||0);
   const range=(rangeSel?.value||'10');
 
