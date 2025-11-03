@@ -6,7 +6,6 @@
   <meta name="theme-color" content="#0e1116">
   <meta name="format-detection" content="telephone=no">
   <meta name="color-scheme" content="light dark">
-  <!-- HTMLは極力キャッシュさせない（保険） -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -83,7 +82,7 @@
     })();
   </script>
 
-  <script>console.log('TP index v1.5.8-sets-rpe');</script>
+  <script>console.log('TP index v1.5.8-sets-rpe (memo-under-wu)');</script>
 </head>
 <body>
   <!-- App bar -->
@@ -101,28 +100,26 @@
   <main class="container">
     <!-- ===== Session ===== -->
     <section id="tab-session" class="tab active" aria-labelledby="セッション" role="tabpanel">
-
-      <!-- ✅ 統合カード（日時・部位・入力・保存まで一体化） -->
       <div class="card">
         <h3>セッション</h3>
 
-        <!-- 日付・メモ（上段に移動） -->
-        <div class="grid grid-2" style="margin-bottom:.5rem">
+        <!-- 日付だけ先に -->
+        <div class="row">
           <input id="sessDate" type="date" aria-label="日付">
-          <textarea id="sessNote" rows="2" placeholder="メモ（任意）" aria-label="メモ"></textarea>
         </div>
 
         <!-- 部位 -->
-        <h4 class="sub">部位</h4>
-        <div id="partChips" class="chipset" role="tablist" aria-label="部位選択">
-          <div class="chip active" data-part="胸" role="tab" aria-selected="true" tabindex="0">胸</div>
-          <div class="chip" data-part="背中" role="tab" aria-selected="false" tabindex="0">背中</div>
-          <div class="chip" data-part="肩" role="tab" aria-selected="false" tabindex="0">肩</div>
-          <div class="chip" data-part="脚" role="tab" aria-selected="false" tabindex="0">脚</div>
-          <div class="chip" data-part="腕" role="tab" aria-selected="false" tabindex="0">腕</div>
+        <div>
+          <h4 class="subtle">部位</h4>
+          <div id="partChips" class="chipset" role="tablist" aria-label="部位選択">
+            <div class="chip active" data-part="胸" role="tab" aria-selected="true" tabindex="0">胸</div>
+            <div class="chip" data-part="背中" role="tab" aria-selected="false" tabindex="0">背中</div>
+            <div class="chip" data-part="肩" role="tab" aria-selected="false" tabindex="0">肩</div>
+            <div class="chip" data-part="脚" role="tab" aria-selected="false" tabindex="0">脚</div>
+            <div class="chip" data-part="腕" role="tab" aria-selected="false" tabindex="0">腕</div>
+          </div>
         </div>
 
-        <!-- 種目選択 -->
         <div class="row">
           <label for="exSelect">種目</label>
           <select id="exSelect" aria-label="種目選択">
@@ -140,7 +137,7 @@
           </div>
         </div>
 
-        <!-- ウォームアップ自動生成 -->
+        <!-- ★ ウォームアップ自動生成 -->
         <div class="row">
           <label for="wuScheme">ウォームアップ</label>
           <select id="wuScheme" title="自動…回数から強度帯を判定" aria-label="ウォームアップ方式">
@@ -160,25 +157,31 @@
           <button id="btnGenWarmup" class="ghost" title="トップセットからWU生成" type="button">↑からウォームアップ自動生成</button>
           <button id="btnClearWarmup" class="ghost danger" title="生成済みWUを削除" type="button">WU削除</button>
         </div>
+        <!-- ／ウォームアップここまで -->
 
-        <!-- 操作系（Undo/追加） -->
+        <!-- ▼ メモ（※位置を WU の直下へ移動） -->
+        <div class="row">
+          <textarea id="sessNote" rows="2" placeholder="メモ（任意）" aria-label="メモ"></textarea>
+        </div>
+
+        <!-- 追加／Undo -->
         <div class="row end">
           <button id="btnUndo" class="ghost" type="button">一手戻す</button>
           <button id="btnAddSet" type="button">セット追加</button>
         </div>
 
-        <!-- 本日のセット一覧 -->
+        <!-- 今日のセット -->
         <ul id="todaySets" class="list" aria-live="polite">
           <li>まだありません</li>
         </ul>
 
-        <!-- セッション保存（同じカード内に配置） -->
-        <div class="row end" style="margin-top:.5rem">
+        <!-- 保存 -->
+        <div class="row end">
           <button id="btnSaveSession" type="button">セッション保存</button>
         </div>
       </div>
-      <!-- ／統合カードここまで -->
 
+      <!-- カスタム投入 -->
       <div class="card">
         <h3>カスタム投入</h3>
         <div id="tplPartChips" class="chipset" aria-label="カスタム投入の部位選択">
