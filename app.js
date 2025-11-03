@@ -4,36 +4,48 @@
 // fix  : Safari-safe, stray bracket, tiny polish
 // keep : IDB+LS fallback, CSV import/export, charts, watchlist
 
-const DB_NAME='trainpunch_v3';
-const DB_VER=3;
+const DB_NAME = 'trainpunch_v3';
+const DB_VER  = 3;
 let db;
 
 // ===== tiny DOM helpers =====
-const $ = s=>document.querySelector(s);
-const $$= s=>Array.from(document.querySelectorAll(s));
-function showToast(msg){ const t=$('#toast'); if(!t) return; t.textContent=String(msg||''); t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); }
-window.addEventListener('error',e=>{ console.warn('[TP] Uncaught:',e?.error||e?.message||e); showToast('エラー: '+(e?.message||'不明')); });
-window.addEventListener('unhandledrejection',e=>{ console.warn('[TP] UnhandledRejection:',e?.reason); const msg=e?.reason?.message||String(e?.reason||'不明'); showToast('エラー: '+msg); });
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+function showToast(msg){
+  const t = $('#toast'); if(!t) return;
+  t.textContent = String(msg || '');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1400);
+}
+window.addEventListener('error', e=>{
+  console.warn('[TP] Uncaught:', e?.error || e?.message || e);
+  showToast('エラー: ' + (e?.message || '不明'));
+});
+window.addEventListener('unhandledrejection', e=>{
+  console.warn('[TP] UnhandledRejection:', e?.reason);
+  const msg = e?.reason?.message || String(e?.reason || '不明');
+  showToast('エラー: ' + msg);
+});
 
 // --- date / calc ---
-const ymdLocal=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-const todayStr =()=>ymdLocal(new Date());
-const esc=s=>String(s ?? '').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const e1rm=(w,r)=>Number(w||0)*(1+(Number(r||0))/30);
+const ymdLocal = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const todayStr = () => ymdLocal(new Date());
+const esc      = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const e1rm     = (w,r) => Number(w||0) * (1 + (Number(r||0))/30);
 
 // --- misc ---
-const debounce=(fn,wait=150)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),wait);};};
-try{ if('scrollRestoration' in history) history.scrollRestoration='manual'; }catch(_){}
+const debounce = (fn,wait=150)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),wait); }; };
+try{ if('scrollRestoration' in history) history.scrollRestoration = 'manual'; }catch(_){}
 
 // ---- Hard Refresh ----
 async function hardRefresh(){
   try{
     if('serviceWorker' in navigator){
-      const regs=await navigator.serviceWorker.getRegistrations();
+      const regs = await navigator.serviceWorker.getRegistrations();
       await Promise.all(regs.map(r=>r.unregister().catch(()=>{})));
     }
     if('caches' in window){
-      const keys=await caches.keys();
+      const keys = await caches.keys();
       await Promise.all(keys.map(k=>caches.delete(k).catch(()=>{})));
     }
   }catch(e){ console.warn(e); }
@@ -43,19 +55,19 @@ async function hardRefresh(){
 // ======================================================
 // Storage layer: IndexedDB (primary) -> LocalStorage (fallback)
 // ======================================================
-let USE_LS=false;
-const LS_KEY='trainpunch_ls';
+let USE_LS = false;
+const LS_KEY = 'trainpunch_ls';
 
 function _lsLoad(){
   try{
-    const raw=localStorage.getItem(LS_KEY);
+    const raw = localStorage.getItem(LS_KEY);
     if(raw){
-      const obj=JSON.parse(raw);
+      const obj = JSON.parse(raw);
       return {
-        sessions: Array.isArray(obj.sessions)?obj.sessions:[],
-        sets:      Array.isArray(obj.sets)?obj.sets:[],
-        exercises: Array.isArray(obj.exercises)?obj.exercises:[],
-        prefs:     Array.isArray(obj.prefs)?obj.prefs:[]
+        sessions : Array.isArray(obj.sessions) ? obj.sessions : [],
+        sets     : Array.isArray(obj.sets) ? obj.sets : [],
+        exercises: Array.isArray(obj.exercises) ? obj.exercises : [],
+        prefs    : Array.isArray(obj.prefs) ? obj.prefs : []
       };
     }
   }catch(_){}
@@ -65,8 +77,8 @@ function _lsSave(d){ try{ localStorage.setItem(LS_KEY, JSON.stringify(d)); }catc
 function _lsNextId(arr){ return (arr.reduce((m,x)=>Math.max(m,Number(x.id)||0),0)+1)||1; }
 
 async function enableLocalStorageFallback(reason){
-  USE_LS=true;
-  console.warn('[TP] Fallback to LocalStorage:',reason);
+  USE_LS = true;
+  console.warn('[TP] Fallback to LocalStorage:', reason);
   showToast('ローカル保存に切替（IDB不可）');
 }
 
@@ -75,37 +87,37 @@ function openDB(){
   return new Promise((resolve,reject)=>{
     try{
       if(!('indexedDB' in window)) return reject(new Error('IndexedDB unsupported'));
-      const req=indexedDB.open(DB_NAME,DB_VER);
-      req.onupgradeneeded=(e)=>{
-        const d=req.result;
+      const req = indexedDB.open(DB_NAME, DB_VER);
+      req.onupgradeneeded = (e)=>{
+        const d = req.result;
         if(!d.objectStoreNames.contains('exercises')){
-          const s=d.createObjectStore('exercises',{keyPath:'id',autoIncrement:true});
+          const s = d.createObjectStore('exercises',{keyPath:'id',autoIncrement:true});
           s.createIndex('name','name',{unique:true});
           s.createIndex('by_group','group',{unique:false});
         }else{
-          const s=e.target.transaction.objectStore('exercises');
+          const s = e.target.transaction.objectStore('exercises');
           if(!s.indexNames.contains('name')) s.createIndex('name','name',{unique:true});
           if(!s.indexNames.contains('by_group')) s.createIndex('by_group','group',{unique:false});
         }
         if(!d.objectStoreNames.contains('sessions')) d.createObjectStore('sessions',{keyPath:'id',autoIncrement:true});
         if(!d.objectStoreNames.contains('sets')){
-          const s=d.createObjectStore('sets',{keyPath:'id',autoIncrement:true});
+          const s = d.createObjectStore('sets',{keyPath:'id',autoIncrement:true});
           s.createIndex('by_session','session_id',{unique:false});
           s.createIndex('by_date','date',{unique:false});
         }else{
-          const s=e.target.transaction.objectStore('sets');
+          const s = e.target.transaction.objectStore('sets');
           if(!s.indexNames.contains('by_session')) s.createIndex('by_session','session_id',{unique:false});
           if(!s.indexNames.contains('by_date')) s.createIndex('by_date','date',{unique:false});
         }
         if(!d.objectStoreNames.contains('prefs')) d.createObjectStore('prefs',{keyPath:'key'});
       };
-      req.onblocked=()=>{ console.warn('[TP] IDB open blocked'); showToast('DB更新待機中… 他のタブを閉じてください'); };
-      req.onsuccess=()=>{ db=req.result; resolve(db); };
-      req.onerror =()=>reject(req.error||new Error('open failed'));
+      req.onblocked  = ()=>{ console.warn('[TP] IDB open blocked'); showToast('DB更新待機中… 他のタブを閉じてください'); };
+      req.onsuccess  = ()=>{ db=req.result; resolve(db); };
+      req.onerror    = ()=>reject(req.error||new Error('open failed'));
     }catch(err){ reject(err); }
   });
 }
-const tx=(names,mode='readonly')=>db.transaction(names,mode);
+const tx = (names,mode='readonly') => db.transaction(names,mode);
 
 // ---- API wrappers (with auto-fallback) ----
 async function put(store,val){
@@ -143,7 +155,7 @@ async function del_(store,key){
     }catch(err){ rej(err); }
   }).catch(async err=>{ await enableLocalStorageFallback(err?.message||err); return del_(store,key); });
 }
-const del=del_;
+const del = del_;
 async function get(store,key){
   if(USE_LS){ const data=_lsLoad(); if(store==='prefs') return data.prefs.find(p=>p.key===key)||undefined; return (data[store]||[]).find(x=>Number(x.id)===Number(key)); }
   return new Promise((res,rej)=>{
@@ -176,8 +188,8 @@ const indexGetAll=(store,idx,q)=>new Promise(async(res)=>{
 });
 
 // ---- Data preset ----
-const PARTS=['胸','背中','肩','脚','腕'];
-const EX_GROUPS={
+const PARTS = ['胸','背中','肩','脚','腕'];
+const EX_GROUPS = {
   '胸':['ベンチプレス','足上げベンチプレス','スミスマシンベンチプレス','インクラインダンベルプレス','インクラインマシンプレス','スミスマシンインクラインプレス','スミスマシンデクラインプレス','ディップス','ディップス（荷重）','ケーブルクロスオーバー','ペックフライ','チェストプレス'],
   '背中':['デッドリフト','ハーフデッドリフト','懸垂（チンニング）','ラットプルダウン','ラットプルダウン（ナロー）','ラットプルダウン（ちょーナロー）','ワイドラットプルダウン','スミスマシンベントオーバーロウ','ベントオーバーロウ','ローロウ','シーテッドロウ','Tバーロウ'],
   '肩':['ダンベルショルダープレス','スミスマシンショルダープレス','マシンショルダープレス','ケーブルフロントレイズ','サイドレイズ','ベンチサイドレイズ','ケーブルサイドレイズ','ケーブルリアレイズ','リアデルトイド'],
@@ -186,13 +198,13 @@ const EX_GROUPS={
 };
 
 // ---- UI state ----
-let currentSession={date:todayStr(),note:'',sets:[]};
+let currentSession = {date:todayStr(),note:'',sets:[]};
 let selectedPart='胸', tplSelectedPart='胸';
 
 // watchlist
 let watchlist=[]; let watchSelectedPart='胸';
 let _watchChipsBound=false, _trendEventsBound=false;
-const isWatched=id=>Array.isArray(watchlist)&&watchlist.includes(id);
+const isWatched = id => Array.isArray(watchlist) && watchlist.includes(id);
 
 // undo stack
 const undoStack=[];
@@ -208,9 +220,9 @@ function doUndo(){
 function roundTo(x,step=2.5){ step=Number(step)||2.5; return Math.round((Number(x)||0)/step)*step; }
 function guessSchemeByReps(reps){ const r=Number(reps)||0; if(r<=5) return 'strength'; if(r<=10) return 'hypertrophy'; return 'endurance'; }
 const WU_PLANS={
-  strength:[{p:0.40,r:5},{p:0.55,r:3},{p:0.70,r:2},{p:0.80,r:1}],
+  strength   :[{p:0.40,r:5},{p:0.55,r:3},{p:0.70,r:2},{p:0.80,r:1}],
   hypertrophy:[{p:0.50,r:8},{p:0.70,r:5},{p:0.85,r:2}],
-  endurance:[{p:0.50,r:12},{p:0.65,r:8},{p:0.80,r:3}],
+  endurance  :[{p:0.50,r:12},{p:0.65,r:8},{p:0.80,r:3}],
 };
 function suggestWarmupByTop(topW,topR,schemeSel='auto',roundStep=2.5){
   const scheme=(schemeSel==='auto')?guessSchemeByReps(topR):schemeSel;
@@ -220,7 +232,9 @@ function suggestWarmupByTop(topW,topR,schemeSel='auto',roundStep=2.5){
     let w=roundTo(topW*s.p,roundStep); w=Math.min(w, topW-roundStep); if(w<=0) continue;
     const key=`${w}-${s.r}`; if(seen.has(key)) continue; seen.add(key);
     out.push({weight:w,reps:s.r});
-  } out.sort((a,b)=>a.weight-b.weight); return out;
+  }
+  out.sort((a,b)=>a.weight-b.weight);
+  return out;
 }
 
 // =================== Init ===================
@@ -606,7 +620,7 @@ async function renderHistory(){
       if(act==='del'){ if(confirm('このセッションを削除しますか？')) await deleteSession(id); renderHistory(); }
       if(act==='note'){ await editSessionNote(id); renderHistory(); }
       if(act==='detail'){
-        const box=li.querySelector(' .details');
+        const box=li.querySelector('.details');
         if(box.hidden || !box._loaded){ box.innerHTML=buildSessionDetailsHTML(li._sets||[], ul._nameById||{}); box._loaded=true; box.hidden=false; }
         else box.hidden=true;
       }
@@ -698,7 +712,11 @@ function _drawLineChart(canvas,labels,values,hoverIndex=-1){
 
   ctx.textAlign='center'; ctx.textBaseline='alphabetic';
   const tickN=Math.min(6,labels.length);
-  for(let i=0;i<labels.length;i++){ if(i===0||i===labels.length-1||i%Math.ceil(labels.length/(tickN||1))===0){ const x=L+i*stepX; ctx.fillStyle='#9aa4b2'; ctx.fillText(labels[i],x,H-8); } }
+  for(let i=0;i<labels.length;i++){
+    if(i===0||i===labels.length-1||i%Math.ceil(labels.length/(tickN||1))===0){
+      const x=L+i*stepX; ctx.fillStyle='#9aa4b2'; ctx.fillText(labels[i],x,H-8);
+    }
+  }
 
   ctx.strokeStyle='#0fb6a9'; ctx.lineWidth=2; ctx.beginPath();
   for(let i=0;i<values.length;i++){ const x=L+i*stepX, y=yFor(values[i]); (i?ctx.lineTo(x,y):ctx.moveTo(x,y)); }
@@ -706,7 +724,8 @@ function _drawLineChart(canvas,labels,values,hoverIndex=-1){
 
   for(let i=0;i<values.length;i++){
     const x=L+i*stepX, y=yFor(values[i]);
-    ctx.fillStyle=(i===hoverIndex)?'#0fb6a9':'#6cc7bf'; ctx.beginPath(); ctx.arc(x,y,3.2,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=(i===hoverIndex)?'#0fb6a9':'#6cc7bf';
+    ctx.beginPath(); ctx.arc(x,y,3.2,0,Math.PI*2); ctx.fill();
     if(i===hoverIndex){
       const tip=`${labels[i]}  ${Math.round(values[i])} kg`;
       const tw=ctx.measureText(tip).width+10, th=22;
@@ -863,9 +882,15 @@ async function renderExList(){
   exs.sort((a,b)=>(a.group||'').localeCompare(b.group||'','ja')||a.name.localeCompare(b.name,'ja'));
 
   const ul=$('#exList'); if(!ul) return;
-  ul.innerHTML=exs.map(e=>{ const tag=e.group?`<span class="badge" style="margin-right:8px">${esc(e.group)}</span>`:''; return `<li><span>${tag}${esc(e.name)}</span><button class="ghost" data-id="${e.id}">削除</button></li>`; }).join('')||'<li>まだありません</li>';
+  ul.innerHTML=exs.map(e=>{
+    const tag=e.group?`<span class="badge" style="margin-right:8px">${esc(e.group)}</span>`:'';
+    return `<li><span>${tag}${esc(e.name)}</span><button class="ghost" data-id="${e.id}">削除</button></li>`;
+  }).join('')||'<li>まだありません</li>';
   ul.querySelectorAll('button').forEach(b=>{
-    b.addEventListener('click',async()=>{ pushUndo(); await del('exercises',Number(b.dataset.id)); await renderExList(); await renderExSelect(); await renderTplExSelect(); renderAnalytics(); await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary(); });
+    b.addEventListener('click',async()=>{
+      pushUndo(); await del('exercises',Number(b.dataset.id));
+      await renderExList(); await renderExSelect(); await renderTplExSelect(); renderAnalytics(); await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary();
+    });
   });
 }
 
@@ -873,7 +898,8 @@ async function renderExList(){
 function renderWatchPartChips(){ $$('#watchPartChips .chip').forEach(ch=>{ ch.classList.toggle('active', ch.dataset.part===watchSelectedPart); }); }
 function bindWatchPartChips(){
   const chips=$('#watchPartChips'); if(!chips||_watchChipsBound) return;
-  chips.addEventListener('click',e=>{ const b=e.target.closest('.chip'); if(!b) return; watchSelectedPart=b.dataset.part; renderWatchPartChips(); renderWatchUI(); }); _watchChipsBound=true;
+  chips.addEventListener('click',e=>{ const b=e.target.closest('.chip'); if(!b) return; watchSelectedPart=b.dataset.part; renderWatchPartChips(); renderWatchUI(); });
+  _watchChipsBound=true;
 }
 async function renderWatchUI(){
   bindWatchPartChips(); renderWatchPartChips();
@@ -894,7 +920,8 @@ async function renderWatchUI(){
       if(!watchlist.includes(id)) watchlist.push(id);
       await put('prefs',{key:'watchlist',value:watchlist});
       await renderWatchUI(); await renderTrendSelect(); await renderTrendChart(); await renderWeeklySummary(); showToast('ウォッチに追加しました');
-    }); addBtn._bound=true;
+    });
+    addBtn._bound=true;
   }
 }
 
@@ -937,7 +964,8 @@ function parseCSVRow(row){
     const c=row[i];
     if(q){ if(c=='"'){ if(row[i+1]=='"'){cur+='"'; i++;} else q=false; } else cur+=c; }
     else { if(c===','){ out.push(cur); cur=''; } else if(c=='"'){ q=true; } else cur+=c; }
-  } out.push(cur); return out;
+  }
+  out.push(cur); return out;
 }
 
 // =================== History ops ===================
