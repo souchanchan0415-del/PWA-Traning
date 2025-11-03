@@ -1,7 +1,7 @@
-// Train Punch — v1.5.7-no-timer-sets (full replace, sets+RPE)
+// Train Punch — v1.5.9-safari-fix (full replace, sets+RPE)
 // change: RPE入力を復活＋セット数（40x8x3@8対応）, 複数セット一括投入
 // drop : rest timer（状態・設定・通知）
-// fix  : Safari-safe ?? / stray bracket / smaller bundle
+// fix  : Safari-safe, stray bracket, tiny polish
 // keep : IDB+LS fallback, CSV import/export, charts, watchlist
 
 const DB_NAME='trainpunch_v3';
@@ -286,12 +286,14 @@ async function ensureInitialExercises(){
   const all=await getAll('exercises');
   if(all && all.length){
     const byName=Object.fromEntries(all.map(e=>[e.name,e]));
-    for(const p of PARTS{
+    // ★ FIX: missing ')' caused syntax error
+    for(const p of PARTS){
       for(const name of EX_GROUPS[p]){
         const hit=byName[name];
         if(hit && !hit.group) await put('exercises',{...hit,group:p});
       }
-    } return;
+    }
+    return;
   }
   for(const p of PARTS){ for(const name of EX_GROUPS[p]) await put('exercises',{name,group:p}); }
 }
