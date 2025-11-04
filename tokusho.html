@@ -3,13 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="color-scheme" content="light dark">
   <title>特定商取引法に基づく表記 | Train Punch</title>
   <meta name="description" content="Train Punch（トレインパンチ）の特定商取引法に基づく表記。支援（チップ／寄付）に関する事業者情報・支払方法など。">
   <meta name="theme-color" content="#0fb6a9">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon-192.png" sizes="192x192">
-  <link rel="apple-touch-icon" href="./icons/icon-180.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <meta property="og:type" content="website">
   <meta property="og:title" content="特定商取引法に基づく表記 | Train Punch">
   <meta property="og:description" content="支援（寄付）に関する事業者情報・支払方法などの表示。">
@@ -22,9 +21,6 @@
       --muted:#6b7280;
       --line:#e5e7eb;
       --brand:#0fb6a9;
-      --brand-weak:#6cc7bf;
-      --danger:#e11d48;
-      --focus:#0fb6a940;
       --shadow:0 2px 22px rgba(0,0,0,.06);
     }
     @media (prefers-color-scheme: dark){
@@ -44,6 +40,7 @@
       font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,
            "Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP","Meiryo",sans-serif;
       background:var(--bg); color:var(--text);
+      -webkit-tap-highlight-color: transparent;
     }
     header{
       position:sticky; top:0; z-index:5;
@@ -58,7 +55,10 @@
     nav{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
     nav a{color:var(--text);text-decoration:none;padding:8px 10px;border-radius:8px}
     nav a:hover{background:var(--line)}
-    main{padding:24px 0 40px}
+    main{
+      padding:24px 16px calc(28px + env(safe-area-inset-bottom));
+      max-width:860px; margin:0 auto;
+    }
     .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px}
     h1{font-size:20px;margin:6px 0 14px}
     dl{margin:0}
@@ -67,12 +67,20 @@
     .muted{color:var(--muted)}
     .small{font-size:13px}
     footer{border-top:1px solid var(--line);padding:18px 0;color:var(--muted);font-size:13px;margin-top:24px}
-    .tag{display:inline-block;padding:.1rem .5rem;border-radius:999px;background:var(--line);font-size:12px;color:var(--muted)}
     .kv{display:grid;grid-template-columns:160px 1fr;gap:8px}
     .kv dt{margin-top:0}
     .kv dd{margin:0}
-    @media (max-width:640px){
-      .kv{grid-template-columns:1fr}
+    @media (max-width:640px){ .kv{grid-template-columns:1fr} }
+    /* 押しやすいリンク */
+    a.btnlink{
+      display:inline-block;
+      padding:10px 12px;
+      border:1px solid var(--line);
+      border-radius:10px;
+      text-decoration:none;
+    }
+    a.btnlink:hover{
+      background: color-mix(in oklab, var(--card), #000 6%);
     }
   </style>
 </head>
@@ -96,28 +104,47 @@
       <dl class="kv" aria-label="特商法表示">
         <dt>販売事業者（屋号）</dt><dd>Train Punch</dd>
         <dt>運営責任者</dt><dd>（個人）</dd>
-        <dt>所在地</dt><dd>個人情報保護のため、請求があった場合は遅滞なく開示いたします。</dd>
+
+        <dt>所在地</dt>
+        <dd>
+          個人情報保護のため、請求があった場合は遅滞なく開示いたします。<br>
+          <span class="muted small">【開示請求方法】件名を「住所開示請求」とし、氏名・住所・電話番号を記載のうえ
+          <a href="mailto:toreninguguanli53@gmail.com">上記メール</a>までご連絡ください。</span>
+        </dd>
+
         <dt>電話番号</dt>
-        <dd>請求いただいた方に遅滞なく開示します。<br><span class="muted small">※通常のお問い合わせはメールへお願いします。</span></dd>
+        <dd>
+          請求いただいた方に遅滞なく開示します。<br>
+          <span class="muted small">【開示請求方法】件名を「電話番号開示請求」とし、上記メール宛にご連絡ください。<br>※通常のお問い合わせはメールへお願いします。</span>
+        </dd>
+
         <dt>メールアドレス</dt>
-        <dd><a href="mailto:toreninguguanli53@gmail.com">toreninguguanli53@gmail.com</a></dd>
+        <dd><a class="btnlink" href="mailto:toreninguguanli53@gmail.com">toreninguguanli53@gmail.com</a></dd>
+
         <dt>URL</dt>
-        <dd><a href="https://trainpunch.github.io/PWA-Traning/" target="_blank" rel="noopener">https://trainpunch.github.io/PWA-Traning/</a></dd>
+        <dd><a class="btnlink" href="https://trainpunch.github.io/PWA-Traning/" target="_blank" rel="noopener noreferrer">https://trainpunch.github.io/PWA-Traning/</a></dd>
 
         <dt>販売価格・対価</dt>
         <dd>支援（チップ／寄付）金額は任意です。金額は各サービスの決済画面に表示されます。</dd>
+
         <dt>商品代金以外の必要料金</dt>
         <dd>なし（通信に係る費用はお客様のご負担）</dd>
+
         <dt>支払方法</dt>
         <dd>クレジットカード等（Ko-fi／GitHub Sponsors など各決済サービスを通じて処理）</dd>
+
         <dt>支払時期</dt>
-        <dd>各サービスの規約に基づき、申込時に決済されます。<span class="tag">定期支援は各プラットフォームで管理</span></dd>
+        <dd>各サービスの規約に基づき、申込時に決済されます。継続支援（サブスク）がある場合は、各プラットフォームの管理画面で更新・解約が行えます。</dd>
+
         <dt>引き渡し時期</dt>
         <dd>本ページは開発支援（寄付）を受け付けるもので、物品やデジタルコンテンツの提供はありません。</dd>
+
         <dt>返品・キャンセル</dt>
         <dd>寄付の性質上、原則返金不可。ただし重複課金等の誤決済が確認できる場合は個別に対応します。メールにてご連絡ください。</dd>
+
         <dt>定期支援の解約</dt>
         <dd>GitHub Sponsors 等の管理画面からいつでも解約可能です。次回請求日前の解約をご自身でお手続きください。</dd>
+
         <dt>個人情報の取扱い</dt>
         <dd>支援に関する個人情報は各サービスのポリシーに従って取り扱われます。<a href="./privacy.html">プライバシーポリシー</a> もご参照ください。</dd>
       </dl>
@@ -136,7 +163,7 @@
   <script>
     // 年表示のみ
     document.getElementById('year').textContent = new Date().getFullYear();
-    // PWA登録（存在すれば）— 追加機能は導入せず簡易登録のまま
+    // PWA登録（存在すれば）
     if('serviceWorker' in navigator){
       navigator.serviceWorker.register('./sw.js').catch(()=>{});
     }
