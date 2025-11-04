@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
@@ -7,10 +7,11 @@
   <meta name="description" content="Train Punch の開発を支援できます。広告・紹介リンク、投げ銭、月額サポートなど。" />
   <meta name="theme-color" content="#111111" />
   <meta name="format-detection" content="telephone=no, email=no, address=no" />
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" sizes="192x192" href="icons/icon-192.png">
-  <link rel="apple-touch-icon" href="icons/icon-180.png">
-  <link rel="stylesheet" href="styles.css?v=1.5.1" />
+
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" sizes="192x192" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-180.png">
+  <link rel="stylesheet" href="./styles.css?v=1.5.5-hotfix1" />
 
   <!-- パフォーマンス最適化 -->
   <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin>
@@ -23,17 +24,6 @@
   <!-- 将来：自動広告を使うなら meta を有効化
   <meta name="google-adsense-account" content="ca-pub-6494792718518447">
   -->
-
-  <!-- 最低高の広告プレースホルダー（CLS対策） -->
-  <style>
-    .ad-placeholder{
-      border:1px dashed var(--line);
-      border-radius:12px;
-      min-height:120px;
-      display:flex; align-items:center; justify-content:center;
-      color:var(--muted); font-size:14px;
-    }
-  </style>
 </head>
 <body>
   <header class="appbar" role="banner">
@@ -139,6 +129,6 @@
   <noscript><div class="card"><p>JavaScript を有効にしてください。</p></div></noscript>
 
   <!-- PWA: index.html と同じ更新検知ロジックを使用（直接 register は廃止） -->
-  <script defer src="sw-register.js?v=1.5.6-update-only"></script>
+  <script defer src="./sw-register.js?v=1.5.7-update-notify"></script>
 </body>
 </html>
