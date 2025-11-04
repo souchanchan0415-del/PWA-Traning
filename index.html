@@ -17,8 +17,8 @@
   <title>Train Punch v1.5.9-safari-fix</title>
 
   <!-- styles -->
-  <link rel="preload" href="styles.css?v=1.5.1" as="style">
-  <link rel="stylesheet" href="styles.css?v=1.5.1">
+  <link rel="preload" href="styles.css?v=1.5.5-hotfix1" as="style">
+  <link rel="stylesheet" href="styles.css?v=1.5.5-hotfix1">
   <noscript><style>noscript{display:block;padding:12px}.nojs{display:block}</style></noscript>
 
   <!-- audio（将来用にプリロードだけ） -->
@@ -42,16 +42,6 @@
     .twins{display:flex;gap:8px}
     .twins>input{flex:1;min-width:0}
   </style>
-
-  <!-- 強制更新（起動直後に旧SW/Cacheを全削除） -->
-  <script>
-    (function(){
-      // デバッグオーバーレイ（既存#tp-debugがあれば再利用）
-      (function mountDebug(){
-        function esc(s){ return String(s).replace(/[<&]/g,function(m){return ({'<':'&':'&amp;'})[m];}); }
-      })();
-    })();
-  </script>
 
   <script>console.log('TP index v1.5.9-safari-fix loaded');</script>
 </head>
@@ -290,14 +280,31 @@
       </div>
 
       <div class="card">
-        <h3>サポート & ポリシー</h3>
-        <div class="kv">
-          <div>問い合わせ</div><div><a href="./contact.html">contact.html</a></div>
-          <div>プライバシーポリシー</div><div><a href="./privacy.html">privacy.html</a></div>
-          <div>特定商取引法に基づく表記</div><div><a href="./tokusho.html">tokusho.html</a></div>
-          <div>サポート</div><div><a href="./support.html">support.html</a></div>
+        <h3>サポート ＆ ポリシー</h3>
+        <div aria-label="各種ポリシーと連絡先" style="display:grid; gap:8px">
+          <a class="btnlike ghost" href="./contact.html"
+             style="display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%; text-decoration:none">
+            <span>問い合わせ</span><span class="small muted">contact.html</span>
+          </a>
+
+          <a class="btnlike ghost" href="./privacy.html"
+             style="display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%; text-decoration:none">
+            <span>プライバシーポリシー</span><span class="small muted">privacy.html</span>
+          </a>
+
+          <a class="btnlike ghost" href="./tokusho.html"
+             style="display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%; text-decoration:none">
+            <span>特定商取引法に基づく表記</span><span class="small muted">tokusho.html</span>
+          </a>
+
+          <a class="btnlike ghost" href="./support.html"
+             style="display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%; text-decoration:none">
+            <span>サポート</span><span class="small muted">support.html</span>
+          </a>
         </div>
-        <small>上記ページはオフラインでも表示できるようプリキャッシュします。</small>
+        <small class="small muted" style="margin-top:8px; display:block">
+          上記ページはオフラインでも表示できるようプリキャッシュされます。
+        </small>
       </div>
 
       <div class="card">
@@ -318,9 +325,8 @@
   <noscript><p class="nojs">JavaScript を有効にしてください。</p></noscript>
 
   <!-- scripts（“ファイル名ごと”更新してキャッシュ回避） -->
-  <!-- ※ app.js を読み込む（以前の app.1.5.9-safari-fix.js ではなく） -->
   <script defer src="./app.js?v=1.5.9-safari-fix"></script>
-  <script defer src="sw-register.js?v=1.5.9"></script>
+  <script defer src="sw-register.js?v=1.5.7-update-notify"></script>
 
   <!-- 折りたたみメモのUX補助（任意だが軽い） -->
   <script>
