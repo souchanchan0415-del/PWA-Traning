@@ -3,7 +3,7 @@
 <head>
   <!--
     Train Punch – Contact
-    v1.5.4 / Standalone contact page
+    v1.5.9-safari-fix / Standalone contact page
   -->
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -12,7 +12,7 @@
   <meta name="theme-color" content="#0fb6a9">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon-192.png" sizes="192x192">
-  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-180.png">
   <meta property="og:type" content="website">
   <meta property="og:title" content="お問い合わせ | Train Punch">
   <meta property="og:description" content="Train Punchへのお問い合わせ。バグ報告や機能要望はこちら。">
@@ -191,7 +191,7 @@
   <footer>
     <div class="wrap">
       <div>© <span id="year"></span> Train Punch</div>
-      <div class="muted">v1.5.4 • このページは通信を行わず、メール作成時のみ端末のメーラーを呼び出します。</div>
+      <div class="muted">v1.5.9-safari-fix • このページは通信を行わず、メール作成時のみ端末のメーラーを呼び出します。</div>
     </div>
   </footer>
 
@@ -199,8 +199,8 @@
     // 連絡先メール（置き換え済み）
     const SUPPORT_EMAIL = 'toreninguguanli53@gmail.com';
 
-    // バージョン（app.js と合わせる）
-    const APP_VERSION = 'v1.5.4';
+    // バージョン（app.js / sw.js と合わせる）
+    const APP_VERSION = 'v1.5.9-safari-fix';
 
     // 年表示
     document.getElementById('year').textContent = new Date().getFullYear();
@@ -250,7 +250,7 @@
       const withEnv = document.getElementById('includeEnv').checked;
 
       const env = withEnv ? buildEnvBlock() : '';
-      const body = `${msg}${msg ? '\\n\\n' : ''}${env}`;
+      const body = `${msg}${msg ? '\n\n' : ''}${env}`;
       const mailto = `mailto:${encodeURIComponent(SUPPORT_EMAIL)}?subject=${encodeURIComponent(`【Train Punch】${subject} ${APP_VERSION}`)}&body=${encodeURIComponent(body)}`;
 
       try{
@@ -281,7 +281,7 @@
         `画面: ${vw}×${vh}`,
         `PWA(スタンドアロン): ${standalone ? 'はい' : 'いいえ'}`,
         '――――――――――――――――――――'
-      ].join('\\n');
+      ].join('\n');
     }
 
     // かんたんトースト
