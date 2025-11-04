@@ -24,6 +24,5 @@
     { "name": "設定", "short_name": "設定", "url": "./#tab-settings", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] }
   ],
   "launch_handler": { "client_mode": "focus-existing" },
-  "prefer_related_applications": false,
-  "display_override": ["standalone"]
+  "prefer_related_applications": false
 }
