@@ -8,10 +8,17 @@
   <link rel="stylesheet" href="./styles.css">
   <style>
     main{max-width:940px;margin:40px auto;padding:0 16px}
-    h1{margin-bottom:8px} small{color:var(--muted)}
+    h1{margin-bottom:8px}
+    small{color:var(--muted)}
     section{margin:24px 0}
     li{margin:.25em 0}
-    code{background:var(--bg-elev);padding:0 .25em;border-radius:4px}
+    /* var(--bg-elev) は未定義のため、既存トークンで明度を調整 */
+    code{
+      background: color-mix(in oklab, var(--card), #000 8%);
+      border: 1px solid var(--line);
+      padding: 0 .25em;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
