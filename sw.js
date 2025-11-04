@@ -1,11 +1,12 @@
-// Train Punch Service Worker — v1.5.5-hotfix1
+// Train Punch Service Worker — v1.5.9-safari-fix
 // - 単一 VERSION で app.js / styles.css のクエリを統一（中央管理）
 // - SPAナビ: preload → network → 同一ページcache → index.html の順でフォールバック
 // - ignoreSearch は HTML のみ（資産はクエリでバージョン固定）
 // - 旧キャッシュ掃除 / navigationPreload 有効化
 // - 自動 skipWaiting はしない（message: SKIP_WAITING で即時適用）
+// - 互換安定化: index.html の cache.match をスコープ絶対URLで参照
 
-const VERSION = '1.5.5-hotfix1';
+const VERSION = '1.5.9-safari-fix';
 const CACHE   = `trainpunch-${VERSION}`;
 const ORIGIN  = self.location.origin;
 const Q       = `?v=${VERSION}`;
@@ -34,6 +35,9 @@ const ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
+
+// スコープ絶対URL（Safari等での相対key不一致を避ける）
+const INDEX_ABS = new URL('./index.html', self.registration.scope).toString();
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
@@ -110,7 +114,8 @@ self.addEventListener('fetch', (event) => {
         const own = await c.match(req, { ignoreSearch: true });
         if (own) return own;
 
-        const index = await c.match('./index.html', { ignoreSearch: true });
+        const index = await c.match(INDEX_ABS, { ignoreSearch: true }) ||
+                      await c.match('./index.html', { ignoreSearch: true });
         return index || new Response('<!doctype html><title>offline</title><h1>Offline</h1>', {
           status: 200,
           headers: { 'Content-Type': 'text/html; charset=utf-8' }
