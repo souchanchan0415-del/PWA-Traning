@@ -5,19 +5,35 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>プライバシーポリシー | Train Punch</title>
   <meta name="color-scheme" content="light dark">
-  <link rel="stylesheet" href="./styles.css">
+  <!-- SWのプリキャッシュと揃えるためクエリ付きで読み込み -->
+  <link rel="stylesheet" href="./styles.css?v=1.5.5-hotfix1">
   <style>
-    main{max-width:940px;margin:40px auto;padding:0 16px}
+    /* レイアウト */
+    main{
+      max-width:940px;
+      margin:40px auto;
+      padding:0 16px calc(28px + env(safe-area-inset-bottom));
+    }
     h1{margin-bottom:8px}
     small{color:var(--muted)}
     section{margin:24px 0}
     li{margin:.25em 0}
-    /* var(--bg-elev) は未定義のため、既存トークンで明度を調整 */
     code{
       background: color-mix(in oklab, var(--card), #000 8%);
       border: 1px solid var(--line);
       padding: 0 .25em;
       border-radius: 4px;
+    }
+    /* 最下段リンクの押しやすさ向上 */
+    a.btnlink{
+      display:inline-block;
+      padding:10px 12px;
+      border:1px solid var(--line);
+      border-radius:10px;
+      text-decoration:none;
+    }
+    a.btnlink:hover{
+      background: color-mix(in oklab, var(--card), #000 6%);
     }
   </style>
 </head>
@@ -36,12 +52,12 @@
         <li>トレーニング記録（種目・重量・回数・セット数・日付・メモ・ウォームアップの有無）</li>
         <li>アプリ設定（テーマ、ウォッチ種目、表示タブ等）</li>
       </ul>
-      <p>※ <strong>これらはすべてユーザー端末内</strong>（IndexedDB/LocalStorage）に保存されます。サーバーへの送信は行いません。</p>
+      <p>※ <strong>これらはすべて端末内</strong>（<code>IndexedDB</code>/<code>localStorage</code>）に保存されます。サーバーへの送信は行いません。</p>
     </section>
 
     <section>
       <h2>2. 保存場所と同期</h2>
-      <p>データは端末内の <code>IndexedDB</code> を主に使用し、利用できない環境では <code>LocalStorage</code> を用いる場合があります。クラウド同期は行いません。</p>
+      <p>データは端末内の <code>IndexedDB</code> を主に使用し、利用できない環境では <code>localStorage</code> を用いる場合があります。クラウド同期は行いません。</p>
     </section>
 
     <section>
@@ -50,7 +66,6 @@
         <li>本アプリは<strong>アプリの更新が利用可能になったとき</strong>に限り、OSの通知を使用する場合があります。</li>
         <li>通知の送信はユーザーの明示的な許可後にのみ行われます（設定 &gt; 「アップデート通知を許可」）。</li>
         <li>サーバーからのプッシュ配信や通知トークンの収集は行いません。通知は端末内で即時表示されます。</li>
-        <li>かつて存在した「セット間の休憩タイマー通知」は廃止しました。</li>
         <li>通知はOSの設定からいつでも無効化できます。</li>
       </ul>
     </section>
@@ -62,7 +77,8 @@
 
     <section>
       <h2>5. 第三者提供・外部サービス</h2>
-      <p>第三者への個人データの提供、外部解析ツールの組み込みは行っていません。</p>
+      <p>現時点で、第三者への個人データの提供や外部解析ツールの組み込みは行っていません。</p>
+      <p>将来、支援ページ（support.html）で広告サービス（例：Google AdSense）を導入する場合は、本ページを更新し、クッキー等の利用・パーソナライズ可否・関連ポリシーへのリンク等を明記します。</p>
     </section>
 
     <section>
@@ -87,7 +103,7 @@
 
     <section>
       <h2>10. お問い合わせ</h2>
-      <p>ご不明点は <a href="./contact.html">contact.html</a> までご連絡ください。</p>
+      <p>ご不明点は <a class="btnlink" href="./contact.html" rel="noopener">contact.html</a> までご連絡ください。</p>
     </section>
   </main>
 </body>
