@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
   <title>特定商取引法に基づく表記 | Train Punch</title>
   <meta name="description" content="Train Punch（トレインパンチ）の特定商取引法に基づく表記。支援（チップ／寄付）に関する事業者情報・支払方法など。">
   <meta name="theme-color" content="#0fb6a9">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon-192.png" sizes="192x192">
-  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-180.png">
   <meta property="og:type" content="website">
   <meta property="og:title" content="特定商取引法に基づく表記 | Train Punch">
   <meta property="og:description" content="支援（寄付）に関する事業者情報・支払方法などの表示。">
@@ -135,7 +136,7 @@
   <script>
     // 年表示のみ
     document.getElementById('year').textContent = new Date().getFullYear();
-    // PWA登録（存在すれば）
+    // PWA登録（存在すれば）— 追加機能は導入せず簡易登録のまま
     if('serviceWorker' in navigator){
       navigator.serviceWorker.register('./sw.js').catch(()=>{});
     }
