@@ -1,8 +1,7 @@
-// sw-register.js — v1.5.9-safari-fix
-// - サブパス対応（GitHub Pages 等）
-// - 更新ドット / 下部バナー（ユーザー明示時のみ適用）
-// - OS通知は「更新検知時のみ & 通知許可済み & 非表示時」
-// - 例外ガード強化・Safari対策・BFCache復帰でのupdateチェック
+// sw-register.js — v1.5.9-safari-fix (refresh-button-only fix)
+// - ↻ クリック時に navigator.serviceWorker.getRegistration() で最新の reg を取得して処理
+// - それ以外のロジック（通知/バナー/BC 等）は元コードのまま
+
 (() => {
   if (!('serviceWorker' in navigator)) return;
 
@@ -11,17 +10,12 @@
   SW_ABS_URL.searchParams.set('v', SW_VERSION);
   const SW_SCOPE = new URL('./', location.href).pathname;
 
-  // ---- 軽量トースト（app.js の showToast が無いときの保険） ----
+  // ---- 軽量トースト ----
   function toast(msg) {
-    try {
-      if (typeof window.showToast === 'function') { window.showToast(msg); return; }
-    } catch(_) {}
-    const t = document.getElementById('toast');
-    if (!t) return;
-    t.textContent = String(msg || '');
-    t.classList.add('show');
-    clearTimeout(t._tid);
-    t._tid = setTimeout(() => t.classList.remove('show'), 1600);
+    try { if (typeof window.showToast === 'function') { window.showToast(msg); return; } } catch(_) {}
+    const t = document.getElementById('toast'); if (!t) return;
+    t.textContent = String(msg || ''); t.classList.add('show');
+    clearTimeout(t._tid); t._tid = setTimeout(() => t.classList.remove('show'), 1600);
   }
 
   // ---- OS通知（更新検知時のみ） ----
@@ -31,24 +25,21 @@
     if (!('Notification' in window)) return;
     if (Notification.permission !== 'granted') return;
     if (document.visibilityState !== 'hidden') return;
-    try {
+    try{
       const n = new Notification('Train Punch 更新', {
-        body: '新しいバージョンの準備ができました。↻で適用できます。',
-        tag: 'tp-update',
-        renotify: true
+        body:'新しいバージョンの準備ができました。↻で適用できます。',
+        tag:'tp-update', renotify:true
       });
-      n.onclick = () => { try { window.focus(); } catch(_) {} try { n.close(); } catch(_) {} };
+      n.onclick = () => { try{window.focus();}catch(_){} try{n.close();}catch(_){} };
       notifiedOnce = true;
-    } catch(_) {}
+    }catch(_){}
   }
 
   // ---- UI: 更新マーク & バナー ----
   const markUpdate = () => {
     const btn = document.getElementById('btnHardRefresh');
-    if (btn) {
-      btn.classList.add('update');
-      btn.title = '新しいバージョンがあります。押して更新';
-    }
+    if (btn) { btn.classList.add('update'); btn.title = '新しいバージョンがあります。押して更新'; }
+    document.documentElement.classList.add('has-update');
     toast('新しいバージョンがあります。↻で更新できます');
     notifyUpdateOnly();
   };
@@ -58,8 +49,7 @@
     if (document.getElementById(BANNER_ID)) return;
     const el = document.createElement('div');
     el.id = BANNER_ID;
-    el.setAttribute('role', 'status');
-    el.setAttribute('aria-live', 'polite');
+    el.setAttribute('role','status'); el.setAttribute('aria-live','polite');
     el.style.cssText = `
       position:fixed;left:12px;right:12px;bottom:12px;z-index:2147483647;
       background:#0fb6a9;color:#fff;border-radius:12px;padding:12px 14px;
@@ -77,20 +67,19 @@
     (document.body || document.documentElement).appendChild(el);
     const upd = el.querySelector('#tp-upd');
     const lat = el.querySelector('#tp-later');
-    if (upd) upd.onclick = () => { try { onConfirm && onConfirm(); } finally { try { el.remove(); } catch(_) {} } };
-    if (lat) lat.onclick = () => { try { el.remove(); } catch(_) {} };
+    if (upd) upd.onclick = () => { try{ onConfirm && onConfirm(); } finally { try{ el.remove(); }catch(_){}} };
+    if (lat) lat.onclick = () => { try{ el.remove(); }catch(_){} };
   };
 
   // ---- 複数タブ連携 ----
-  let bc = null;
-  try { bc = new BroadcastChannel('tp-sw'); } catch(_) {}
+  let bc = null; try { bc = new BroadcastChannel('tp-sw'); } catch(_) {}
   const broadcast = (type) => { try { bc?.postMessage({ type }); } catch(_) {} };
   bc && bc.addEventListener('message', (e) => {
     if (e?.data?.type === 'SW_WAITING') {
       markUpdate();
       showBanner(() => {
         navigator.serviceWorker.getRegistration().then(reg => {
-          try { reg?.waiting?.postMessage({ type: 'SKIP_WAITING' }); } catch(_) {}
+          try { reg?.waiting?.postMessage({ type:'SKIP_WAITING' }); } catch(_) {}
         });
       });
     }
@@ -113,8 +102,7 @@
     }
 
     reg.addEventListener('updatefound', () => {
-      const sw = reg.installing;
-      if (!sw) return;
+      const sw = reg.installing; if (!sw) return;
       sw.addEventListener('statechange', () => {
         if (sw.state === 'installed' && navigator.serviceWorker.controller) {
           markUpdate();
@@ -127,7 +115,6 @@
       });
     });
 
-    // SW→Page メッセージ
     navigator.serviceWorker.addEventListener('message', (evt) => {
       if (evt?.data?.type === 'SW_WAITING') {
         markUpdate();
@@ -137,13 +124,20 @@
     });
   };
 
-  // ↻ ボタンで waiting を適用（未waitingはハード更新）
-  const bindRefreshButton = (reg) => {
+  // ---- ここだけ修正：↻ ボタンの処理を “毎回” 最新 reg 参照で実行 ----
+  const bindRefreshButton = () => {
     const btn = document.getElementById('btnHardRefresh');
     if (!btn || btn._tpBound) return;
     btn._tpBound = true;
-    btn.addEventListener('click', () => {
-      if (reg.waiting) {
+
+    // iOS の誤タップ対策で capture & preventDefault
+    const handler = async (e) => {
+      try { e.preventDefault(); e.stopPropagation(); } catch(_) {}
+
+      let reg = null;
+      try { reg = await navigator.serviceWorker.getRegistration(); } catch(_) {}
+
+      if (reg?.waiting) {
         userRequestedReload = true;
         try { reg.waiting.postMessage({ type: 'SKIP_WAITING' }); } catch(_) {}
       } else if (typeof window.__tpHardRefresh === 'function') {
@@ -151,34 +145,35 @@
       } else {
         location.reload();
       }
-    });
+    };
+
+    btn.addEventListener('click', handler, { capture:true });
+    // タップ環境での取りこぼし防止
+    btn.addEventListener('touchend', handler, { capture:true });
   };
 
   // ---- 登録 ----
   const register = async () => {
     try {
       const reg = await navigator.serviceWorker.register(SW_ABS_URL.toString(), {
-        scope: SW_SCOPE,
-        updateViaCache: 'none'
+        scope: SW_SCOPE, updateViaCache:'none'
       });
 
       attachUpdateWatchers(reg);
-      bindRefreshButton(reg);
+      bindRefreshButton();
 
-      // 起動直後 / 可視化時 / オンライン復帰 / BFCache復帰 で軽く update チェック
       const ping = () => reg.update().catch(()=>{});
       setTimeout(ping, 1200);
       document.addEventListener('visibilitychange', () => { if (!document.hidden) ping(); });
       window.addEventListener('online', ping);
       window.addEventListener('pageshow', (e) => { if (e.persisted) ping(); });
 
-      // 「今すぐ更新」クリック経由のみ自動リロード
       document.addEventListener('click', (e) => {
         const t = e.target;
         if (t && t.id === 'tp-upd') userRequestedReload = true;
       }, true);
 
-      if (reg.waiting) broadcast('SW_WAITING'); // 念のため共有
+      if (reg.waiting) broadcast('SW_WAITING');
     } catch (e) {
       console.warn('SW register failed:', e);
     }
