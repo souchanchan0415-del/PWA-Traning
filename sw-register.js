@@ -1,9 +1,11 @@
 // Train Punch SW register — v1.5.9-fix
 // 目的: 更新バナーの「今すぐ更新」が確実に反映されるようにする
-// - updateViaCache:'none' でSW自体のHTTPキャッシュ回避
-// - updatefound/installed → waiting 検出でバナー表示
-// - SKIP_WAITING → controllerchange で1回だけ reload
-// - iOS Safari対策: reg.update() 明示呼び出し / installed止まりでも拾う
+// - updateViaCache:'none' で SW の HTTP キャッシュを回避
+// - waiting 検出でバナー表示（既存DOMがあれば流用、無ければ最小UIを生成）
+// - 「今すぐ更新」→ SKIP_WAITING → controllerchange で1回だけ reload
+// - iOS Safari 対策: reg.update() を明示呼び出し（installed止まり対策）
+// - 既存の ↻ ボタン(#btnHardRefresh)はそのまま。赤ドットは class "update" だけ付与/除去
+
 (() => {
   const SW_URL = './sw.js';
   const RELOAD_FALLBACK_MS = 4000;
@@ -11,19 +13,16 @@
   let didRefresh = false;
   let currentReg = null;
 
-  // 1回だけリロード（Safariでの二重発火対策）
-  navigator.serviceWorker?.addEventListener('controllerchange', () => {
-    if (didRefresh) return;
-    didRefresh = true;
-    location.reload();
-  });
+  // --- helpers --------------------------------------------------------------
+  const $ = (sel) => document.querySelector(sel);
+  const hdrBtn = () => document.getElementById('btnHardRefresh');
 
-  // バナーの表示/配線（既存DOMがあればそれを利用。なければ最小限で生成）
-  function showUpdateUI(onNow) {
+  function markHasUpdate(onNow) {
     let bar = document.getElementById('sw-update-bar');
     let btnNow = document.getElementById('sw-update-now') || document.querySelector('[data-sw-update-now]');
     let btnLater = document.getElementById('sw-update-later') || document.querySelector('[data-sw-update-later]');
 
+    // 既存の更新バーが無ければ最小構成で作る
     if (!bar) {
       bar = document.createElement('div');
       bar.id = 'sw-update-bar';
@@ -36,8 +35,8 @@
         <div style="max-width:960px;margin:0 auto;display:flex;gap:12px;align-items:center;justify-content:space-between">
           <div style="font-weight:700">新しいバージョンがあります</div>
           <div style="display:flex;gap:8px">
-            <button id="sw-update-now" type="button">今すぐ更新</button>
-            <button id="sw-update-later" type="button">あとで</button>
+            <button id="sw-update-now" type="button" data-sw-update-now>今すぐ更新</button>
+            <button id="sw-update-later" type="button" data-sw-update-later>あとで</button>
           </div>
         </div>`;
       document.body.appendChild(bar);
@@ -45,11 +44,11 @@
       btnLater = document.getElementById('sw-update-later');
     }
 
-    // ヘッダーの更新ボタンに赤ドット付与（CSS .iconbtn.update を想定）
-    const hdrBtn = document.getElementById('btnHardRefresh');
-    hdrBtn && hdrBtn.classList.add('update');
+    // 下余白調整 & ↻に赤ドット
+    document.documentElement.classList.add('has-update');
+    hdrBtn() && hdrBtn().classList.add('update');
 
-    // 配線（多重bind防止に一旦clone）
+    // 多重bind防止（cloneで置換）
     const nowClone = btnNow.cloneNode(true);
     btnNow.parentNode.replaceChild(nowClone, btnNow);
     nowClone.addEventListener('click', onNow);
@@ -57,61 +56,83 @@
     const laterClone = btnLater.cloneNode(true);
     btnLater.parentNode.replaceChild(laterClone, btnLater);
     laterClone.addEventListener('click', () => {
-      bar.style.display = 'none';
-      hdrBtn && hdrBtn.classList.remove('update');
+      hideUpdateUI();
     });
 
     bar.style.display = 'block';
   }
 
-  // waiting SW に SKIP_WAITING を送ってアクティベートさせる
+  function hideUpdateUI() {
+    const bar = document.getElementById('sw-update-bar');
+    if (bar) bar.style.display = 'none';
+    document.documentElement.classList.remove('has-update');
+    hdrBtn() && hdrBtn().classList.remove('update');
+  }
+
+  // waiting SW を即座にアクティブ化
   function applyUpdate(waitingWorker) {
     try {
-      waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-    } catch (_) { /* noop */ }
-
-    // 念のためのフォールバック（まれに controllerchange が飛ばない端末対策）
-    setTimeout(() => {
-      if (!didRefresh) {
-        // あなたの強制更新ルーチンがあれば使う
-        if (typeof window.__tpHardRefresh === 'function') {
-          window.__tpHardRefresh();
-        } else {
-          location.reload();
-        }
+      if (waitingWorker) {
+        // statechange 監視は controllerchange と二重になる可能性があるが、reload は片方だけ
+        waitingWorker.addEventListener('statechange', () => {
+          // 何もしない（controllerchange 側でリロード）
+        });
+        waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+      } else if (currentReg) {
+        // 念のため: 直後に waiting が出るケース
+        currentReg.update().catch(() => {});
+        setTimeout(() => {
+          currentReg.waiting?.postMessage({ type: 'SKIP_WAITING' });
+        }, 200);
       }
+    } catch (_) {}
+
+    // 念のためのフォールバック
+    setTimeout(() => {
+      if (!didRefresh) location.reload();
     }, RELOAD_FALLBACK_MS);
   }
 
-  // reg から「更新あり」を検出してUI表示
+  // --- global events --------------------------------------------------------
+  // 1回だけリロード（Safari 二重発火対策）
+  navigator.serviceWorker?.addEventListener('controllerchange', () => {
+    if (didRefresh) return;
+    didRefresh = true;
+    location.reload();
+  });
+
+  // --- wiring ---------------------------------------------------------------
   function wireUpdate(reg) {
     if (!reg) return;
 
-    // 既に waiting がいれば即UI
+    // 既に waiting が居たら即表示
     if (reg.waiting) {
-      showUpdateUI(() => applyUpdate(reg.waiting));
+      markHasUpdate(() => applyUpdate(reg.waiting));
     }
 
-    // 新しいSWが見つかったら監視
+    // 新しい SW が見つかったら監視
     reg.addEventListener('updatefound', () => {
       const sw = reg.installing;
       if (!sw) return;
       sw.addEventListener('statechange', () => {
-        // controller がいる状態で installed になった = 既存からのアップデート
+        // 既存コントローラが居て installed になった＝アップデート
         if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-          showUpdateUI(() => applyUpdate(reg.waiting || sw));
+          // reg.waiting が生えるまで少し待ってから UI を出す
+          setTimeout(() => {
+            markHasUpdate(() => applyUpdate(reg.waiting || sw));
+          }, 50);
         }
       });
     });
   }
 
-  // 手動チェック（ヘッダーの ↻ や任意要素 data-sw-check）
   function wireManualCheck(reg) {
-    const manual = document.getElementById('btnHardRefresh') || document.querySelector('[data-sw-check]');
-    manual && manual.addEventListener('click', () => {
-      // 見かけ上の「更新」ボタンは従来どおり機能 + SW更新チェック
-      try { reg.update(); } catch (_) {}
-    }, { passive: true });
+    const manual = hdrBtn() || document.querySelector('[data-sw-check]');
+    if (manual) {
+      manual.addEventListener('click', () => {
+        try { reg.update(); } catch (_) {}
+      }, { passive: true });
+    }
   }
 
   async function main() {
@@ -119,22 +140,21 @@
 
     try {
       const reg = await navigator.serviceWorker.register(SW_URL, {
-        updateViaCache: 'none' // SWのHTTPキャッシュを使わない（更新検知の信頼性UP）
+        updateViaCache: 'none'
       });
       currentReg = reg;
 
-      // 初回でも念のため明示的に更新チェック（Safariでinstalled止まりを起こしにくくする）
+      // iOS/Safari 対策: 明示的にチェック
       try { reg.update(); } catch (_) {}
 
       wireUpdate(reg);
       wireManualCheck(reg);
-    } catch (e) {
-      // 失敗してもアプリ自体は動かしたいので黙殺
-      // console.warn('SW register failed', e);
+    } catch (_) {
+      // register 失敗時は黙殺（アプリ本体はそのまま動作）
     }
   }
 
-  // DOMContentLoaded 以前に呼んでもOKだが、UI生成の都合でload後が安全
+  // DOM 準備後でOK
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
     main();
   } else {
