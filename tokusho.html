@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="format-detection" content="telephone=no, email=no, address=no">
   <title>特定商取引法に基づく表記 | Train Punch</title>
   <meta name="description" content="Train Punch（トレインパンチ）の特定商取引法に基づく表記。支援（チップ／寄付）に関する事業者情報・支払方法・解約・返品特約など。">
   <meta name="theme-color" content="#0fb6a9">
@@ -90,23 +91,20 @@
     <div class="card" role="region" aria-label="特定商取引法に基づく表記">
       <h1>特定商取引法に基づく表記</h1>
 
-      <!-- ※氏名は必ず実名に差し替えてください（屋号のみ不可のリスク） -->
       <dl class="kv">
         <dt>販売事業者（屋号）</dt><dd>Train Punch</dd>
-        <dt>事業者の氏名</dt><dd>［氏名］（個人）</dd>
-        <dt>運営責任者</dt><dd>［氏名］</dd>
+        <dt>代表者名</dt><dd>長町宗一郎（個人）</dd>
 
         <dt>所在地</dt>
         <dd>
-          個人情報保護のため、請求があった場合は<strong>遅滞なく開示</strong>します。<br>
+          個人情報保護のため、請求があった場合は<strong>速やかに開示</strong>します。<br>
           <span class="muted small">【開示請求方法】件名を「住所開示請求」とし、氏名・ご連絡先を記載のうえ
-          <a href="mailto:toreninguguanli53@gmail.com">メール</a>でご連絡ください。<br>
-          【受付時間】平日10:00–17:00／受付時間内の請求は<strong>原則当日中</strong>に開示します。</span>
+          <a href="mailto:toreninguguanli53@gmail.com">メール</a>でご連絡ください（目安：3営業日以内に対応）。</span>
         </dd>
 
         <dt>電話番号</dt>
         <dd>
-          請求いただいた方に<strong>遅滞なく開示</strong>します。<br>
+          請求いただいた方に<strong>速やかに開示</strong>します。<br>
           <span class="muted small">【開示請求方法】件名を「電話番号開示請求」とし、上記メール宛にご連絡ください。<br>
           ※通常のお問い合わせはメールへお願いします。</span>
         </dd>
@@ -119,14 +117,14 @@
       </dl>
 
       <h2 id="pricing">支援（寄付）に関する表示</h2>
-      <div class="highlight small muted">現在は<strong>任意の寄付（チップ）</strong>のみを受け付けています。<br>物品・デジタルコンテンツ・役務等の提供や特典はありません。</div>
+      <div class="highlight small muted">現在は<strong>任意の寄付（チップ）</strong>のみを受け付けています。物品・デジタルコンテンツ・役務等の提供や特典はありません。</div>
 
       <dl class="kv" aria-label="価格・支払・引渡・解約・返品">
         <dt>販売価格・対価</dt>
         <dd>支援（寄付）金額は任意です。金額は各決済サービスの画面で表示されます。</dd>
 
         <dt>商品代金以外の必要料金</dt>
-        <dd>なし（通信に係る費用はご利用者様のご負担）</dd>
+        <dd>なし（通信に係る費用はお客様のご負担）</dd>
 
         <dt>支払方法</dt>
         <dd>クレジットカード等（Ko-fi／GitHub Sponsors など各プラットフォームの決済を利用）</dd>
@@ -138,12 +136,12 @@
         <dd>本ページは開発支援（寄付）の受付のみで、物品・デジタルコンテンツ・役務の提供はありません。</dd>
 
         <dt>定期支援の解約</dt>
-        <dd>GitHub Sponsors 等の管理画面からいつでも解約可能です。<strong>次回請求日前日23:59まで</strong>に解約手続を行ってください。</dd>
+        <dd>GitHub Sponsors 等の管理画面からいつでも解約可能です。<strong>次回請求日の前日まで</strong>にお手続きください。</dd>
 
         <dt>返品・キャンセル（特約）</dt>
         <dd>
           寄付の性質上、<strong>原則返金は致しません</strong>。ただし重複課金などの誤決済が確認できる場合は個別に対応します。<br>
-          ※決済直前の<strong>最終確認画面</strong>で、金額（および継続支援の場合は課金周期・解約方法）が明示されます。内容をご確認のうえお申し込みください。
+          また、寄付・無形の支援については<strong>クーリング・オフ制度の適用外</strong>です。
         </dd>
       </dl>
 
@@ -156,21 +154,19 @@
         <li>返品・交換・キャンセルの条件（<strong>返品特約</strong>）の見やすい表示</li>
       </ul>
 
-      <p class="muted small" style="margin-top:18px">最終更新日：2025-11-02</p>
+      <p class="muted small" style="margin-top:18px">最終更新日：2025-11-05</p>
     </div>
   </main>
 
   <footer>
     <div class="wrap">
       <div>© <span id="year"></span> Train Punch</div>
-      <div class="muted small">v1.5.5-hotfix1 ・ 本ページは表示のみで通信を行いません（PWAオフライン対応）。</div>
+      <div class="muted small">v1.5.9-safari-fix ・ 本ページは表示のみで通信を行いません（PWAオフライン対応）。</div>
     </div>
   </footer>
 
   <script>
-    // 年表示のみ
     document.getElementById('year').textContent = new Date().getFullYear();
-    // PWA登録（存在すれば）
     if('serviceWorker' in navigator){
       navigator.serviceWorker.register('./sw.js').catch(()=>{});
     }
