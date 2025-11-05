@@ -1,6 +1,7 @@
-// sw-register.js — v1.5.9-safari-fix (refresh-button-only fix)
-// - ↻ クリック時に navigator.serviceWorker.getRegistration() で最新の reg を取得して処理
-// - それ以外のロジック（通知/バナー/BC 等）は元コードのまま
+// sw-register.js — v1.5.9-safari-fix (refresh-button-only fix, final)
+// - ↻ クリック時に毎回 getRegistration() で最新 reg を取得して適用
+// - reg が null でも安全に fallback（__tpHardRefresh() または location.reload()）
+// - 既存の通知/バナー/BroadcastChannel/監視ロジックは踏襲
 
 (() => {
   if (!('serviceWorker' in navigator)) return;
@@ -130,9 +131,12 @@
     if (!btn || btn._tpBound) return;
     btn._tpBound = true;
 
-    // iOS の誤タップ対策で capture & preventDefault
+    let lastHandled = 0; // iOSでのclick/touch二重発火ガード
     const handler = async (e) => {
       try { e.preventDefault(); e.stopPropagation(); } catch(_) {}
+      const now = Date.now();
+      if (now - lastHandled < 250) return;
+      lastHandled = now;
 
       let reg = null;
       try { reg = await navigator.serviceWorker.getRegistration(); } catch(_) {}
@@ -148,8 +152,7 @@
     };
 
     btn.addEventListener('click', handler, { capture:true });
-    // タップ環境での取りこぼし防止
-    btn.addEventListener('touchend', handler, { capture:true });
+    btn.addEventListener('touchend', handler, { capture:true, passive:false });
   };
 
   // ---- 登録 ----
