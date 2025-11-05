@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>特定商取引法に基づく表記 | Train Punch</title>
-  <meta name="description" content="Train Punch（トレインパンチ）の特定商取引法に基づく表記。支援（チップ／寄付）に関する事業者情報・支払方法など。">
+  <meta name="description" content="Train Punch（トレインパンチ）の特定商取引法に基づく表記。支援（チップ／寄付）に関する事業者情報・支払方法・解約・返品特約など。">
   <meta name="theme-color" content="#0fb6a9">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon-192.png" sizes="192x192">
@@ -15,22 +15,13 @@
   <meta property="og:image" content="./icons/icon-512.png">
   <style>
     :root{
-      --bg:#f7fafc;
-      --card:#ffffff;
-      --text:#1a202c;
-      --muted:#6b7280;
-      --line:#e5e7eb;
-      --brand:#0fb6a9;
-      --shadow:0 2px 22px rgba(0,0,0,.06);
+      --bg:#f7fafc; --card:#ffffff; --text:#1a202c; --muted:#6b7280;
+      --line:#e5e7eb; --brand:#0fb6a9; --shadow:0 2px 22px rgba(0,0,0,.06);
     }
     @media (prefers-color-scheme: dark){
       :root{
-        --bg:#0b0f14;
-        --card:#10151c;
-        --text:#e5e7eb;
-        --muted:#a1a1aa;
-        --line:#1f2937;
-        --shadow:0 2px 22px rgba(0,0,0,.35);
+        --bg:#0b0f14; --card:#10151c; --text:#e5e7eb; --muted:#a1a1aa;
+        --line:#1f2937; --shadow:0 2px 22px rgba(0,0,0,.35);
       }
     }
     *{box-sizing:border-box}
@@ -61,27 +52,24 @@
     }
     .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px}
     h1{font-size:20px;margin:6px 0 14px}
+    h2{font-size:16px;margin:18px 0 8px}
     dl{margin:0}
     dt{font-weight:700;margin-top:14px}
     dd{margin:6px 0 0 0}
     .muted{color:var(--muted)}
     .small{font-size:13px}
     footer{border-top:1px solid var(--line);padding:18px 0;color:var(--muted);font-size:13px;margin-top:24px}
-    .kv{display:grid;grid-template-columns:160px 1fr;gap:8px}
+    .kv{display:grid;grid-template-columns:180px 1fr;gap:8px}
     .kv dt{margin-top:0}
     .kv dd{margin:0}
     @media (max-width:640px){ .kv{grid-template-columns:1fr} }
     /* 押しやすいリンク */
     a.btnlink{
-      display:inline-block;
-      padding:10px 12px;
-      border:1px solid var(--line);
-      border-radius:10px;
-      text-decoration:none;
+      display:inline-block; padding:10px 12px; border:1px solid var(--line);
+      border-radius:10px; text-decoration:none;
     }
-    a.btnlink:hover{
-      background: color-mix(in oklab, var(--card), #000 6%);
-    }
+    a.btnlink:hover{ background: color-mix(in oklab, var(--card), #000 6%); }
+    .highlight{ border:1px dashed var(--line); padding:10px 12px; border-radius:10px; }
   </style>
 </head>
 <body>
@@ -99,55 +87,74 @@
   </header>
 
   <main class="wrap">
-    <div class="card">
+    <div class="card" role="region" aria-label="特定商取引法に基づく表記">
       <h1>特定商取引法に基づく表記</h1>
-      <dl class="kv" aria-label="特商法表示">
+
+      <!-- ※氏名は必ず実名に差し替えてください（屋号のみ不可のリスク） -->
+      <dl class="kv">
         <dt>販売事業者（屋号）</dt><dd>Train Punch</dd>
-        <dt>運営責任者</dt><dd>（個人）</dd>
+        <dt>事業者の氏名</dt><dd>［氏名］（個人）</dd>
+        <dt>運営責任者</dt><dd>［氏名］</dd>
 
         <dt>所在地</dt>
         <dd>
-          個人情報保護のため、請求があった場合は遅滞なく開示いたします。<br>
-          <span class="muted small">【開示請求方法】件名を「住所開示請求」とし、氏名・住所・電話番号を記載のうえ
-          <a href="mailto:toreninguguanli53@gmail.com">上記メール</a>までご連絡ください。</span>
+          個人情報保護のため、請求があった場合は<strong>遅滞なく開示</strong>します。<br>
+          <span class="muted small">【開示請求方法】件名を「住所開示請求」とし、氏名・ご連絡先を記載のうえ
+          <a href="mailto:toreninguguanli53@gmail.com">メール</a>でご連絡ください。<br>
+          【受付時間】平日10:00–17:00／受付時間内の請求は<strong>原則当日中</strong>に開示します。</span>
         </dd>
 
         <dt>電話番号</dt>
         <dd>
-          請求いただいた方に遅滞なく開示します。<br>
-          <span class="muted small">【開示請求方法】件名を「電話番号開示請求」とし、上記メール宛にご連絡ください。<br>※通常のお問い合わせはメールへお願いします。</span>
+          請求いただいた方に<strong>遅滞なく開示</strong>します。<br>
+          <span class="muted small">【開示請求方法】件名を「電話番号開示請求」とし、上記メール宛にご連絡ください。<br>
+          ※通常のお問い合わせはメールへお願いします。</span>
         </dd>
 
         <dt>メールアドレス</dt>
         <dd><a class="btnlink" href="mailto:toreninguguanli53@gmail.com">toreninguguanli53@gmail.com</a></dd>
 
         <dt>URL</dt>
-        <dd><a class="btnlink" href="https://trainpunch.github.io/PWA-Traning/" target="_blank" rel="noopener noreferrer">https://trainpunch.github.io/PWA-Traning/</a></dd>
+        <dd><a class="btnlink" href="https://trainpunch.github.io/PWA-Training/" target="_blank" rel="noopener noreferrer">https://trainpunch.github.io/PWA-Training/</a></dd>
+      </dl>
 
+      <h2 id="pricing">支援（寄付）に関する表示</h2>
+      <div class="highlight small muted">現在は<strong>任意の寄付（チップ）</strong>のみを受け付けています。<br>物品・デジタルコンテンツ・役務等の提供や特典はありません。</div>
+
+      <dl class="kv" aria-label="価格・支払・引渡・解約・返品">
         <dt>販売価格・対価</dt>
-        <dd>支援（チップ／寄付）金額は任意です。金額は各サービスの決済画面に表示されます。</dd>
+        <dd>支援（寄付）金額は任意です。金額は各決済サービスの画面で表示されます。</dd>
 
         <dt>商品代金以外の必要料金</dt>
-        <dd>なし（通信に係る費用はお客様のご負担）</dd>
+        <dd>なし（通信に係る費用はご利用者様のご負担）</dd>
 
         <dt>支払方法</dt>
-        <dd>クレジットカード等（Ko-fi／GitHub Sponsors など各決済サービスを通じて処理）</dd>
+        <dd>クレジットカード等（Ko-fi／GitHub Sponsors など各プラットフォームの決済を利用）</dd>
 
         <dt>支払時期</dt>
-        <dd>各サービスの規約に基づき、申込時に決済されます。継続支援（サブスク）がある場合は、各プラットフォームの管理画面で更新・解約が行えます。</dd>
+        <dd>単発支援は申込時に決済されます。継続支援（サブスク）がある場合、各プラットフォームの規約に基づき毎月の所定日に決済されます。</dd>
 
-        <dt>引き渡し時期</dt>
-        <dd>本ページは開発支援（寄付）を受け付けるもので、物品やデジタルコンテンツの提供はありません。</dd>
-
-        <dt>返品・キャンセル</dt>
-        <dd>寄付の性質上、原則返金不可。ただし重複課金等の誤決済が確認できる場合は個別に対応します。メールにてご連絡ください。</dd>
+        <dt>引き渡し・提供時期</dt>
+        <dd>本ページは開発支援（寄付）の受付のみで、物品・デジタルコンテンツ・役務の提供はありません。</dd>
 
         <dt>定期支援の解約</dt>
-        <dd>GitHub Sponsors 等の管理画面からいつでも解約可能です。次回請求日前の解約をご自身でお手続きください。</dd>
+        <dd>GitHub Sponsors 等の管理画面からいつでも解約可能です。<strong>次回請求日前日23:59まで</strong>に解約手続を行ってください。</dd>
 
-        <dt>個人情報の取扱い</dt>
-        <dd>支援に関する個人情報は各サービスのポリシーに従って取り扱われます。<a href="./privacy.html">プライバシーポリシー</a> もご参照ください。</dd>
+        <dt>返品・キャンセル（特約）</dt>
+        <dd>
+          寄付の性質上、<strong>原則返金は致しません</strong>。ただし重複課金などの誤決済が確認できる場合は個別に対応します。<br>
+          ※決済直前の<strong>最終確認画面</strong>で、金額（および継続支援の場合は課金周期・解約方法）が明示されます。内容をご確認のうえお申し込みください。
+        </dd>
       </dl>
+
+      <h2>将来、リターンや有償提供を行う場合の追記事項（予告）</h2>
+      <ul class="small">
+        <li>提供内容の明確化（デジタル/物販/役務の別、提供時期）</li>
+        <li>販売価格（消費税込）と送料などの<strong>商品代金以外の必要料金</strong></li>
+        <li>（定期提供時）<strong>課金額・周期・最低契約期間・自動更新の有無・解約方法と期限</strong></li>
+        <li>動作環境（ソフト/アプリ提供時）</li>
+        <li>返品・交換・キャンセルの条件（<strong>返品特約</strong>）の見やすい表示</li>
+      </ul>
 
       <p class="muted small" style="margin-top:18px">最終更新日：2025-11-02</p>
     </div>
@@ -156,7 +163,7 @@
   <footer>
     <div class="wrap">
       <div>© <span id="year"></span> Train Punch</div>
-      <div class="muted small">v1.5.5-hotfix1 • 本ページは表示のみで通信を行いません（PWAオフライン対応）。</div>
+      <div class="muted small">v1.5.5-hotfix1 ・ 本ページは表示のみで通信を行いません（PWAオフライン対応）。</div>
     </div>
   </footer>
 
