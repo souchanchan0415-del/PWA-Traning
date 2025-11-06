@@ -1,52 +1,48 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <!--
-    Train Punch – Contact
-    v1.5.9-safari-fix / Standalone contact page
-  -->
+  <!-- Train Punch – Contact (unified) -->
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>お問い合わせ | Train Punch</title>
   <meta name="description" content="Train Punch（トレインパンチ）へのお問い合わせページ。バグ報告、改善提案、その他のご連絡はこちらから。">
-  <meta name="theme-color" content="#0fb6a9">
+  <meta name="color-scheme" content="light dark">
+  <meta name="format-detection" content="telephone=no, email=no, address=no">
+  <meta name="theme-color" content="#111111">
+
+  <!-- PWA / Icons -->
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon-192.png" sizes="192x192">
   <link rel="apple-touch-icon" href="./icons/icon-180.png">
+
+  <!-- OGP -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="お問い合わせ | Train Punch">
   <meta property="og:description" content="Train Punchへのお問い合わせ。バグ報告や機能要望はこちら。">
   <meta property="og:image" content="./icons/icon-512.png">
+
+  <!-- base styles（他ページと揃える） -->
+  <link rel="stylesheet" href="./styles.css?v=1.5.5-hotfix1">
+
   <style>
     :root{
-      --bg:#f7fafc;
-      --card:#ffffff;
-      --text:#1a202c;
-      --muted:#6b7280;
-      --line:#e5e7eb;
-      --brand:#0fb6a9;
-      --brand-weak:#6cc7bf;
-      --danger:#e11d48;
-      --focus:#0fb6a940;
-      --shadow:0 2px 22px rgba(0,0,0,.06);
+      --bg:#f7fafc; --card:#ffffff; --text:#1a202c; --muted:#6b7280;
+      --line:#e5e7eb; --brand:#0fb6a9; --brand-weak:#6cc7bf; --danger:#e11d48;
+      --focus:#0fb6a940; --shadow:0 2px 22px rgba(0,0,0,.06);
     }
     @media (prefers-color-scheme: dark){
       :root{
-        --bg:#0b0f14;
-        --card:#10151c;
-        --text:#e5e7eb;
-        --muted:#a1a1aa;
-        --line:#1f2937;
-        --shadow:0 2px 22px rgba(0,0,0,.35);
+        --bg:#0b0f14; --card:#10151c; --text:#e5e7eb; --muted:#a1a1aa;
+        --line:#1f2937; --shadow:0 2px 22px rgba(0,0,0,.35);
       }
     }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
       margin:0;
-      font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP","Meiryo",sans-serif;
-      background:var(--bg);
-      color:var(--text);
+      font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,
+           "Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP","Meiryo",sans-serif;
+      background:var(--bg); color:var(--text);
       -webkit-tap-highlight-color: transparent;
     }
     header{
@@ -62,7 +58,10 @@
     nav{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
     nav a{color:var(--text);text-decoration:none;padding:8px 10px;border-radius:8px}
     nav a:hover{background:var(--line)}
-    main{padding:24px 0 40px}
+    main{
+      max-width:860px; margin:0 auto;
+      padding:24px 16px max(28px, calc(28px + env(safe-area-inset-bottom)));
+    }
     .card{
       background:var(--card); border:1px solid var(--line); border-radius:14px;
       box-shadow:var(--shadow); padding:18px; margin-bottom:16px;
@@ -191,16 +190,16 @@
   <footer>
     <div class="wrap">
       <div>© <span id="year"></span> Train Punch</div>
-      <div class="muted">v1.5.9-safari-fix • このページは通信を行わず、メール作成時のみ端末のメーラーを呼び出します。</div>
+      <div class="muted">v1.6.1-unify • このページは通信を行わず、メール作成時のみ端末のメーラーを呼び出します。</div>
     </div>
   </footer>
 
   <script>
-    // 連絡先メール（置き換え済み）
+    // 連絡先メール
     const SUPPORT_EMAIL = 'toreninguguanli53@gmail.com';
 
-    // バージョン（app.js / sw.js と合わせる）
-    const APP_VERSION = 'v1.5.9-safari-fix';
+    // バージョン（表記のみ・機能無変更）
+    const APP_VERSION = 'v1.6.1-unify';
 
     // 年表示
     document.getElementById('year').textContent = new Date().getFullYear();
@@ -228,7 +227,6 @@
         toast('コピーしました');
       }
     }
-
     document.getElementById('copyMail').addEventListener('click', ()=> copyText(SUPPORT_EMAIL));
 
     // テンプレコピー
@@ -284,14 +282,15 @@
       ].join('\n');
     }
 
-    // かんたんトースト
+    // かんたんトースト（DOMに無ければ生成）
     function toast(msg){
       let t = document.getElementById('toast');
       if(!t){
         t = document.createElement('div');
         t.id = 'toast';
         Object.assign(t.style, {
-          position:'fixed',left:'50%',bottom:'28px',transform:'translateX(-50%)',
+          position:'fixed',left:'50%',bottom:'max(28px, calc(28px + env(safe-area-inset-bottom)))',
+          transform:'translateX(-50%)',
           background:'var(--text)',color:'var(--card)',padding:'10px 14px',borderRadius:'999px',
           zIndex:50,opacity:'0',transition:'opacity .18s ease, transform .18s ease',
           boxShadow:'var(--shadow)',fontWeight:'700',pointerEvents:'none'
@@ -302,11 +301,9 @@
       t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(-4px)';
       setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(-50%)'; }, 1400);
     }
-
-    // PWA: サービスワーカー登録（存在すれば）
-    if('serviceWorker' in navigator){
-      navigator.serviceWorker.register('./sw.js').catch(()=>{ /* 無視 */ });
-    }
   </script>
+
+  <!-- SW ローダーは全ページで同一のものを使用 -->
+  <script defer src="./sw-register.js?v=1.6.1-unify"></script>
 </body>
 </html>
