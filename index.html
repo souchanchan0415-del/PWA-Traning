@@ -324,11 +324,12 @@
 
   <noscript><p class="nojs">JavaScript を有効にしてください。</p></noscript>
 
-  <!-- scripts（“ファイル名ごと”更新してキャッシュ回避） -->
+  <!-- scripts -->
   <script defer src="./app.js?v=1.5.9-safari-fix"></script>
-  <script defer src="sw-register.js?v=1.5.7-update-notify"></script>
+  <!-- SWローダーは全ページでこれに統一 -->
+  <script defer src="./sw-register.js?v=1.6.1-unify"></script>
 
-  <!-- 折りたたみメモのUX補助（任意だが軽い） -->
+  <!-- 折りたたみメモのUX補助 -->
   <script>
     document.addEventListener('DOMContentLoaded', function(){
       var box=document.getElementById('memoDetails');
@@ -339,10 +340,9 @@
     });
   </script>
 
-  <!-- 強制更新（ボタンクリック用）と起動時キャッシュ掃除 -->
+  <!-- 強制更新（ボタンクリック用） -->
   <script>
     (function(){
-      // 手動ハードリフレッシュ
       window.__tpHardRefresh = async function(){
         if(window.__tpHRRunning) return; window.__tpHRRunning=true;
         var btn=document.getElementById('btnHardRefresh'); if(btn){btn.disabled=true;btn.textContent='更新…'}
@@ -358,21 +358,6 @@
         }catch(_){}
         location.reload();
       };
-
-      // 起動直後に旧キャッシュも掃除（新ファイルを確実に読み込ませる）
-      try{
-        if('serviceWorker' in navigator){
-          navigator.serviceWorker.getRegistrations()
-            .then(function(rs){ return Promise.all(rs.map(function(r){ return r.unregister().catch(function(){}); })); });
-        }
-      }catch(_){}
-      try{
-        if('caches' in window){
-          caches.keys().then(function(keys){
-            return Promise.all(keys.map(function(k){ return caches.delete(k).catch(function(){}); }));
-          });
-        }
-      }catch(_){}
     })();
   </script>
 </body>
