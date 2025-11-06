@@ -4,16 +4,26 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="format-detection" content="telephone=no, email=no, address=no">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#111111">
+
   <title>特定商取引法に基づく表記 | Train Punch</title>
   <meta name="description" content="Train Punch（トレインパンチ）の特定商取引法に基づく表記。支援（チップ／寄付）に関する事業者情報・支払方法・解約・返品特約など。">
-  <meta name="theme-color" content="#0fb6a9">
+
+  <!-- PWA / Icons -->
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon-192.png" sizes="192x192">
-  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-180.png">
+
+  <!-- OGP -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="特定商取引法に基づく表記 | Train Punch">
   <meta property="og:description" content="支援（寄付）に関する事業者情報・支払方法などの表示。">
   <meta property="og:image" content="./icons/icon-512.png">
+
+  <!-- CSS（他ページと同一のバージョンで読み込み） -->
+  <link rel="stylesheet" href="./styles.css?v=1.5.5-hotfix1">
+
   <style>
     :root{
       --bg:#f7fafc; --card:#ffffff; --text:#1a202c; --muted:#6b7280;
@@ -48,8 +58,8 @@
     nav a{color:var(--text);text-decoration:none;padding:8px 10px;border-radius:8px}
     nav a:hover{background:var(--line)}
     main{
-      padding:24px 16px calc(28px + env(safe-area-inset-bottom));
       max-width:860px; margin:0 auto;
+      padding:24px 16px max(28px, calc(28px + env(safe-area-inset-bottom)));
     }
     .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px}
     h1{font-size:20px;margin:6px 0 14px}
@@ -166,10 +176,10 @@
   </footer>
 
   <script>
+    // 年の表示のみ（機能変更なし）
     document.getElementById('year').textContent = new Date().getFullYear();
-    if('serviceWorker' in navigator){
-      navigator.serviceWorker.register('./sw.js').catch(()=>{});
-    }
   </script>
+  <!-- SW ローダーは全ページ同一バージョンで統一 -->
+  <script defer src="./sw-register.js?v=1.6.1-unify"></script>
 </body>
 </html>
