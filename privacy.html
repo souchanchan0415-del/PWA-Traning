@@ -4,9 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>プライバシーポリシー | Train Punch</title>
+
+  <!-- 表示系（他ページと統一） -->
   <meta name="color-scheme" content="light dark">
-  <!-- SWのプリキャッシュと整合：クエリ付きで読み込み -->
+  <meta name="theme-color" content="#111111">
+  <meta name="format-detection" content="telephone=no, email=no, address=no">
+
+  <!-- PWA メタ（機能追加ではなく他ページと同じ宣言に統一） -->
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" sizes="192x192" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-180.png">
+
+  <!-- CSS（既存バージョンを維持） -->
   <link rel="stylesheet" href="./styles.css?v=1.5.5-hotfix1">
+
   <style>
     /* レイアウト */
     main{
@@ -108,5 +119,8 @@
       <p>ご不明点は <a class="btnlink" href="./contact.html" rel="noopener">contact.html</a> までご連絡ください。</p>
     </section>
   </main>
+
+  <!-- SWローダーは index / support と同一バージョンに統一 -->
+  <script defer src="./sw-register.js?v=1.6.1-unify"></script>
 </body>
 </html>
