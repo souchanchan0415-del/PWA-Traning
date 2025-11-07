@@ -206,6 +206,10 @@ let watchlist=[]; let watchSelectedPart='胸';
 let _watchChipsBound=false, _trendEventsBound=false;
 const isWatched = id => Array.isArray(watchlist) && watchlist.includes(id);
 
+// ===== NEW: Settings/Exercises chip filter state =====
+let partFilterActive = null;           // null=全消し（初期は非表示）
+let _partFilterBound  = false;
+
 // undo stack
 const undoStack=[];
 function pushUndo(){ try{ undoStack.push(JSON.stringify(currentSession.sets)); if(undoStack.length>30) undoStack.shift(); }catch(_){ } }
@@ -287,7 +291,8 @@ async function init(){
   renderTodaySets();
   renderHistory();
   renderAnalytics();
-  renderExList();
+  await renderExList();          // ← list描画
+  renderPartFilterChips();       // ← NEW: 部位チップ描画（初期は全消し=非表示）
 
   const dark=(await get('prefs','dark'))?.value || false;
   $('#darkToggle')?.setAttribute('checked', dark ? 'checked' : '');
@@ -300,7 +305,6 @@ async function ensureInitialExercises(){
   const all=await getAll('exercises');
   if(all && all.length){
     const byName=Object.fromEntries(all.map(e=>[e.name,e]));
-    // ★ FIX: missing ')' caused syntax error
     for(const p of PARTS){
       for(const name of EX_GROUPS[p]){
         const hit=byName[name];
@@ -324,7 +328,7 @@ function bindTabs(){
       put('prefs',{key:'last_tab',value:tab}).catch(()=>{});
       if(tab==='history') renderHistory();
       if(tab==='analytics') renderAnalytics();
-      if(tab==='settings'){ renderExList(); renderWatchUI(); }
+      if(tab==='settings'){ await renderExList(); renderPartFilterChips(); renderWatchUI(); }
     });
   });
 }
@@ -837,10 +841,11 @@ function bindSettingsUI(){
     try{
       await put('exercises',{name,group:part}); $('#newExName').value='';
       await renderExList(); await renderExSelect(); await renderTplExSelect(); await renderWatchUI(); await renderTrendSelect();
+      renderPartFilterChips(); // ★ 追加/削除後はチップを再描画（指定の1行）
       showToast('追加しました');
     }catch{ showToast('同名の種目があります'); }
   });
-  $('#filterPart')?.addEventListener('change',renderExList);
+  $('#filterPart')?.addEventListener('change',async()=>{ await renderExList(); renderPartFilterChips(); });
   $('#btnWipe')?.addEventListener('click',async()=>{
     if(!confirm('本当に全データを削除しますか？')) return;
     if(USE_LS){ localStorage.removeItem(LS_KEY); }
@@ -849,6 +854,7 @@ function bindSettingsUI(){
     }
     await ensureInitialExercises();
     await renderExList(); await renderExSelect(); await renderTplExSelect(); renderHistory(); renderAnalytics(); renderTodaySets(); await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary();
+    renderPartFilterChips(); // 再描画
     showToast('全データを削除しました');
   });
 
@@ -872,26 +878,62 @@ function bindSettingsUI(){
       for(const x of (data.prefs    ||[])) await put('prefs',x);
     }
     await renderExList(); await renderExSelect(); await renderTplExSelect(); renderHistory(); renderAnalytics(); renderTodaySets(); await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary();
+    renderPartFilterChips(); // 再描画
     showToast('復元しました'); e.target.value='';
   });
 }
 
+/* ===== NEW: 部位チップ（#partFilter）と表示切替 ===== */
+function renderPartFilterChips(){
+  const bar = $('#partFilter'); if(!bar) return;
+  bar.innerHTML = PARTS.map(p=>`<button type="button" data-part="${p}" class="${p===partFilterActive?'is-active':''}">${p}</button>`).join('');
+  if(!_partFilterBound){
+    bar.addEventListener('click',e=>{
+      const btn=e.target.closest('button'); if(!btn) return;
+      const part=btn.dataset.part;
+      partFilterActive = (partFilterActive===part) ? null : part; // 同じボタンで全消し
+      renderPartFilterChips();         // 見た目の更新
+      applyPartFilterVisibility();     // 表示制御
+    });
+    _partFilterBound=true;
+  }
+  applyPartFilterVisibility(); // 初期/再描画時も反映
+}
+function applyPartFilterVisibility(){
+  const ul = document.querySelector('#exerciseList') || document.querySelector('#exList'); if(!ul) return;
+  const lis = Array.from(ul.querySelectorAll('li'));
+  if(!lis.length) return;
+  lis.forEach(li=>{
+    const p = li.dataset.part || '';
+    li.style.display = partFilterActive ? (p===partFilterActive?'' : 'none') : 'none'; // 初期は非表示
+  });
+}
+
+/* 種目リストの描画（dataset.part 付与版） */
 async function renderExList(){
   const filt=$('#filterPart')?.value||'all';
   let exs=await getAll('exercises'); if(filt!=='all') exs=exs.filter(e=>e.group===filt);
   exs.sort((a,b)=>(a.group||'').localeCompare(b.group||'','ja')||a.name.localeCompare(b.name,'ja'));
 
-  const ul=$('#exList'); if(!ul) return;
-  ul.innerHTML=exs.map(e=>{
-    const tag=e.group?`<span class="badge" style="margin-right:8px">${esc(e.group)}</span>`:'';
-    return `<li><span>${tag}${esc(e.name)}</span><button class="ghost" data-id="${e.id}">削除</button></li>`;
-  }).join('')||'<li>まだありません</li>';
+  const ul = document.querySelector('#exerciseList') || document.querySelector('#exList'); if(!ul) return;
+  ul.innerHTML='';
+  if(!exs.length){ ul.innerHTML='<li>まだありません</li>'; applyPartFilterVisibility(); return; }
+
+  for(const e of exs){
+    const li=document.createElement('li');
+    li.dataset.part = e.group || ''; // ★ 指定の追加
+    li.innerHTML = `<span>${e.group?`<span class="badge" style="margin-right:8px">${esc(e.group)}</span>`:''}${esc(e.name)}</span><button class="ghost" data-id="${e.id}">削除</button>`;
+    ul.appendChild(li);
+  }
   ul.querySelectorAll('button').forEach(b=>{
     b.addEventListener('click',async()=>{
       pushUndo(); await del('exercises',Number(b.dataset.id));
       await renderExList(); await renderExSelect(); await renderTplExSelect(); renderAnalytics(); await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary();
+      renderPartFilterChips(); // ★ 追加/削除後の再描画（指定の1行）
     });
   });
+
+  applyPartFilterVisibility();
 }
 
 // ---- Watchlist UI ----
