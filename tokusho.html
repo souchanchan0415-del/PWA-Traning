@@ -21,7 +21,7 @@
   <meta property="og:description" content="支援（寄付）に関する事業者情報・支払方法などの表示。">
   <meta property="og:image" content="./icons/icon-512.png">
 
-  <!-- CSS（他ページと同一のバージョンで読み込み） -->
+  <!-- CSS（他ページと同一バージョンで読み込み） -->
   <link rel="stylesheet" href="./styles.css?v=1.5.5-hotfix1">
 
   <style>
@@ -54,9 +54,6 @@
     .headbar{display:flex;align-items:center;gap:10px;min-height:56px}
     .logo{width:28px;height:28px;border-radius:6px;background:var(--brand);display:inline-block;box-shadow:inset 0 0 0 2px #fff3}
     .title{font-weight:700;letter-spacing:.2px}
-    nav{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
-    nav a{color:var(--text);text-decoration:none;padding:8px 10px;border-radius:8px}
-    nav a:hover{background:var(--line)}
     main{
       max-width:860px; margin:0 auto;
       padding:24px 16px max(28px, calc(28px + env(safe-area-inset-bottom)));
@@ -74,33 +71,20 @@
     .kv dt{margin-top:0}
     .kv dd{margin:0}
     @media (max-width:640px){ .kv{grid-template-columns:1fr} }
-    /* 押しやすいリンク */
-    a.btnlink{
-      display:inline-block; padding:10px 12px; border:1px solid var(--line);
-      border-radius:10px; text-decoration:none;
-    }
-    a.btnlink:hover{ background: color-mix(in oklab, var(--card), #000 6%); }
-    .highlight{ border:1px dashed var(--line); padding:10px 12px; border-radius:10px; }
+    a.btnlink{display:inline-block; padding:10px 12px; border:1px solid var(--line);border-radius:10px; text-decoration:none}
+    a.btnlink:hover{ background: color-mix(in oklab, var(--card), #000 6%) }
+    .highlight{ border:1px dashed var(--line); padding:10px 12px; border-radius:10px }
   </style>
 </head>
 <body>
-  <header>
-    <div class="wrap headbar">
-      <span class="logo" aria-hidden="true"></span>
-      <div class="title">Train Punch</div>
-      <nav>
-        <a href="./index.html">アプリへ戻る</a>
-        <a href="./privacy.html">プライバシー</a>
-        <a href="./contact.html">お問い合わせ</a>
-        <a href="./support.html">サポート</a>
-      </nav>
-    </div>
+  <!-- 右上戻るボタンに統一 -->
+  <header class="appbar" role="banner">
+    <h1 class="logo">特定商取引法に基づく表記</h1>
+    <a class="iconbtn" href="./index.html" title="アプリへ戻る" aria-label="アプリへ戻る" role="button" style="margin-left:auto">←</a>
   </header>
 
   <main class="wrap">
     <div class="card" role="region" aria-label="特定商取引法に基づく表記">
-      <h1>特定商取引法に基づく表記</h1>
-
       <dl class="kv">
         <dt>販売事業者（屋号）</dt><dd>Train Punch</dd>
         <dt>代表者名</dt><dd>長町宗一郎（個人）</dd>
