@@ -24,9 +24,6 @@
     .headbar{display:flex;align-items:center;gap:10px;min-height:56px}
     .logo{width:28px;height:28px;border-radius:6px;background:var(--brand);display:inline-block;box-shadow:inset 0 0 0 2px #fff3}
     .title{font-weight:700;letter-spacing:.2px}
-    nav{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
-    nav a{color:var(--text);text-decoration:none;padding:8px 10px;border-radius:8px}
-    nav a:hover{background:var(--line)}
     main{padding:24px 0 40px}
     .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px;margin-bottom:16px}
     h1{font-size:20px;margin:6px 0 14px} h2{font-size:16px;margin:0 0 10px} p{margin:0 0 10px}
@@ -50,16 +47,10 @@
   </style>
 </head>
 <body>
-  <header>
-    <div class="wrap headbar">
-      <span class="logo" aria-hidden="true"></span>
-      <div class="title">Train Punch</div>
-      <nav>
-        <a href="./index.html">アプリへ戻る</a>
-        <a href="./privacy.html">プライバシー</a>
-        <a href="./tokusho.html">特商法表記</a>
-      </nav>
-    </div>
+  <!-- 右上に戻るボタンで統一 -->
+  <header class="appbar" role="banner">
+    <h1 class="logo">お問い合わせ</h1>
+    <a class="iconbtn" href="./index.html" title="アプリへ戻る" aria-label="アプリへ戻る" role="button" style="margin-left:auto">←</a>
   </header>
 
   <main class="wrap">
