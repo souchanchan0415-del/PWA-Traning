@@ -143,6 +143,15 @@ button.ghost.danger:hover{
 .chip:active{ transform: translateY(1px); }
 .chip.active{ background:var(--primary); color:#fff; border-color:transparent; }
 
+/* ===== NEW: Part filter chip bar (最小CSS) ===== */
+.chipbar{ display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 6px; }
+.chipbar button{
+  appearance:none; border:1px solid var(--line);
+  background:color-mix(in srgb, var(--card) 94%, #000 6%); color:var(--text);
+  padding:8px 12px; border-radius:999px; min-height:36px; cursor:pointer;
+}
+.chipbar button.is-active{ background:var(--primary); color:#fff; border-color:transparent; }
+
 /* ===== Lists ===== */
 .list{ list-style:none; padding:0; margin:0; }
 .list li{
