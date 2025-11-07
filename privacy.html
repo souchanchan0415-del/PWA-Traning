@@ -4,50 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>プライバシーポリシー | Train Punch</title>
-
-  <!-- 表示系（他ページと統一） -->
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#111111">
-  <meta name="format-detection" content="telephone=no, email=no, address=no">
-
-  <!-- PWA メタ（機能追加ではなく他ページと同じ宣言に統一） -->
-  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="icon" sizes="192x192" href="./icons/icon-192.png">
-  <link rel="apple-touch-icon" href="./icons/icon-180.png">
-
-  <!-- CSS（既存バージョンを維持） -->
   <link rel="stylesheet" href="./styles.css?v=1.5.5-hotfix1">
-
   <style>
-    /* レイアウト */
-    main{
-      max-width:940px;
-      margin:40px auto;
-      /* 端末下バーに当たらないように底余白を増やす */
-      padding:0 16px max(24px, calc(20px + env(safe-area-inset-bottom)));
-    }
-    h1{margin-bottom:8px}
-    small{color:var(--muted)}
-    section{margin:24px 0}
-    li{margin:.25em 0}
-    code{
-      /* var(--bg-elev) 非採用環境のため既存トークンで代替 */
-      background: color-mix(in oklab, var(--card), #000 8%);
-      border: 1px solid var(--line);
-      padding: 0 .25em;
-      border-radius: 4px;
-    }
-    /* 末尾リンクのタップ領域を確保 */
-    a.btnlink{
-      display:inline-block;
-      padding:10px 12px;
-      border:1px solid var(--line);
-      border-radius:10px;
-      text-decoration:none;
-    }
-    a.btnlink:hover{
-      background: color-mix(in oklab, var(--card), #000 6%);
-    }
+    main{max-width:940px;margin:40px auto;padding:0 16px max(24px, calc(20px + env(safe-area-inset-bottom)))}
+    h1{margin-bottom:8px} small{color:var(--muted)} section{margin:24px 0} li{margin:.25em 0}
+    code{background: color-mix(in oklab, var(--card), #000 8%); border:1px solid var(--line); padding:0 .25em; border-radius:4px}
+    a.btnlink{display:inline-block;padding:10px 12px;border:1px solid var(--line);border-radius:10px;text-decoration:none}
+    a.btnlink:hover{background: color-mix(in oklab, var(--card), #000 6%)}
   </style>
 </head>
 <body>
@@ -120,7 +84,7 @@
     </section>
   </main>
 
-  <!-- SWローダーは index / support と同一バージョンに統一 -->
+  <!-- SW を全ページ同一で読み込む（統一版） -->
   <script defer src="./sw-register.js?v=1.6.1-unify"></script>
 </body>
 </html>
