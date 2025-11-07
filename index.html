@@ -212,6 +212,10 @@
 
       <div class="card">
         <h3>種目</h3>
+
+        <!-- ▼ 追加：部位フィルタ用のチップバー（中身はJSで生成） -->
+        <div id="partFilter" class="chipbar" role="group" aria-label="部位フィルタ"></div>
+
         <div class="grid grid-3">
           <input id="newExName" placeholder="種目名（例：懸垂）" autocomplete="off">
           <select id="newExPart">
@@ -220,6 +224,7 @@
           </select>
           <button id="btnCreateEx" type="button">追加</button>
         </div>
+
         <div class="row">
           <label for="filterPart">絞り込み</label>
           <select id="filterPart">
@@ -227,6 +232,8 @@
             <option>胸</option><option>背中</option><option>肩</option><option>脚</option><option>腕</option>
           </select>
         </div>
+
+        <!-- 種目リスト（IDは既存の exList を維持。後続のJSで両対応にします） -->
         <ul id="exList" class="list"></ul>
       </div>
 
