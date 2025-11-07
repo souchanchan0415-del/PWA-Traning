@@ -21,7 +21,7 @@
   <meta property="og:description" content="支援（寄付）に関する事業者情報・支払方法などの表示。">
   <meta property="og:image" content="./icons/icon-512.png">
 
-  <!-- CSS（他ページと同一バージョンで読み込み） -->
+  <!-- 統一CSS -->
   <link rel="stylesheet" href="./styles.css?v=1.5.5-hotfix1">
 
   <style>
@@ -44,20 +44,14 @@
       background:var(--bg); color:var(--text);
       -webkit-tap-highlight-color: transparent;
     }
-    header{
-      position:sticky; top:0; z-index:5;
-      backdrop-filter:saturate(1.2) blur(8px);
-      background:color-mix(in oklab, var(--card) 90%, transparent);
-      border-bottom:1px solid var(--line);
-    }
+
+    /* 見出し・戻るボタン（右上） */
+    .appbar .iconbtn{ margin-left:auto; }
+
+    /* ページ本体 */
     .wrap{max-width:860px;margin:0 auto;padding:16px}
-    .headbar{display:flex;align-items:center;gap:10px;min-height:56px}
-    .logo{width:28px;height:28px;border-radius:6px;background:var(--brand);display:inline-block;box-shadow:inset 0 0 0 2px #fff3}
-    .title{font-weight:700;letter-spacing:.2px}
-    main{
-      max-width:860px; margin:0 auto;
-      padding:24px 16px max(28px, calc(28px + env(safe-area-inset-bottom)));
-    }
+    main{max-width:860px;margin:0 auto;padding:24px 16px max(28px, calc(28px + env(safe-area-inset-bottom)));}
+
     .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px}
     h1{font-size:20px;margin:6px 0 14px}
     h2{font-size:16px;margin:18px 0 8px}
@@ -71,16 +65,16 @@
     .kv dt{margin-top:0}
     .kv dd{margin:0}
     @media (max-width:640px){ .kv{grid-template-columns:1fr} }
-    a.btnlink{display:inline-block; padding:10px 12px; border:1px solid var(--line);border-radius:10px; text-decoration:none}
-    a.btnlink:hover{ background: color-mix(in oklab, var(--card), #000 6%) }
-    .highlight{ border:1px dashed var(--line); padding:10px 12px; border-radius:10px }
+    a.btnlink{display:inline-block;padding:10px 12px;border:1px solid var(--line);border-radius:10px;text-decoration:none}
+    a.btnlink:hover{background: color-mix(in oklab, var(--card), #000 6%)}
+    .highlight{border:1px dashed var(--line);padding:10px 12px;border-radius:10px}
   </style>
 </head>
 <body>
-  <!-- 右上戻るボタンに統一 -->
+  <!-- 右上戻るで統一（.logo は styles.css のまま。※このページで .logo を再定義しない） -->
   <header class="appbar" role="banner">
     <h1 class="logo">特定商取引法に基づく表記</h1>
-    <a class="iconbtn" href="./index.html" title="アプリへ戻る" aria-label="アプリへ戻る" role="button" style="margin-left:auto">←</a>
+    <a class="iconbtn" href="./index.html" title="アプリへ戻る" aria-label="アプリへ戻る" role="button">←</a>
   </header>
 
   <main class="wrap">
@@ -163,7 +157,8 @@
     // 年の表示のみ（機能変更なし）
     document.getElementById('year').textContent = new Date().getFullYear();
   </script>
-  <!-- SW ローダーは全ページ同一バージョンで統一 -->
+
+  <!-- 同一SWローダー -->
   <script defer src="./sw-register.js?v=1.6.1-unify"></script>
 </body>
 </html>
