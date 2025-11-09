@@ -20,7 +20,7 @@
   <meta property="og:url" content="https://trainpunch.github.io/PWA-Traning/contact.html">
   <meta property="og:image" content="https://trainpunch.github.io/PWA-Traning/icons/icon-512.png">
 
-  <!-- ★ 統一CSS（未読込だったので追加） -->
+  <!-- 統一CSS -->
   <link rel="stylesheet" href="./styles.css?v=1.5.5-hotfix1">
 
   <style>
@@ -38,7 +38,7 @@
     .row{display:grid;grid-template-columns:1fr;gap:14px} @media(min-width:720px){.row{grid-template-columns:1fr 1fr}}
     label{display:block;font-weight:600;margin:6px 0}
     input[type="text"],select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--text);outline:none}
-    textarea{min-height:140px;resize:vertical}
+    textarea{min高さ:140px;min-height:140px;resize:vertical}
     .hint{font-size:12px;color:var(--muted);margin-top:6px}
     .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
     button,.btn{appearance:none;border:none;background:var(--brand);color:#fff;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;touch-action:manipulation}
@@ -145,19 +145,30 @@
     const SUPPORT_EMAIL = 'toreninguguanli53@gmail.com';
     const APP_VERSION = 'v1.5.9-safari-fix';
 
+    // 年表示
     document.getElementById('year').textContent = new Date().getFullYear();
-    const mailShown = document.getElementById('mailShown'); mailShown.textContent = SUPPORT_EMAIL;
-    document.getElementById('mailtoQuick').setAttribute(
-      'href',
-      `mailto:${encodeURIComponent(SUPPORT_EMAIL)}?subject=${encodeURIComponent('【Train Punch】お問い合わせ ' + APP_VERSION)}`
-    );
 
+    // 宛先表示＆既定mailto（件名のみ）
+    const mailShown = document.getElementById('mailShown');
+    mailShown.textContent = SUPPORT_EMAIL;
+    const mailtoQuickHref =
+      `mailto:${encodeURIComponent(SUPPORT_EMAIL)}?subject=${encodeURIComponent('【Train Punch】お問い合わせ ' + APP_VERSION)}`;
+    const mailtoQuick = document.getElementById('mailtoQuick');
+    mailtoQuick.setAttribute('href', mailtoQuickHref);
+
+    // クリップボード共通
     async function copyText(text){
-      try{ await navigator.clipboard.writeText(text); toast('コピーしました'); }
-      catch(_){ const ta=document.createElement('textarea'); ta.value=text; ta.setAttribute('readonly',''); ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); toast('コピーしました'); }
+      try{
+        await navigator.clipboard.writeText(text);
+        toast('コピーしました');
+      }catch(_){
+        const ta=document.createElement('textarea');
+        ta.value=text; ta.setAttribute('readonly',''); ta.style.position='fixed'; ta.style.left='-9999px';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+        toast('コピーしました');
+      }
     }
     document.getElementById('copyMail').addEventListener('click', ()=> copyText(SUPPORT_EMAIL));
-
     document.getElementById('copyTemplate').addEventListener('click', ()=>{
       const tpl=`再現手順：
 1）…
@@ -168,27 +179,70 @@
       copyText(tpl);
     });
 
+    // === mailto フォールバック：UI追加なし、失敗時のみコピー＋案内 ===
+    function openMailto(url, onFail){
+      let done=false, tid;
+      const ok = ()=>{ if(done) return; done=true; cleanup(); };
+      const fail= ()=>{ if(done) return; done=true; cleanup(); onFail && onFail(); };
+      function cleanup(){
+        clearTimeout(tid);
+        document.removeEventListener('visibilitychange', onVis, true);
+        window.removeEventListener('pagehide', onHide, true);
+        window.removeEventListener('blur', onBlur, true);
+      }
+      const onVis = ()=>{ if(document.hidden) ok(); };
+      const onHide= ()=> ok();
+      const onBlur= ()=> ok();
+
+      document.addEventListener('visibilitychange', onVis, {once:true, capture:true});
+      window.addEventListener('pagehide', onHide, {once:true, capture:true});
+      window.addEventListener('blur', onBlur, {once:true, capture:true});
+
+      // a.click() 方式（モバイルの相性が良い）
+      const a=document.createElement('a');
+      a.href=url; a.rel='noopener'; a.style.display='none';
+      document.body.appendChild(a); a.click();
+      setTimeout(()=>{ try{ document.body.removeChild(a); }catch(_){} }, 800);
+
+      // 1.6秒以内にフォーカス離脱/非表示が無ければ失敗と見なす
+      tid=setTimeout(fail, 1600);
+    }
+
+    // 「メールを開く」：件名のみ
+    mailtoQuick.addEventListener('click', (e)=>{
+      e.preventDefault();
+      openMailto(mailtoQuickHref, ()=>{
+        copyText(SUPPORT_EMAIL);
+        alert('メールアプリを開けませんでした。\n宛先をコピーしましたので、メールアプリで貼り付けて送信してください。\n\n宛先: ' + SUPPORT_EMAIL);
+      });
+    });
+
+    // メール本文組み立て＋起動
     document.getElementById('buildMail').addEventListener('click', ()=>{
-      const topic=document.getElementById('topic').value.trim();
-      const subject=(document.getElementById('subject').value.trim()||`${topic}について`);
-      const msg=document.getElementById('message').value.trim();
-      const withEnv=document.getElementById('includeEnv').checked;
-      const env=withEnv?buildEnvBlock():'';
-      const body=`${msg}${msg?'\n\n':''}${env}`;
-      const mailto=`mailto:${encodeURIComponent(SUPPORT_EMAIL)}?subject=${encodeURIComponent(`【Train Punch】${subject} ${APP_VERSION}`)}&body=${encodeURIComponent(body)}`;
-      try{ window.location.href=mailto; }
-      catch(_){ copyText(`${subject}\n\n${body}`); alert('メールを開けませんでした。件名と本文をコピーしましたので、メールに貼り付けて送信してください。宛先：'+SUPPORT_EMAIL); }
+      const topic   = document.getElementById('topic').value.trim();
+      const subject = (document.getElementById('subject').value.trim() || `${topic}について`);
+      const msg     = document.getElementById('message').value.trim();
+      const withEnv = document.getElementById('includeEnv').checked;
+      const env     = withEnv ? buildEnvBlock() : '';
+      const body    = `${msg}${msg?'\n\n':''}${env}`;
+
+      const url = `mailto:${encodeURIComponent(SUPPORT_EMAIL)}?subject=${encodeURIComponent(`【Train Punch】${subject} ${APP_VERSION}`)}&body=${encodeURIComponent(body)}`;
+
+      openMailto(url, ()=>{
+        copyText(`${subject}\n\n${body}`);
+        alert('メールアプリを開けませんでした。\n件名と本文をコピーしましたので、メールに貼り付けて送信してください。\n\n宛先: ' + SUPPORT_EMAIL);
+      });
     });
 
     function buildEnvBlock(){
-      const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';
-      const lang=navigator.language||'';
-      const ua=navigator.userAgent||'';
-      const plat=navigator.platform||'';
-      const vw=Math.max(document.documentElement.clientWidth, window.innerWidth||0);
-      const vh=Math.max(document.documentElement.clientHeight, window.innerHeight||0);
-      const standalone=window.matchMedia('(display-mode: standalone)').matches;
-      const now=new Date();
+      const tz  = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+      const lang= navigator.language || '';
+      const ua  = navigator.userAgent || '';
+      const plat= navigator.platform || '';
+      const vw  = Math.max(document.documentElement.clientWidth, window.innerWidth||0);
+      const vh  = Math.max(document.documentElement.clientHeight, window.innerHeight||0);
+      const standalone = window.matchMedia('(display-mode: standalone)').matches;
+      const now = new Date();
       return [
         '―――― 環境情報（自動追記）――――',
         `アプリ: Train Punch ${APP_VERSION}`,
@@ -203,10 +257,16 @@
       ].join('\n');
     }
 
+    // 既存のトースト（UI追加なし）
     function toast(msg){
       let t=document.getElementById('toast');
-      if(!t){ t=document.createElement('div'); t.id='toast'; Object.assign(t.style,{position:'fixed',left:'50%',bottom:'28px',transform:'translateX(-50%)',background:'var(--text)',color:'var(--card)',padding:'10px 14px',borderRadius:'999px',zIndex:50,opacity:'0',transition:'opacity .18s ease, transform .18s ease',boxShadow:'var(--shadow)',fontWeight:'700',pointerEvents:'none'}); document.body.appendChild(t); }
-      t.textContent=msg; t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(-4px)'; setTimeout(()=>{t.style.opacity='0'; t.style.transform='translateX(-50%)';},1400);
+      if(!t){
+        t=document.createElement('div'); t.id='toast';
+        Object.assign(t.style,{position:'fixed',left:'50%',bottom:'28px',transform:'translateX(-50%)',background:'var(--text)',color:'var(--card)',padding:'10px 14px',borderRadius:'999px',zIndex:50,opacity:'0',transition:'opacity .18s ease, transform .18s ease',boxShadow:'var(--shadow)',fontWeight:'700',pointerEvents:'none'});
+        document.body.appendChild(t);
+      }
+      t.textContent=msg; t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(-4px)';
+      setTimeout(()=>{t.style.opacity='0'; t.style.transform='translateX(-50%)';},1400);
     }
   </script>
 
