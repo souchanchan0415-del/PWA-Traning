@@ -17,14 +17,14 @@
   <title>Train Punch v1.5.9-safari-fix</title>
 
   <!-- styles -->
-  <link rel="preload" href="styles.css?v=1.5.5-hotfix1" as="style">
-  <link rel="stylesheet" href="styles.css?v=1.5.5-hotfix1">
+  <link rel="preload" href="styles.css?v=1.5.9-safari-fix" as="style">
+  <link rel="stylesheet" href="styles.css?v=1.5.9-safari-fix">
   <noscript><style>noscript{display:block;padding:12px}.nojs{display:block}</style></noscript>
 
   <!-- audio（将来用にプリロードだけ） -->
   <link rel="preload" href="beep.wav" as="audio" type="audio/wav">
 
-  <!-- 最小フォールバックCSS（SW更新ドット / WUバッジ / セット+RPEの双子枠） -->
+  <!-- 最小フォールバックCSS（SW更新ドット / WUバッジ / セット+RPEの双子枠 / リング演出） -->
   <style>
     .iconbtn.update{position:relative}
     .iconbtn.update::after{
@@ -41,6 +41,20 @@
     /* セット数 + RPE を横並びにする軽量CSS */
     .twins{display:flex;gap:8px}
     .twins>input{flex:1;min-width:0}
+
+    /* リング・ハイライトの簡易フォールバック（styles.cssにも定義あり） */
+    @keyframes tp-once-ring {
+      0% { box-shadow:0 0 0 0 rgba(15,182,169,.28) }
+      80% { box-shadow:0 0 0 8px rgba(15,182,169,.0) }
+      100%{ box-shadow:none }
+    }
+    .flash-ring{
+      position:relative;
+      animation: tp-once-ring 1.2s ease-out 1;
+      outline: 2px solid rgba(15,182,169,.35);
+      outline-offset: 2px;
+      border-radius: 14px;
+    }
   </style>
 
   <script>console.log('TP index v1.5.9-safari-fix loaded');</script>
@@ -48,7 +62,7 @@
 <body>
   <!-- App bar -->
   <header class="appbar">
-    <button id="btnHardRefresh" class="iconbtn" title="更新" aria-label="強制更新" type="button" onclick="window.__tpHardRefresh && window.__tpHardRefresh()">↻</button>
+    <button id="btnHardRefresh" class="iconbtn" title="更新" aria-label="強制更新" type="button">↻</button>
     <h1 class="logo">Train Punch</h1>
     <nav class="tabs" aria-label="Main tabs" role="tablist">
       <button class="active" data-tab="session" aria-selected="true" role="tab" type="button">セッション</button>
@@ -89,15 +103,6 @@
           </select>
         </div>
 
-        <!-- テンプレ呼び出し（選ぶと自動入力） -->
-        <div class="row">
-          <label for="sessTplSelect">テンプレ</label>
-          <select id="sessTplSelect" aria-label="テンプレ選択">
-            <option value="" selected>（テンプレを選ぶと自動入力）</option>
-          </select>
-          <button id="btnApplyTpl" class="ghost" type="button">適用</button>
-        </div>
-
         <!-- 入力欄：重量 / 回数 / （セット数 + RPE） -->
         <div class="grid grid-3">
           <input id="weight" inputmode="decimal" autocomplete="off" placeholder="重量 kg（例: 40x8x3@8 もOK）" aria-label="重量">
@@ -135,6 +140,29 @@
           <summary>メモを追加</summary>
           <textarea id="sessNote" rows="2" placeholder="メモ（任意）" aria-label="メモ"></textarea>
         </details>
+
+        <!-- ▼ クイック投入（tpl*：app.jsのapplyCustomInsert系と一致） -->
+        <div class="card" style="margin-top:12px">
+          <h3>クイック投入</h3>
+          <div id="tplPartChips" class="chipset" aria-label="クイック投入の部位選択">
+            <div class="chip active" data-part="胸" tabindex="0">胸</div>
+            <div class="chip" data-part="背中" tabindex="0">背中</div>
+            <div class="chip" data-part="肩" tabindex="0">肩</div>
+            <div class="chip" data-part="脚" tabindex="0">脚</div>
+            <div class="chip" data-part="腕" tabindex="0">腕</div>
+          </div>
+          <div class="grid grid-3">
+            <select id="tplExCustom" aria-label="種目（クイック投入）"><option value="">（種目を選ぶ）</option></select>
+            <input id="tplCustomSets" inputmode="numeric" autocomplete="off" placeholder="セット数（例:5）" aria-label="セット数（クイック）">
+            <input id="tplCustomReps" inputmode="numeric" autocomplete="off" placeholder="回数（例:5）" aria-label="回数（クイック）">
+          </div>
+          <div class="row">
+            <label for="tplCustomWeight">重量</label>
+            <input id="tplCustomWeight" inputmode="decimal" autocomplete="off" placeholder="重量 kg（例: 40）" aria-label="重量（クイック）">
+            <button id="btnTplCustom" type="button">カスタム投入</button>
+          </div>
+          <small class="small">※ 選んだ種目に同じセット×回数×重量を一括で投入します。</small>
+        </div>
 
         <!-- 追加／Undo -->
         <div class="row end">
@@ -233,7 +261,6 @@
           </select>
         </div>
 
-        <!-- 種目リスト（IDは既存の exList を維持。後続のJSで両対応にします） -->
         <ul id="exList" class="list"></ul>
       </div>
 
@@ -253,61 +280,12 @@
         <ul id="watchList" class="list"></ul>
       </div>
 
-      <!-- ===== My Templates（マイテンプレ） ===== -->
-      <div class="card" id="card-templates">
-        <h3>マイテンプレ</h3>
-        <div id="tpl2PartChips" class="chipset" aria-label="テンプレの部位選択">
-          <div class="chip active" data-part="胸" tabindex="0">胸</div>
-          <div class="chip" data-part="背中" tabindex="0">背中</div>
-          <div class="chip" data-part="肩" tabindex="0">肩</div>
-          <div class="chip" data-part="脚" tabindex="0">脚</div>
-          <div class="chip" data-part="腕" tabindex="0">腕</div>
-        </div>
-
-        <div class="grid grid-3" style="margin-top:8px">
-          <select id="tpl2ExSelect" aria-label="テンプレ種目"><option value="">（種目を選ぶ）</option></select>
-          <input id="tpl2Sets" inputmode="numeric" autocomplete="off" placeholder="セット数（例:5）" aria-label="セット数">
-          <input id="tpl2Reps" inputmode="numeric" autocomplete="off" placeholder="回数（例:5）" aria-label="回数">
-        </div>
-        <div class="row end">
-          <button id="btnTpl2Add" type="button">テンプレ追加</button>
-        </div>
-
-        <ul id="tpl2List" class="list"></ul>
-        <small class="small">※ テンプレは「種目／セット数／回数」を保存します。セッション側では選ぶと入力欄に自動反映します（重量は都度入力）。</small>
-      </div>
-
       <div class="card">
         <h3>バックアップ</h3>
         <div class="row">
           <button id="btnExportJson" class="ghost" type="button">JSONエクスポート</button>
           <label class="btnlike" for="jsonIn">JSONインポート</label>
           <input id="jsonIn" type="file" accept="application/json" hidden>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>サポート ＆ ポリシー</h3>
-        <div aria-label="各種ポリシーと連絡先" style="display:grid; gap:8px">
-          <a class="btnlike ghost" href="./contact.html"
-             style="display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%; text-decoration:none">
-            <span>問い合わせ</span><span class="small muted">contact.html</span>
-          </a>
-
-          <a class="btnlike ghost" href="./privacy.html"
-             style="display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%; text-decoration:none">
-            <span>プライバシーポリシー</span><span class="small muted">privacy.html</span>
-          </a>
-
-          <a class="btnlike ghost" href="./tokusho.html"
-             style="display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%; text-decoration:none">
-            <span>特定商取引法に基づく表記</span><span class="small muted">tokusho.html</span>
-          </a>
-
-          <a class="btnlike ghost" href="./support.html"
-             style="display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%; text-decoration:none">
-            <span>サポート</span><span class="small muted">support.html</span>
-          </a>
         </div>
         <small class="small muted" style="margin-top:8px; display:block">
           上記ページはオフラインでも表示できるようプリキャッシュされます。
@@ -347,7 +325,7 @@
     });
   </script>
 
-  <!-- 強制更新（ボタンクリック用） -->
+  <!-- 強制更新（ボタンクリック/保険用グローバル関数） -->
   <script>
     (function(){
       window.__tpHardRefresh = async function(){
