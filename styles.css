@@ -347,3 +347,24 @@ details.memo > summary{
 }
 details.memo[open] > summary{ list-style: disclosure-open; margin-bottom: 6px; }
 details.memo textarea{ width: 100%; }
+
+/* === Opened feel: one-shot ring highlight (1.2s) === */
+@media (prefers-reduced-motion: no-preference){
+  .flash-ring{ position:relative; }
+  .flash-ring::after{
+    content:"";
+    position:absolute;
+    inset:-6px; /* 外側に6px分のリング */
+    border:2px solid var(--primary);
+    border-radius: calc(var(--radius) + 8px);
+    opacity:0;
+    pointer-events:none;
+    z-index:2;
+    animation: tp-flash-ring 1.2s ease-out 1;
+  }
+  @keyframes tp-flash-ring{
+    0%   { opacity:0; transform:scale(.98); }
+    20%  { opacity:1; transform:scale(1); }
+    100% { opacity:0; transform:scale(1.03); }
+  }
+}
