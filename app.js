@@ -3,6 +3,7 @@
 // drop : rest timer（状態・設定・通知）
 // fix  : Safari-safe, stray bracket, tiny polish
 // keep : IDB+LS fallback, CSV import/export, charts, watchlist
+// add  : 「導線の“開いた感”」スタンダード案（スムーススクロール/リング/トースト/先頭要素フォーカス）
 
 const DB_NAME = 'trainpunch_v3';
 const DB_VER  = 3;
@@ -241,6 +242,52 @@ function suggestWarmupByTop(topW,topR,schemeSel='auto',roundStep=2.5){
   return out;
 }
 
+// ========= 「導線の開いた感」スタンダード実装 =========
+let _pendingSettingsFeel = false;
+
+function prefersReducedMotion(){
+  try{ return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(_){ return false; }
+}
+
+function activateTab(tab){
+  const btn=document.querySelector(`.tabs button[data-tab="${tab}"]`);
+  if(btn && !btn.classList.contains('active')) btn.click();
+  return !!btn;
+}
+
+function openSettingsFeel(){
+  // 対象要素
+  const tabEl   = $('#tab-settings');
+  if(!tabEl) return;
+
+  // 1) スムーススクロール（低モーションは即座に）
+  try{
+    const behavior = prefersReducedMotion() ? 'auto' : 'smooth';
+    tabEl.scrollIntoView({block:'start', behavior});
+  }catch(_){ window.scrollTo(0, tabEl.getBoundingClientRect().top + window.pageYOffset); }
+
+  // 2) ワンショット・リング（1.2s）
+  const ringTarget = $('#tab-settings .card') || tabEl;
+  if(ringTarget){
+    ringTarget.classList.add('flash-ring');
+    setTimeout(()=> ringTarget.classList.remove('flash-ring'), 1300);
+  }
+
+  // 3) トースト
+  showToast('設定を開きました');
+
+  // 4) 先頭操作要素へフォーカス（スクロール抑制）
+  const firstCtl = $('#darkToggle')
+                || $('#tab-settings [autofocus]')
+                || $('#tab-settings input, #tab-settings select, #tab-settings textarea, #tab-settings button, #tab-settings [href], #tab-settings [tabindex]:not([tabindex="-1"])');
+  try{ firstCtl?.focus({preventScroll:true}); }catch(_){ firstCtl?.focus(); }
+}
+
+function queueOpenSettingsFeel(){
+  // タブ切替・描画直後に実行するための2フレーム待ち
+  requestAnimationFrame(()=>requestAnimationFrame(openSettingsFeel));
+}
+
 // =================== Init ===================
 async function init(){
   (function(){ let _t; window.addEventListener('scroll',()=>{ document.body.classList.add('scrolling'); clearTimeout(_t); _t=setTimeout(()=>document.body.classList.remove('scrolling'),150); },{passive:true}); })();
@@ -255,13 +302,14 @@ async function init(){
 
   // === 追加: ハッシュ深いリンクで該当タブを必ず開く（#tab-xxx を優先） ===
   const activateByTabName = (tab) => {
-    const btn=document.querySelector(`.tabs button[data-tab="${tab}"]`);
-    if(btn && !btn.classList.contains('active')) btn.click();
-    return !!btn;
+    const ok = activateTab(tab);
+    return ok;
   };
   const applyHashTab = () => {
     if(location.hash && location.hash.startsWith('#tab-')){
-      const ok = activateByTabName(location.hash.slice(5));
+      const tab = location.hash.slice(5);
+      const ok = activateByTabName(tab);
+      if(ok && tab==='settings'){ _pendingSettingsFeel = true; queueOpenSettingsFeel(); }
       return ok;
     }
     return false;
@@ -270,6 +318,20 @@ async function init(){
   const hashApplied = applyHashTab();
   // 以後、ハッシュが変化したら追従
   window.addEventListener('hashchange', applyHashTab);
+
+  // 外部/内部の<a>から #tab-settings を踏んだケースの検知（同一ハッシュでhashchangeが起きない可能性の保険）
+  document.addEventListener('click', e=>{
+    const a=e.target.closest('a[href]');
+    if(!a) return;
+    try{
+      const url=new URL(a.getAttribute('href'), location.href);
+      if(url.hash === '#tab-settings'){
+        _pendingSettingsFeel = true;
+        // 同一ハッシュで hashchange が発火しない場合にも実行
+        if(activateTab('settings')) queueOpenSettingsFeel();
+      }
+    }catch(_){}
+  }, {capture:true});
 
   try{ await openDB(); }catch(err){ await enableLocalStorageFallback(err?.message||err); }
 
@@ -281,8 +343,8 @@ async function init(){
   const lastTab=(await get('prefs','last_tab'))?.value;
   // ハッシュで未適用のときだけ last_tab を適用（ハッシュ優先）
   if(!hashApplied && lastTab){
-    const btn=document.querySelector(`.tabs button[data-tab="${lastTab}"]`);
-    if(btn && !btn.classList.contains('active')) btn.click();
+    const ok = activateTab(lastTab);
+    if(ok && lastTab==='settings' && _pendingSettingsFeel){ queueOpenSettingsFeel(); }
   }
 
   // 念のためタイマーUIが残っていたら消す
@@ -347,7 +409,11 @@ function bindTabs(){
       put('prefs',{key:'last_tab',value:tab}).catch(()=>{});
       if(tab==='history') renderHistory();
       if(tab==='analytics') renderAnalytics();
-      if(tab==='settings'){ await renderExList(); renderPartFilterChips(); renderWatchUI(); }
+      if(tab==='settings'){
+        await renderExList(); renderPartFilterChips(); renderWatchUI();
+        // #tab-settings 直遷移やアンカー経由での演出フラグが立っていれば実行
+        if(_pendingSettingsFeel){ _pendingSettingsFeel=false; queueOpenSettingsFeel(); }
+      }
     });
   });
 }
