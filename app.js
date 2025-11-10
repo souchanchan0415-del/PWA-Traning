@@ -253,6 +253,24 @@ async function init(){
 
   bindTabs();
 
+  // === 追加: ハッシュ深いリンクで該当タブを必ず開く（#tab-xxx を優先） ===
+  const activateByTabName = (tab) => {
+    const btn=document.querySelector(`.tabs button[data-tab="${tab}"]`);
+    if(btn && !btn.classList.contains('active')) btn.click();
+    return !!btn;
+  };
+  const applyHashTab = () => {
+    if(location.hash && location.hash.startsWith('#tab-')){
+      const ok = activateByTabName(location.hash.slice(5));
+      return ok;
+    }
+    return false;
+  };
+  // 初期ロード時：ハッシュがあれば優先して適用
+  const hashApplied = applyHashTab();
+  // 以後、ハッシュが変化したら追従
+  window.addEventListener('hashchange', applyHashTab);
+
   try{ await openDB(); }catch(err){ await enableLocalStorageFallback(err?.message||err); }
 
   await ensureInitialExercises();
@@ -261,7 +279,8 @@ async function init(){
   try{ watchlist = (await get('prefs','watchlist'))?.value || []; }catch(e){ console.warn(e); }
 
   const lastTab=(await get('prefs','last_tab'))?.value;
-  if(lastTab){
+  // ハッシュで未適用のときだけ last_tab を適用（ハッシュ優先）
+  if(!hashApplied && lastTab){
     const btn=document.querySelector(`.tabs button[data-tab="${lastTab}"]`);
     if(btn && !btn.classList.contains('active')) btn.click();
   }
