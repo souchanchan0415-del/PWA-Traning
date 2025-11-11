@@ -1,4 +1,4 @@
-// sw-register.js — v1.6.1-unify
+// sw-register.js — v1.1.1
 // 目的: 全ページで同一ローダー/同一バージョンに統一し、戻る遷移後の誤発火と↻適用漏れを解消
 // - すべて getRegistration() ベースで ↻ を安全処理
 // - バナーの「あとで」で has-update と赤ドットを確実に解除
@@ -10,7 +10,7 @@
   if (window.__tpSWBound) return;            // 二重バインド防止
   window.__tpSWBound = true;
 
-  const SW_VERSION = '1.6.1-unify';
+  const SW_VERSION = '1.1.1';
   const SW_ABS_URL = new URL('./sw.js', location.href);
   SW_ABS_URL.searchParams.set('v', SW_VERSION);   // HTTPキャッシュ回避
   const SW_SCOPE = new URL('./', location.href).pathname;
