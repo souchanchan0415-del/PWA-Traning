@@ -368,3 +368,17 @@ details.memo textarea{ width: 100%; }
     100% { opacity:0; transform:scale(1.03); }
   }
 }
+
+/* === History details: 下段展開にする（最小変更） === */
+#historyList li{
+  flex-wrap: wrap;            /* 詳細を改行して下段へ */
+  align-items: flex-start;    /* 上揃え */
+}
+#historyList .details{
+  flex-basis: 100%;
+  width: 100%;
+  margin-top: 8px;            /* 本体との間に余白 */
+}
+#historyList .details[hidden]{
+  display: none !important;   /* iOS/Safari 保険 */
+}
