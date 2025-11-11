@@ -1,4 +1,4 @@
-// Train Punch — v1.5.9-safari-fix (full replace, sets+RPE)
+// Train Punch — v1.1.1 (full replace, sets+RPE)
 // change: RPE入力を復活＋セット数（40x8x3@8対応）, 複数セット一括投入
 // drop : rest timer（状態・設定・通知）
 // fix  : Safari-safe, stray bracket, tiny polish
