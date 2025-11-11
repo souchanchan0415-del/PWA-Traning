@@ -1,4 +1,4 @@
-// Train Punch Service Worker — v1.5.9-safari-fix
+// Train Punch Service Worker — v1.1.1
 // - 単一 VERSION で app.js / styles.css のクエリを統一（中央管理）
 // - SPAナビ: preload → network → 同一ページcache → index.html の順でフォールバック
 // - ignoreSearch は HTML のみ（資産はクエリでバージョン固定）
@@ -6,7 +6,7 @@
 // - 自動 skipWaiting はしない（message: SKIP_WAITING で即時適用）
 // - 互換安定化: index.html の cache.match をスコープ絶対URLで参照
 
-const VERSION = '1.5.9-safari-fix';
+const VERSION = '1.1.1';
 const CACHE   = `trainpunch-${VERSION}`;
 const ORIGIN  = self.location.origin;
 const Q       = `?v=${VERSION}`;
