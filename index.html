@@ -113,29 +113,7 @@
           </div>
         </div>
 
-        <!-- ★ ウォームアップ自動生成 -->
-        <div class="row">
-          <label for="wuScheme">ウォームアップ</label>
-          <select id="wuScheme" title="自動…回数から強度帯を判定" aria-label="ウォームアップ方式">
-            <option value="auto" selected>自動（回数から判定）</option>
-            <option value="strength">強度系（3–5回向け）</option>
-            <option value="hypertrophy">筋肥大系（6–10回向け）</option>
-            <option value="endurance">持久系（12回以上）</option>
-          </select>
-
-          <label for="wuRound">丸め</label>
-          <select id="wuRound" title="プレートに合わせた丸め" aria-label="丸め単位">
-            <option value="2.5" selected>±2.5kg</option>
-            <option value="1">±1.0kg</option>
-            <option value="0.5">±0.5kg</option>
-          </select>
-
-          <button id="btnGenWarmup" class="ghost" title="トップセットからWU生成" type="button">↑からウォームアップ自動生成</button>
-          <button id="btnClearWarmup" class="ghost danger" title="生成済みWUを削除" type="button">WU削除</button>
-        </div>
-        <!-- ／ウォームアップここまで -->
-
-        <!-- ▼ 折りたたみメモ（WUの直下） -->
+        <!-- ▼ 折りたたみメモ（WU削除に伴い直下に配置） -->
         <details id="memoDetails" class="memo">
           <summary>メモを追加</summary>
           <textarea id="sessNote" rows="2" placeholder="メモ（任意）" aria-label="メモ"></textarea>
