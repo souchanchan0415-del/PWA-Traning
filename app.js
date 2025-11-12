@@ -1,9 +1,7 @@
-// Train Punch — v1.1.1 (full replace, sets+RPE)
-// change: RPE入力を復活＋セット数（40x8x3@8対応）, 複数セット一括投入
-// drop : rest timer（状態・設定・通知）
-// fix  : Safari-safe, stray bracket, tiny polish
-// keep : IDB+LS fallback, CSV import/export, charts, watchlist
-// add  : 「導線の“開いた感”」スタンダード案（スムーススクロール/リング/トースト/先頭要素フォーカス）
+// Train no Punch — v1.1.1 (no-WU full replace, sets+RPE)
+// change: WU（ウォームアップ）機能を全撤去（生成/設定/保存/履歴表示）
+// keep  : IDB+LS fallback, CSV import/export, charts, watchlist, RPE, 複数セット一括投入
+// add   : 履歴の集計はWUセットを除外（過去データのwu:trueも非表示）
 
 const DB_NAME = 'trainpunch_v3';
 const DB_VER  = 3;
@@ -221,27 +219,6 @@ function doUndo(){
   catch{ showToast('戻せませんでした'); }
 }
 
-// ==== Warm-up helpers ====
-function roundTo(x,step=2.5){ step=Number(step)||2.5; return Math.round((Number(x)||0)/step)*step; }
-function guessSchemeByReps(reps){ const r=Number(reps)||0; if(r<=5) return 'strength'; if(r<=10) return 'hypertrophy'; return 'endurance'; }
-const WU_PLANS={
-  strength   :[{p:0.40,r:5},{p:0.55,r:3},{p:0.70,r:2},{p:0.80,r:1}],
-  hypertrophy:[{p:0.50,r:8},{p:0.70,r:5},{p:0.85,r:2}],
-  endurance  :[{p:0.50,r:12},{p:0.65,r:8},{p:0.80,r:3}],
-};
-function suggestWarmupByTop(topW,topR,schemeSel='auto',roundStep=2.5){
-  const scheme=(schemeSel==='auto')?guessSchemeByReps(topR):schemeSel;
-  const plan=WU_PLANS[scheme]||WU_PLANS.hypertrophy;
-  const out=[],seen=new Set();
-  for(const s of plan){
-    let w=roundTo(topW*s.p,roundStep); w=Math.min(w, topW-roundStep); if(w<=0) continue;
-    const key=`${w}-${s.r}`; if(seen.has(key)) continue; seen.add(key);
-    out.push({weight:w,reps:s.r});
-  }
-  out.sort((a,b)=>a.weight-b.weight);
-  return out;
-}
-
 // ========= 「導線の開いた感」スタンダード実装 =========
 let _pendingSettingsFeel = false;
 
@@ -256,27 +233,17 @@ function activateTab(tab){
 }
 
 function openSettingsFeel(){
-  // 対象要素
-  const tabEl   = $('#tab-settings');
-  if(!tabEl) return;
-
-  // 1) スムーススクロール（低モーションは即座に）
+  const tabEl = $('#tab-settings'); if(!tabEl) return;
   try{
     const behavior = prefersReducedMotion() ? 'auto' : 'smooth';
     tabEl.scrollIntoView({block:'start', behavior});
   }catch(_){ window.scrollTo(0, tabEl.getBoundingClientRect().top + window.pageYOffset); }
-
-  // 2) ワンショット・リング（1.2s）
   const ringTarget = $('#tab-settings .card') || tabEl;
   if(ringTarget){
     ringTarget.classList.add('flash-ring');
     setTimeout(()=> ringTarget.classList.remove('flash-ring'), 1300);
   }
-
-  // 3) トースト
   showToast('設定を開きました');
-
-  // 4) 先頭操作要素へフォーカス（スクロール抑制）
   const firstCtl = $('#darkToggle')
                 || $('#tab-settings [autofocus]')
                 || $('#tab-settings input, #tab-settings select, #tab-settings textarea, #tab-settings button, #tab-settings [href], #tab-settings [tabindex]:not([tabindex="-1"])');
@@ -284,7 +251,6 @@ function openSettingsFeel(){
 }
 
 function queueOpenSettingsFeel(){
-  // タブ切替・描画直後に実行するための2フレーム待ち
   requestAnimationFrame(()=>requestAnimationFrame(openSettingsFeel));
 }
 
@@ -300,11 +266,8 @@ async function init(){
 
   bindTabs();
 
-  // === 追加: ハッシュ深いリンクで該当タブを必ず開く（#tab-xxx を優先） ===
-  const activateByTabName = (tab) => {
-    const ok = activateTab(tab);
-    return ok;
-  };
+  // タブアンカー対応
+  const activateByTabName = (tab) => activateTab(tab);
   const applyHashTab = () => {
     if(location.hash && location.hash.startsWith('#tab-')){
       const tab = location.hash.slice(5);
@@ -314,20 +277,14 @@ async function init(){
     }
     return false;
   };
-  // 初期ロード時：ハッシュがあれば優先して適用
   const hashApplied = applyHashTab();
-  // 以後、ハッシュが変化したら追従
   window.addEventListener('hashchange', applyHashTab);
-
-  // 外部/内部の<a>から #tab-settings を踏んだケースの検知（同一ハッシュでhashchangeが起きない可能性の保険）
   document.addEventListener('click', e=>{
-    const a=e.target.closest('a[href]');
-    if(!a) return;
+    const a=e.target.closest('a[href]'); if(!a) return;
     try{
       const url=new URL(a.getAttribute('href'), location.href);
       if(url.hash === '#tab-settings'){
         _pendingSettingsFeel = true;
-        // 同一ハッシュで hashchange が発火しない場合にも実行
         if(activateTab('settings')) queueOpenSettingsFeel();
       }
     }catch(_){}
@@ -341,7 +298,6 @@ async function init(){
   try{ watchlist = (await get('prefs','watchlist'))?.value || []; }catch(e){ console.warn(e); }
 
   const lastTab=(await get('prefs','last_tab'))?.value;
-  // ハッシュで未適用のときだけ last_tab を適用（ハッシュ優先）
   if(!hashApplied && lastTab){
     const ok = activateTab(lastTab);
     if(ok && lastTab==='settings' && _pendingSettingsFeel){ queueOpenSettingsFeel(); }
@@ -353,10 +309,7 @@ async function init(){
   $('#sessDate') && ($('#sessDate').value=todayStr());
   bindSessionUI();
 
-  const wuSchemePref=(await get('prefs','wu_scheme'))?.value || 'auto';
-  const wuRoundPref =String((await get('prefs','wu_round'))?.value ?? '2.5');
-  if($('#wuScheme')) $('#wuScheme').value=wuSchemePref;
-  if($('#wuRound'))  $('#wuRound').value =wuRoundPref;
+  // WU設定は撤去したため読み込み処理も撤去
 
   bindCustomInsertUI();
   renderTplPartChips();
@@ -372,8 +325,8 @@ async function init(){
   renderTodaySets();
   renderHistory();
   renderAnalytics();
-  await renderExList();          // ← list描画
-  renderPartFilterChips();       // ← NEW: 部位チップ描画（初期は全消し=非表示）
+  await renderExList();
+  renderPartFilterChips();
 
   const dark=(await get('prefs','dark'))?.value || false;
   $('#darkToggle')?.setAttribute('checked', dark ? 'checked' : '');
@@ -411,7 +364,6 @@ function bindTabs(){
       if(tab==='analytics') renderAnalytics();
       if(tab==='settings'){
         await renderExList(); renderPartFilterChips(); renderWatchUI();
-        // #tab-settings 直遷移やアンカー経由での演出フラグが立っていれば実行
         if(_pendingSettingsFeel){ _pendingSettingsFeel=false; queueOpenSettingsFeel(); }
       }
     });
@@ -442,53 +394,7 @@ function bindSessionUI(){
   $('#sets')?.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#btnAddSet')?.click(); } });
   $('#rpe') ?.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#btnAddSet')?.click(); } });
 
-  $('#wuScheme')?.addEventListener('change',e=>put('prefs',{key:'wu_scheme',value:e.target.value}).catch(()=>{}));
-  $('#wuRound') ?.addEventListener('change',e=>put('prefs',{key:'wu_round', value:Number(e.target.value)||2.5}).catch(()=>{}));
-
-  $('#btnGenWarmup')?.addEventListener('click',async()=>{
-    const exId=Number($('#exSelect').value);
-    const wTop=Number($('#weight').value);
-    const rTop=Number($('#reps').value);
-    if(!exId){ showToast('種目を選んでください'); return; }
-    if(!(wTop>0)||!(rTop>0)){ showToast('トップセットの重量と回数を入力'); return; }
-    const scheme=($('#wuScheme')?.value)||'auto';
-    const step=Number($('#wuRound')?.value||'2.5')||2.5;
-    const plan=suggestWarmupByTop(wTop,rTop,scheme,step);
-    if(!plan.length){ showToast('生成できるWUがありません'); return; }
-
-    pushUndo();
-    const exFilter=s=>!(s.wu && s.exercise_id===exId);
-    currentSession.sets=currentSession.sets.filter(exFilter);
-    const hasSame=(w,r)=>currentSession.sets.some(s=>s.exercise_id===exId && !s.wu && s.weight===w && s.reps===r);
-
-    const date=$('#sessDate').value; const now=Date.now(); let added=0;
-    plan.forEach((s,i)=>{
-      if(hasSame(s.weight,s.reps)) return;
-      currentSession.sets.push({ temp_id:(crypto?.randomUUID?.()||String(now+i)+'_'+Math.random().toString(16).slice(2)), exercise_id:exId, weight:s.weight, reps:s.r, rpe:null, ts:now+i, date, wu:true });
-      added++;
-    });
-    renderTodaySets();
-    const label=scheme==='auto'?`自動(${guessSchemeByReps(rTop)})`:scheme;
-    showToast(`WU ${added}セットを追加（${label} / ±${step}kg）`);
-  });
-
-  $('#btnClearWarmup')?.addEventListener('click',()=>{
-    if(!currentSession.sets.length){ showToast('削除対象がありません'); return; }
-    pushUndo();
-    const exId=Number($('#exSelect').value||0);
-    let removed=0;
-    if(exId){
-      const lenBefore=currentSession.sets.length;
-      currentSession.sets=currentSession.sets.filter(s=>!(s.wu && s.exercise_id===exId));
-      removed=lenBefore-currentSession.sets.length;
-      renderTodaySets(); showToast(removed>0?`WUを削除（この種目: ${removed}）`:'この種目のWUはありません');
-    }else{
-      const lenBefore=currentSession.sets.length;
-      currentSession.sets=currentSession.sets.filter(s=>!s.wu);
-      removed=lenBefore-currentSession.sets.length;
-      renderTodaySets(); showToast(removed>0?`WUをすべて削除（${removed}）`:'WUはありません');
-    }
-  });
+  // ★ WU関連イベントは全撤去（#wuScheme/#wuRound/#btnGenWarmup/#btnClearWarmup）
 
   $('#btnAddSet')?.addEventListener('click',async()=>{
     const exId=Number($('#exSelect').value);
@@ -531,7 +437,8 @@ function bindSessionUI(){
     pushUndo();
     const sessionId=await put('sessions',{date,note,created_at:Date.now()});
     for(const s of currentSession.sets){
-      await put('sets',{session_id:sessionId,exercise_id:s.exercise_id,weight:s.weight,reps:s.reps,rpe:s.rpe,ts:s.ts,date, ...(s.wu?{wu:true}:{}) });
+      // ★ WUフラグの保存は撤去
+      await put('sets',{session_id:sessionId,exercise_id:s.exercise_id,weight:s.weight,reps:s.reps,rpe:s.rpe,ts:s.ts,date});
     }
     currentSession={date:todayStr(),note:'',sets:[]};
     $('#sessDate').value=todayStr(); $('#sessNote').value='';
@@ -594,10 +501,9 @@ function renderTodaySets(){
   const ul=$('#todaySets'); if(!ul) return;
   if(!currentSession.sets.length){ ul.innerHTML='<li>まだありません</li>'; return; }
   ul.innerHTML=currentSession.sets.map(s=>{
-    const wu=s.wu?`<span class="badge wu">WU</span> `:'';
     const rpe=(typeof s.rpe==='number' && !Number.isNaN(s.rpe))?` RPE${s.rpe}`:'';
     return `<li>
-      <span>${wu}<strong>${esc(exNameById(s.exercise_id))}</strong> ${s.weight}kg × ${s.reps}${rpe}</span>
+      <span><strong>${esc(exNameById(s.exercise_id))}</strong> ${s.weight}kg × ${s.reps}${rpe}</span>
       <span style="display:flex; gap:6px">
         <button class="ghost" data-act="edit" data-id="${s.temp_id}">編集</button>
         <button class="ghost" data-act="del"  data-id="${s.temp_id}">削除</button>
@@ -643,9 +549,11 @@ function bindHistoryUI(){
   $('#importFile')?.addEventListener('change',importCSV);
 }
 function buildSessionDetailsHTML(sets,nameById){
-  if(!sets||!sets.length) return '<div class="small" style="margin-top:8px">セットがありません。</div>';
+  // ★ WUセットは表示から除外
+  const rows = (sets||[]).filter(x=>!x.wu);
+  if(!rows.length) return '<div class="small" style="margin-top:8px">セットがありません。</div>';
   const byEx=new Map();
-  for(const s of sets){ if(!byEx.has(s.exercise_id)) byEx.set(s.exercise_id,[]); byEx.get(s.exercise_id).push(s); }
+  for(const s of rows){ if(!byEx.has(s.exercise_id)) byEx.set(s.exercise_id,[]); byEx.get(s.exercise_id).push(s); }
   const blocks=[...byEx.entries()]
     .sort((a,b)=>String(nameById[a[0]]||'').localeCompare(nameById[b[0]]||'','ja'))
     .map(([exId,arr])=>{
@@ -653,8 +561,8 @@ function buildSessionDetailsHTML(sets,nameById){
       const exName=nameById[exId]||`種目(${exId})`;
       const vol=arr.reduce((sum,x)=>sum+(Number(x.weight)||0)*(Number(x.reps)||0),0);
       const list=arr.map(x=>{
-        const rpe=(typeof x.rpe==='number'&&!Number.isNaN(x.rpe))?`@${x.rpe}`:''; const wu=x.wu?' <span class="badge wu">WU</span>':'';
-        return `${x.weight}kg×${x.reps}${rpe}${wu}`;
+        const rpe=(typeof x.rpe==='number'&&!Number.isNaN(x.rpe))?`@${x.rpe}`:'';
+        return `${x.weight}kg×${x.reps}${rpe}`;
       }).join('、 ');
       return `
         <div style="margin:8px 0; padding:8px; border:1px dashed ${'var(--line)'}; border-radius:10px">
@@ -681,9 +589,10 @@ async function renderHistory(){
   const allEx=await getAll('exercises'); const nameById=Object.fromEntries(allEx.map(e=>[e.id,e.name])); ul._nameById=nameById;
 
   for(const s of sessions){
-    const sets=await indexGetAll('sets','by_session',s.id);
-    const vol=sets.reduce((sum,x)=>sum+(Number(x.weight)||0)*(Number(x.reps)||0),0);
-    const est=sets.length?Math.max(...sets.map(x=>e1rm(x.weight,x.reps))):0;
+    const allSets=await indexGetAll('sets','by_session',s.id);
+    const setsNoWU = allSets.filter(x=>!x.wu); // ★ 集計もWU除外
+    const vol=setsNoWU.reduce((sum,x)=>sum+(Number(x.weight)||0)*(Number(x.reps)||0),0);
+    const est=setsNoWU.length?Math.max(...setsNoWU.map(x=>e1rm(x.weight,x.reps))):0;
     const li=document.createElement('li');
     li.innerHTML=`
       <div>
@@ -698,7 +607,7 @@ async function renderHistory(){
         <button class="danger" data-act="del"   data-id="${s.id}">削除</button>
       </div>
       <div class="details" hidden></div>`;
-    li._sets=sets; ul.appendChild(li);
+    li._sets=setsNoWU; ul.appendChild(li);
   }
   if(!sessions.length) ul.innerHTML='<li>まだありません</li>';
 
@@ -926,7 +835,7 @@ function bindSettingsUI(){
     try{
       await put('exercises',{name,group:part}); $('#newExName').value='';
       await renderExList(); await renderExSelect(); await renderTplExSelect(); await renderWatchUI(); await renderTrendSelect();
-      renderPartFilterChips(); // ★ 追加/削除後はチップを再描画（指定の1行）
+      renderPartFilterChips();
       showToast('追加しました');
     }catch{ showToast('同名の種目があります'); }
   });
@@ -939,7 +848,7 @@ function bindSettingsUI(){
     }
     await ensureInitialExercises();
     await renderExList(); await renderExSelect(); await renderTplExSelect(); renderHistory(); renderAnalytics(); renderTodaySets(); await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary();
-    renderPartFilterChips(); // 再描画
+    renderPartFilterChips();
     showToast('全データを削除しました');
   });
 
@@ -963,7 +872,7 @@ function bindSettingsUI(){
       for(const x of (data.prefs    ||[])) await put('prefs',x);
     }
     await renderExList(); await renderExSelect(); await renderTplExSelect(); renderHistory(); renderAnalytics(); renderTodaySets(); await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary();
-    renderPartFilterChips(); // 再描画
+    renderPartFilterChips();
     showToast('復元しました'); e.target.value='';
   });
 }
@@ -976,13 +885,13 @@ function renderPartFilterChips(){
     bar.addEventListener('click',e=>{
       const btn=e.target.closest('button'); if(!btn) return;
       const part=btn.dataset.part;
-      partFilterActive = (partFilterActive===part) ? null : part; // 同じボタンで全消し
-      renderPartFilterChips();         // 見た目の更新
-      applyPartFilterVisibility();     // 表示制御
+      partFilterActive = (partFilterActive===part) ? null : part;
+      renderPartFilterChips();
+      applyPartFilterVisibility();
     });
     _partFilterBound=true;
   }
-  applyPartFilterVisibility(); // 初期/再描画時も反映
+  applyPartFilterVisibility();
 }
 function applyPartFilterVisibility(){
   const ul = document.querySelector('#exerciseList') || document.querySelector('#exList'); if(!ul) return;
@@ -990,7 +899,7 @@ function applyPartFilterVisibility(){
   if(!lis.length) return;
   lis.forEach(li=>{
     const p = li.dataset.part || '';
-    li.style.display = partFilterActive ? (p===partFilterActive?'' : 'none') : 'none'; // 初期は非表示
+    li.style.display = partFilterActive ? (p===partFilterActive?'' : 'none') : 'none';
   });
 }
 
@@ -1006,7 +915,7 @@ async function renderExList(){
 
   for(const e of exs){
     const li=document.createElement('li');
-    li.dataset.part = e.group || ''; // ★ 指定の追加
+    li.dataset.part = e.group || '';
     li.innerHTML = `<span>${e.group?`<span class="badge" style="margin-right:8px">${esc(e.group)}</span>`:''}${esc(e.name)}</span><button class="ghost" data-id="${e.id}">削除</button>`;
     ul.appendChild(li);
   }
@@ -1014,7 +923,7 @@ async function renderExList(){
     b.addEventListener('click',async()=>{
       pushUndo(); await del('exercises',Number(b.dataset.id));
       await renderExList(); await renderExSelect(); await renderTplExSelect(); renderAnalytics(); await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary();
-      renderPartFilterChips(); // ★ 追加/削除後の再描画（指定の1行）
+      renderPartFilterChips();
     });
   });
 
