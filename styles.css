@@ -1,7 +1,8 @@
-/* Train Punch styles — v1.1.1
+/* Train Punch styles — v1.1.1 (no-WU)
    - ダーク/ライトテーマ
    - 軽量・視認性微調整
    - color-mix を SRGB 統一（互換性安定）
+   - WU関連UIを防御的に非表示
 */
 
 /* ===== Design tokens ===== */
@@ -166,12 +167,9 @@ button.ghost.danger:hover{
   background:color-mix(in srgb, var(--card) 92%, #000 8%); border:1px solid var(--line); font-size:12px;
   font-variant-numeric: tabular-nums;
 }
-.badge.wu{
-  background: color-mix(in srgb, var(--danger) 14%, transparent);
-  color: color-mix(in srgb, var(--danger) 10%, #fff);
-  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
-}
+/* ★ WUバッジは撤去（旧データ保険は下の "defensive hide" で） */
 
+/* 凡例 */
 .legend{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
 .legend .chip{ padding:6px 10px; }
 
@@ -354,7 +352,7 @@ details.memo textarea{ width: 100%; }
   .flash-ring::after{
     content:"";
     position:absolute;
-    inset:-6px; /* 外側に6px分のリング */
+    inset:-6px;
     border:2px solid var(--primary);
     border-radius: calc(var(--radius) + 8px);
     opacity:0;
@@ -371,14 +369,20 @@ details.memo textarea{ width: 100%; }
 
 /* === History details: 下段展開にする（最小変更） === */
 #historyList li{
-  flex-wrap: wrap;            /* 詳細を改行して下段へ */
-  align-items: flex-start;    /* 上揃え */
+  flex-wrap: wrap;
+  align-items: flex-start;
 }
 #historyList .details{
   flex-basis: 100%;
   width: 100%;
-  margin-top: 8px;            /* 本体との間に余白 */
+  margin-top: 8px;
 }
 #historyList .details[hidden]{
-  display: none !important;   /* iOS/Safari 保険 */
+  display: none !important;
+}
+
+/* ===== Defensive: 旧WU UIを強制非表示（HTMLに残っていても見せない） ===== */
+#warmup, #wuScheme, #wuRound, #btnGenWarmup, #btnClearWarmup,
+.wu-section, .wu-row, .badge.wu, .tag-wu, .is-wu{
+  display:none !important;
 }
