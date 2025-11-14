@@ -24,19 +24,23 @@
   <!-- audio（将来用にプリロードだけ） -->
   <link rel="preload" href="beep.wav" as="audio" type="audio/wav">
 
-  <!-- 最小フォールバックCSS（SW更新ドット / WUバッジ / セット+RPEの双子枠 / リング演出） -->
+  <!-- 最小フォールバックCSS（SW更新ドット / セット+RPEの双子枠 / リング演出） -->
   <style>
     .iconbtn.update{position:relative}
     .iconbtn.update::after{
       content:""; position:absolute; top:6px; right:6px; width:8px; height:8px; border-radius:50%;
       background:#ff5a5a; box-shadow:0 0 0 0 rgba(255,90,90,.7); animation:tp-pulse 1.6s infinite;
     }
-    @keyframes tp-pulse{0%{box-shadow:0 0 0 0 rgba(255,90,90,.7)}70%{box-shadow:0 0 0 10px rgba(255,90,90,0)}100%{box-shadow:0 0 0 0 rgba(255,90,90,0)}}
-    .badge.wu{ padding:2px 6px; border-radius:10px; background:#ffe6e6; color:#b21c1c; font-size:12px }
-    @media (prefers-color-scheme: dark){ .badge.wu{ background:#3a1f1f; color:#ffb3b3 } }
+    @keyframes tp-pulse{
+      0%{box-shadow:0 0 0 0 rgba(255,90,90,.7)}
+      70%{box-shadow:0 0 0 10px rgba(255,90,90,0)}
+      100%{box-shadow:0 0 0 0 rgba(255,90,90,0)}
+    }
 
-    #tp-debug{position:fixed;left:8px;right:8px;bottom:8px;max-height:40vh;overflow:auto;background:#111c;color:#fff;
-      font:12px/1.5 system-ui;padding:8px;border-radius:8px;z-index:2147483647;box-shadow:0 8px 30px rgba(0,0,0,.35);display:none}
+    #tp-debug{
+      position:fixed;left:8px;right:8px;bottom:8px;max-height:40vh;overflow:auto;background:#111c;color:#fff;
+      font:12px/1.5 system-ui;padding:8px;border-radius:8px;z-index:2147483647;box-shadow:0 8px 30px rgba(0,0,0,.35);display:none
+    }
 
     /* セット数 + RPE を横並びにする軽量CSS */
     .twins{display:flex;gap:8px}
@@ -65,7 +69,7 @@
     <button id="btnHardRefresh" class="iconbtn" title="更新" aria-label="強制更新" type="button">↻</button>
     <h1 class="logo">Train Punch</h1>
     <nav class="tabs" aria-label="Main tabs" role="tablist">
-      <button class="active" data-tab="session" aria-selected="true" role="tab" type="button">セッション</button>
+      <button class="active" data-tab="session" aria-selected="true" aria-current="page" role="tab" type="button">セッション</button>
       <button data-tab="analytics" aria-selected="false" role="tab" type="button">解析</button>
       <button data-tab="history" aria-selected="false" role="tab" type="button">履歴</button>
       <button data-tab="settings" aria-selected="false" role="tab" type="button">設定</button>
@@ -304,14 +308,34 @@
   <!-- SWローダーは全ページでこれに統一 -->
   <script defer src="./sw-register.js?v=1.6.1-unify"></script>
 
-  <!-- 折りたたみメモのUX補助 -->
+  <!-- 折りたたみメモのUX補助 + タブのaria-current制御 -->
   <script>
     document.addEventListener('DOMContentLoaded', function(){
+      // メモの折りたたみ
       var box=document.getElementById('memoDetails');
       var ta=document.getElementById('sessNote');
-      if(!box||!ta) return;
-      if(ta.value && ta.value.trim()!=='') box.open = true;
-      ta.addEventListener('focus', function(){ box.open = true; }, {passive:true});
+      if(box && ta){
+        if(ta.value && ta.value.trim()!=='') box.open = true;
+        ta.addEventListener('focus', function(){ box.open = true; }, {passive:true});
+      }
+
+      // タブ: aria-current="page" の付与
+      var tabs = document.querySelectorAll('.tabs button');
+      function setCurrent(btn){
+        tabs.forEach(function(b){
+          if(b === btn){
+            b.setAttribute('aria-current','page');
+          }else{
+            b.removeAttribute('aria-current');
+          }
+        });
+      }
+      var active = document.querySelector('.tabs button.active');
+      if(active) setCurrent(active);
+
+      tabs.forEach(function(btn){
+        btn.addEventListener('click', function(){ setCurrent(btn); }, {passive:true});
+      });
     });
   </script>
 
