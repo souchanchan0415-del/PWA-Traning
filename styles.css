@@ -2,7 +2,7 @@
    - ダーク/ライトテーマ
    - 軽量・視認性微調整
    - color-mix を SRGB 統一（互換性安定）
-   - WU関連UIを防御的に非表示
+   - WU関連CSSは削除済み
 */
 
 /* ===== Design tokens ===== */
@@ -167,7 +167,6 @@ button.ghost.danger:hover{
   background:color-mix(in srgb, var(--card) 92%, #000 8%); border:1px solid var(--line); font-size:12px;
   font-variant-numeric: tabular-nums;
 }
-/* ★ WUバッジは撤去（旧データ保険は下の "defensive hide" で） */
 
 /* 凡例 */
 .legend{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
@@ -379,10 +378,4 @@ details.memo textarea{ width: 100%; }
 }
 #historyList .details[hidden]{
   display: none !important;
-}
-
-/* ===== Defensive: 旧WU UIを強制非表示（HTMLに残っていても見せない） ===== */
-#warmup, #wuScheme, #wuRound, #btnGenWarmup, #btnClearWarmup,
-.wu-section, .wu-row, .badge.wu, .tag-wu, .is-wu{
-  display:none !important;
 }
