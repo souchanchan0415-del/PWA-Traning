@@ -6,13 +6,22 @@
   <meta name="theme-color" content="#0e1116">
   <meta name="format-detection" content="telephone=no">
   <meta name="color-scheme" content="light dark">
+
+  <!-- PWA meta -->
+  <meta name="application-name" content="Train Punch">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Train Punch">
+  <meta name="description" content="セット・重量・回数・RPEを素早く記録し、週次サマリーやe1RMトレンドを可視化するPWA筋トレログアプリ。">
+
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
 
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" sizes="192x192" href="icons/icon-192.png">
-  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" sizes="512x512" href="icons/icon-512.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
 
   <title>Train Punch v1.1.1</title>
 
@@ -243,121 +252,4 @@
           </select>
         </div>
 
-        <ul id="exList" class="list"></ul>
-      </div>
-
-      <div class="card">
-        <h3>ウォッチ種目（PR通知/e1RMトレンド）</h3>
-        <div id="watchPartChips" class="chipset">
-          <div class="chip active" data-part="胸" tabindex="0">胸</div>
-          <div class="chip" data-part="背中" tabindex="0">背中</div>
-          <div class="chip" data-part="肩" tabindex="0">肩</div>
-          <div class="chip" data-part="脚" tabindex="0">脚</div>
-          <div class="chip" data-part="腕" tabindex="0">腕</div>
-        </div>
-        <div class="row">
-          <select id="watchExSelect"><option value="">（選択する）</option></select>
-          <button id="btnWatchAdd" type="button">追加</button>
-        </div>
-        <ul id="watchList" class="list"></ul>
-      </div>
-
-      <div class="card">
-        <h3>バックアップ</h3>
-        <div class="row">
-          <button id="btnExportJson" class="ghost" type="button">JSONエクスポート</button>
-          <label class="btnlike" for="jsonIn">JSONインポート</label>
-          <input id="jsonIn" type="file" accept="application/json" hidden>
-        </div>
-        <small class="small muted" style="margin-top:8px; display:block">
-          上記ページはオフラインでも表示できるようプリキャッシュされます。
-        </small>
-      </div>
-
-      <!-- ▼ ここからご指定のブロック（そのまま挿入） -->
-      <div class="card">
-        <h3>サポート ＆ ポリシー</h3>
-        <div style="display:grid; gap:8px">
-          <a class="btnlike ghost" href="./contact.html"><span>問い合わせ</span></a>
-          <a class="btnlike ghost" href="./privacy.html"><span>プライバシーポリシー</span></a>
-          <a class="btnlike ghost" href="./tokusho.html"><span>特定商取引法に基づく表記</span></a>
-          <a class="btnlike ghost" href="./support.html"><span>サポート</span></a>
-        </div>
-      </div>
-      <!-- ▲ ご指定ブロックここまで -->
-
-      <div class="card">
-        <h3>危険ゾーン</h3>
-        <button id="btnWipe" class="danger" type="button">全データ削除</button>
-      </div>
-    </section>
-  </main>
-
-  <!-- Sticky Save: 画面下固定の保存バー -->
-  <footer class="sticky-save" role="contentinfo">
-    <button id="btnSaveSession" type="button">セッション保存</button>
-  </footer>
-
-  <!-- Toast & Debug -->
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
-  <noscript><p class="nojs">JavaScript を有効にしてください。</p></noscript>
-
-  <!-- scripts -->
-  <script defer src="./app.js?v=1.1.1"></script>
-  <!-- SWローダーは全ページでこれに統一 -->
-  <script defer src="./sw-register.js?v=1.6.1-unify"></script>
-
-  <!-- 折りたたみメモのUX補助 + タブのaria-current制御 -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function(){
-      // メモの折りたたみ
-      var box=document.getElementById('memoDetails');
-      var ta=document.getElementById('sessNote');
-      if(box && ta){
-        if(ta.value && ta.value.trim()!=='') box.open = true;
-        ta.addEventListener('focus', function(){ box.open = true; }, {passive:true});
-      }
-
-      // タブ: aria-current="page" の付与
-      var tabs = document.querySelectorAll('.tabs button');
-      function setCurrent(btn){
-        tabs.forEach(function(b){
-          if(b === btn){
-            b.setAttribute('aria-current','page');
-          }else{
-            b.removeAttribute('aria-current');
-          }
-        });
-      }
-      var active = document.querySelector('.tabs button.active');
-      if(active) setCurrent(active);
-
-      tabs.forEach(function(btn){
-        btn.addEventListener('click', function(){ setCurrent(btn); }, {passive:true});
-      });
-    });
-  </script>
-
-  <!-- 強制更新（ボタンクリック/保険用グローバル関数） -->
-  <script>
-    (function(){
-      window.__tpHardRefresh = async function(){
-        if(window.__tpHRRunning) return; window.__tpHRRunning=true;
-        var btn=document.getElementById('btnHardRefresh'); if(btn){btn.disabled=true;btn.textContent='更新…'}
-        try{
-          if('serviceWorker' in navigator){
-            var regs=await navigator.serviceWorker.getRegistrations();
-            await Promise.all(regs.map(function(r){ return r.unregister().catch(function(){}); }));
-          }
-          if('caches' in window){
-            var keys=await caches.keys();
-            await Promise.all(keys.map(function(k){ return caches.delete(k).catch(function(){}); }));
-          }
-        }catch(_){}
-        location.reload();
-      };
-    })();
-  </script>
-</body>
-</html>
+        <ul id="exList" class="list"></
