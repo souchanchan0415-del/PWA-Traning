@@ -1,7 +1,7 @@
-// Train no Punch — v1.1.1 (no-WU full replace, sets+RPE)
+// Train no Punch — v1.1.2 (perf+import UX, no-WU full replace, sets+RPE)
 // change: WU（ウォームアップ）機能を全撤去（生成/設定/保存/履歴表示）
-// keep  : IDB+LS fallback, CSV import/export, charts, watchlist, RPE, 複数セット一括投入
-// add   : 解析・週次・トレンド・履歴の集計はWUセットを除外（過去データのwu:trueも非表示）
+// keep  : IDB+LS fallback, CSV/JSON import/export, charts, watchlist, RPE, 複数セット一括投入
+// add   : 軽いパフォーマンス小技（idleで解析）、ドラッグ&ドロップ対応のインポートUX
 
 const DB_NAME = 'trainpunch_v3';
 const DB_VER  = 3;
@@ -256,7 +256,15 @@ function queueOpenSettingsFeel(){
 
 // =================== Init ===================
 async function init(){
-  (function(){ let _t; window.addEventListener('scroll',()=>{ document.body.classList.add('scrolling'); clearTimeout(_t); _t=setTimeout(()=>document.body.classList.remove('scrolling'),150); },{passive:true}); })();
+  // スクロール中は blur をOFF（body.scrolling付け外し）
+  (function(){
+    let _t;
+    window.addEventListener('scroll',()=>{
+      document.body.classList.add('scrolling');
+      clearTimeout(_t);
+      _t=setTimeout(()=>document.body.classList.remove('scrolling'),150);
+    },{passive:true});
+  })();
 
   $('#btnHardRefresh')?.addEventListener('click',async()=>{
     const b=$('#btnHardRefresh'); const old=b.textContent;
@@ -309,8 +317,6 @@ async function init(){
   $('#sessDate') && ($('#sessDate').value=todayStr());
   bindSessionUI();
 
-  // WU設定は撤去したため読み込み処理も撤去
-
   bindCustomInsertUI();
   renderTplPartChips();
   await renderTplExSelect();
@@ -324,7 +330,7 @@ async function init(){
   await renderExSelect();
   renderTodaySets();
   renderHistory();
-  renderAnalytics();
+  renderAnalytics(); // idleタイミングで解析（小技）
   await renderExList();
   renderPartFilterChips();
 
@@ -548,7 +554,60 @@ async function applyCustomInsert(){
 function bindHistoryUI(){
   $('#historyCount')?.addEventListener('change',renderHistory);
   $('#btnExport')?.addEventListener('click',exportCSV);
-  $('#importFile')?.addEventListener('change',importCSV);
+
+  const fileInput = $('#importFile');
+  if(fileInput && !fileInput._bound){
+    fileInput.addEventListener('change',importCSV);
+    fileInput._bound = true;
+  }
+
+  // インポート用ドラッグ＆ドロップUX
+  const drop = $('#importDrop');
+  if(drop && !drop._bound){
+    const prevent = ev => { ev.preventDefault(); ev.stopPropagation(); };
+
+    drop.addEventListener('click',()=>{
+      if(fileInput) fileInput.click();
+    });
+
+    ['dragenter','dragover'].forEach(type=>{
+      drop.addEventListener(type,ev=>{
+        prevent(ev);
+        drop.classList.add('is-dragover');
+        setImportStatus(null,'ファイルをドロップ',null);
+      });
+    });
+    ['dragleave','dragend'].forEach(type=>{
+      drop.addEventListener(type,ev=>{
+        prevent(ev);
+        drop.classList.remove('is-dragover');
+        setImportStatus(null,'待機中',null);
+      });
+    });
+    drop.addEventListener('drop',async ev=>{
+      prevent(ev);
+      drop.classList.remove('is-dragover');
+      const files = ev.dataTransfer && ev.dataTransfer.files;
+      if(!files || !files.length){
+        setImportStatus('err','ファイルが見つかりません',null);
+        showToast('ファイルが見つかりません');
+        return;
+      }
+      const file = files[0];
+      setImportStatus(null,'読み込み中…',file.name);
+      try{
+        await importCSVFromFile(file);
+        setImportStatus('ok','インポート完了',file.name);
+        showToast('インポート完了');
+      }catch(err){
+        console.error(err);
+        setImportStatus('err','読み込みに失敗しました',file.name);
+        showToast('インポート失敗: '+(err?.message||'不明なエラー'));
+      }
+    },false);
+
+    drop._bound = true;
+  }
 }
 function buildSessionDetailsHTML(sets,nameById){
   // ★ WUセットは表示から除外
@@ -740,7 +799,28 @@ function _drawLineChart(canvas,labels,values,hoverIndex=-1){
 }
 
 let _chartEventsBound=false;
-async function renderAnalytics(){
+let _analyticsIdleHandle=null;
+
+// パフォーマンス小技：解析は idle/短いtimeout にまとめて実行
+async function renderAnalytics(immediate=false){
+  if(immediate){
+    if(_analyticsIdleHandle!=null){
+      if('cancelIdleCallback' in window) cancelIdleCallback(_analyticsIdleHandle);
+      else clearTimeout(_analyticsIdleHandle);
+      _analyticsIdleHandle=null;
+    }
+    return _renderAnalyticsImpl();
+  }
+  if(_analyticsIdleHandle!=null) return;
+  const runner = ()=>{ _analyticsIdleHandle=null; _renderAnalyticsImpl(); };
+  if('requestIdleCallback' in window){
+    _analyticsIdleHandle = requestIdleCallback(runner,{timeout:500});
+  }else{
+    _analyticsIdleHandle = setTimeout(runner,120);
+  }
+}
+
+async function _renderAnalyticsImpl(){
   const canvas=$('#chart'); if(canvas){
     // ★ 解析はWUセット除外
     const allSets = await getAll('sets');
@@ -972,6 +1052,27 @@ async function renderWatchUI(){
 }
 
 // =================== CSV ===================
+
+// インポートステータス用の小ヘルパー
+function setImportStatus(state,text,filename){
+  const nameEl = $('.import-file-name');
+  if(nameEl && filename) nameEl.textContent = filename;
+  const statusEl = $('.import-status');
+  if(!statusEl) return;
+  statusEl.classList.remove('ok','err','warn');
+  if(state && ['ok','err','warn'].includes(state)) statusEl.classList.add(state);
+  const dot = statusEl.querySelector('.dot');
+  if(text != null){
+    if(dot){
+      statusEl.textContent = '';
+      statusEl.appendChild(dot);
+      statusEl.appendChild(document.createTextNode(' '+text));
+    }else{
+      statusEl.textContent = text;
+    }
+  }
+}
+
 async function exportCSV(){
   const sessions=await getAll('sessions');
   const sets=await getAll('sets');
@@ -982,27 +1083,59 @@ async function exportCSV(){
   const blob=new Blob([header1+lines1+header2+lines2],{type:'text/csv'});
   const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='train_punch_export.csv'; a.click(); URL.revokeObjectURL(url);
 }
-async function importCSV(e){
-  const file=e.target.files[0]; if(!file) return;
+
+// 実際のCSV取り込み処理（入力元に依存しない）
+async function importCSVFromFile(file){
+  if(!file) throw new Error('ファイルが指定されていません');
   const text=await file.text();
   const parts=text.split('##SESSIONS'); const afterSessions=parts[1];
-  if(!afterSessions){ showToast('形式が違います'); e.target.value=''; return; }
+  if(!afterSessions) throw new Error('CSV形式が違います（##SESSIONSが見つかりません）');
   const segs=afterSessions.split('##SETS'); const sessionsPart=segs[0] ?? ''; const setsPart=segs[1] ?? '';
   const sLines=sessionsPart.split(/\r?\n/).slice(2).filter(Boolean);
   const setLines=setsPart.split(/\r?\n/).slice(2).filter(Boolean);
 
   if(USE_LS){
     const data=_lsLoad(); data.sessions=[]; data.sets=[];
-    for(const line of sLines){ const [id,date,note]=parseCSVRow(line); data.sessions.push({id:Number(id),date,note,created_at:new Date(date).getTime()}); }
-    for(const line of setLines){ const [id,session_id,exercise_id,weight,reps,rpe,ts,date]=parseCSVRow(line); data.sets.push({id:Number(id),session_id:Number(session_id),exercise_id:Number(exercise_id),weight:Number(weight),reps:Number(reps),rpe:rpe?Number(rpe):null,ts:Number(ts),date}); }
+    for(const line of sLines){
+      const [id,date,note]=parseCSVRow(line);
+      data.sessions.push({id:Number(id),date,note,created_at:new Date(date).getTime()});
+    }
+    for(const line of setLines){
+      const [id,session_id,exercise_id,weight,reps,rpe,ts,date]=parseCSVRow(line);
+      data.sets.push({id:Number(id),session_id:Number(session_id),exercise_id:Number(exercise_id),weight:Number(weight),reps:Number(reps),rpe:rpe?Number(rpe):null,ts:Number(ts),date});
+    }
     _lsSave(data);
   }else{
     for(const s of ['sessions','sets']) await new Promise((res,rej)=>{ const r=tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
-    for(const line of sLines){ const [id,date,note]=parseCSVRow(line); await put('sessions',{id:Number(id),date,note,created_at:new Date(date).getTime()}); }
-    for(const line of setLines){ const [id,session_id,exercise_id,weight,reps,rpe,ts,date]=parseCSVRow(line); await put('sets',{id:Number(id),session_id:Number(session_id),exercise_id:Number(exercise_id),weight:Number(weight),reps:Number(reps),rpe:rpe?Number(rpe):null,ts:Number(ts),date}); }
+    for(const line of sLines){
+      const [id,date,note]=parseCSVRow(line);
+      await put('sessions',{id:Number(id),date,note,created_at:new Date(date).getTime()});
+    }
+    for(const line of setLines){
+      const [id,session_id,exercise_id,weight,reps,rpe,ts,date]=parseCSVRow(line);
+      await put('sets',{id:Number(id),session_id:Number(session_id),exercise_id:Number(exercise_id),weight:Number(weight),reps:Number(reps),rpe:rpe?Number(rpe):null,ts:Number(ts),date});
+    }
   }
-  renderHistory(); renderAnalytics(); await renderWeeklySummary(); showToast('インポート完了'); e.target.value='';
+  renderHistory(); renderAnalytics(); await renderWeeklySummary();
 }
+
+// input[type=file] 用のラッパー
+async function importCSV(e){
+  const file=e.target.files[0]; if(!file) return;
+  setImportStatus(null,'読み込み中…',file.name);
+  try{
+    await importCSVFromFile(file);
+    setImportStatus('ok','インポート完了',file.name);
+    showToast('インポート完了');
+  }catch(err){
+    console.error(err);
+    setImportStatus('err','読み込みに失敗しました',file.name);
+    showToast('インポート失敗: '+(err?.message||'不明なエラー'));
+  }finally{
+    e.target.value='';
+  }
+}
+
 function csvEscape(s){ const needs=/[",\n]/.test(s); return needs?'"'+String(s).replace(/"/g,'""')+'"':s; }
 function parseCSVRow(row){
   const out=[]; let cur='',q=false;
