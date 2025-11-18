@@ -1,7 +1,9 @@
-/* Train Punch styles — v1.1.1 (no-WU)
+/* Train Punch styles — v1.1.2 (perf + import UX)
    - ダーク/ライトテーマ
    - 軽量・視認性微調整
-   - color-mix を SRGB 統一（互換性安定）
+   - color-mix を SRGB 統一
+   - スクロール系パフォーマンス小技
+   - インポートUI用コンポーネント追加
    - WU関連CSSは削除済み
 */
 
@@ -14,6 +16,8 @@
   --line:#2a3140;
   --primary:#0fb6a9;
   --danger:#e85b5b;
+  --success:#16c784;
+  --warning:#f59e0b;
 
   --radius:16px;
   --shadow:0 6px 24px rgba(0,0,0,.25);
@@ -35,7 +39,11 @@ html[data-theme="light"]{
 /* ===== Base ===== */
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
-html{ scrollbar-gutter: stable both-edges; overscroll-behavior-y: contain; }
+html{
+  scrollbar-gutter: stable both-edges;
+  overscroll-behavior-y: contain;
+  scroll-behavior:smooth; /* 小技：スクロール体験UP */
+}
 body{
   margin:0; color:var(--text);
   background: radial-gradient(1200px 600px at 50% -200px, rgba(15,182,169,.07), transparent 60%), var(--bg);
@@ -50,12 +58,14 @@ a:hover{ text-decoration:underline; }
 /* ===== Appbar / Tabs ===== */
 .appbar{
   position:sticky; top:0; z-index:10; isolation:isolate;
+  padding:12px 16px 8px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  contain: layout paint; /* 小技：再レイアウト範囲を限定 */
+
+  /* blur は高級感はそのまま、スクロール中は app.js 側で殺す */
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   background:linear-gradient(to bottom, rgba(0,0,0,.28), transparent), var(--bg);
-  padding:12px 16px 8px;
-  padding-top: calc(12px + env(safe-area-inset-top));
-  contain: layout paint;
 }
 .logo{ margin:0 0 10px; font-size:28px; font-weight:800; letter-spacing:.2px; }
 .tabs{ display:flex; gap:12px; flex-wrap:wrap; position:relative; z-index:2; }
@@ -63,7 +73,7 @@ a:hover{ text-decoration:underline; }
   appearance:none; border:1px solid var(--line); cursor:pointer;
   padding:10px 16px; border-radius:999px;
   background:var(--card); color:var(--text); box-shadow:var(--shadow);
-  transition: transform .02s, background .15s, border-color .15s;
+  transition: transform .02s, background .15s, border-color .15s, box-shadow .15s;
   -webkit-tap-highlight-color: transparent;
 }
 .tabs button:hover{ border-color: color-mix(in srgb, var(--primary) 50%, #000 50%); }
@@ -71,10 +81,18 @@ a:hover{ text-decoration:underline; }
 .tabs button.active{ background:var(--primary); color:#fff; border-color:transparent; }
 
 /* ===== Layout ===== */
-.container{ max-width:1000px; margin:20px auto 80px; padding:0 16px; }
+.container{
+  max-width:1000px; margin:20px auto 80px; padding:0 16px;
+  /* Stickyフッターと共存するため下部マージンを拡張 */
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
 .card{
   background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px;
   box-shadow:var(--shadow); margin:20px 0; position:relative; z-index:0; overflow:visible;
+
+  /* 小技：折りたたみカードの初期描画をサボる */
+  content-visibility:auto;
+  contain-intrinsic-size: 260px;
 }
 h3{ margin:0 0 12px; font-size:18px; }
 
@@ -90,7 +108,7 @@ input, select, textarea, button{ font:inherit; color:inherit; }
 input:not([type="checkbox"]):not([type="radio"]), select, textarea{
   background:color-mix(in srgb, var(--card) 95%, #000 5%); color:var(--text);
   border:1px solid var(--line); border-radius:12px; padding:12px 14px; min-height:44px;
-  flex:1 1 220px; transition:border-color .12s, box-shadow .12s;
+  flex:1 1 220px; transition:border-color .12s, box-shadow .12s, background .12s;
 }
 textarea{ resize:vertical; }
 input::placeholder, textarea::placeholder{ color: color-mix(in srgb, var(--muted) 90%, #000 10%); }
@@ -112,7 +130,7 @@ input[type="checkbox"], input[type="radio"]{ accent-color: var(--primary); }
 button{
   appearance:none; border:1px solid var(--line); background:var(--primary); color:#fff;
   padding:12px 16px; border-radius:12px; cursor:pointer; min-height:44px;
-  transition: filter .1s, transform .02s, background .15s, border-color .15s;
+  transition: filter .1s, transform .02s, background .15s, border-color .15s, box-shadow .15s;
 }
 button:hover{ filter: brightness(1.02); }
 button:active{ transform: translateY(1px); }
@@ -200,7 +218,12 @@ small, .small{ color:var(--muted); font-size:12.5px; }
 .toast.show{ opacity:1; transform:translateX(-50%) translateY(-4px); }
 
 /* Tabs content */
-.tab{ display:none; }
+.tab{
+  display:none;
+  /* 小技：下タブはスクロール外のときレンダリングを遅延 */
+  content-visibility:auto;
+  contain-intrinsic-size: 600px;
+}
 .tab.active{ display:block; }
 
 /* ===== Chart ===== */
@@ -236,7 +259,7 @@ small, .small{ color:var(--muted); font-size:12.5px; }
   border:1px solid var(--line); box-shadow:var(--shadow);
   font-size:18px; line-height:1; cursor:pointer;
   z-index:3; touch-action:manipulation;
-  transition: transform .02s, border-color .15s, background .15s;
+  transition: transform .02s, border-color .15s, background .15s, box-shadow .15s;
 }
 .iconbtn:hover{ border-color: color-mix(in srgb, var(--primary) 55%, #000 45%); }
 .iconbtn:active{ transform:translateY(1px); }
@@ -266,53 +289,6 @@ small, .small{ color:var(--muted); font-size:12.5px; }
   font-size:14px;
 }
 
-/* ===== Responsive ===== */
-@media (max-width:700px){
-  .grid-2{ grid-template-columns:1fr; }
-  .grid-3{ grid-template-columns:1fr 1fr; }
-  .grid-3 > :nth-child(3){ grid-column:1 / -1; }
-}
-@media (max-width:600px){
-  .appbar{
-    backdrop-filter:none;
-    -webkit-backdrop-filter:none;
-    background:linear-gradient(to bottom, rgba(0,0,0,.18), transparent), var(--bg);
-  }
-  body{ background:var(--bg); }
-}
-@media (max-width:560px){
-  #tplPartChips{ gap:10px; margin:6px 0 8px; }
-  #tplPartChips .chip{ padding:8px 12px; }
-}
-@media (max-width:360px){
-  .grid-3{ grid-template-columns:1fr; }
-}
-
-/* iOS WebView 安全策 */
-.container, .card, .chipset { transform:none !important; }
-button, select, input { touch-action:manipulation; }
-
-/* デコレーション層はタップをブロックしない */
-.appbar::before, .appbar::after,
-.card::before, .card::after,
-#toast { pointer-events:none; }
-
-/* スタッキング保険 */
-#tab-analytics, #tab-session, #tab-history, #tab-settings { position:relative; z-index:0; }
-
-/* 低モーション派生 */
-@media (prefers-reduced-motion: reduce){
-  *{ transition:none !important; animation:none !important; }
-}
-
-/* スクロール中は blur を殺す（app.js が .scrolling を付与） */
-body.scrolling .appbar{
-  backdrop-filter:none;
-  -webkit-backdrop-filter:none;
-  background:linear-gradient(to bottom, rgba(0,0,0,.18), transparent), var(--bg);
-  transition:none;
-}
-
 /* === Sticky Save footer === */
 .sticky-save{
   position: fixed; left: 0; right: 0; bottom: 0;
@@ -333,8 +309,6 @@ body.scrolling .appbar{
   width: min(640px, 100%);
   margin: 0 auto; display: block;
 }
-/* Sticky が被らないように下余白を確保 */
-.container{ padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 
 /* === 折りたたみメモ === */
 details.memo{ margin: 8px 0 0; }
@@ -378,4 +352,160 @@ details.memo textarea{ width: 100%; }
 }
 #historyList .details[hidden]{
   display: none !important;
+}
+
+/* === Import UX: インポート専用UIコンポーネント === */
+/* 想定HTML：
+  <div class="import-section">
+    <div class="import-drop" id="importDrop">
+      <strong>CSV / JSON をドロップ</strong>
+      <div class="import-hint">タップしてファイルを選択することもできます</div>
+      <input type="file" id="importFile" />
+    </div>
+    <div class="import-meta">
+      <span class="import-file-name">ファイル未選択</span>
+      <span class="import-status"><span class="dot"></span>待機中</span>
+    </div>
+  </div>
+*/
+.import-section{
+  display:grid;
+  gap:10px;
+  margin-top:10px;
+}
+.import-drop{
+  border:1px dashed var(--line);
+  border-radius:12px;
+  padding:14px 12px;
+  min-height:72px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  background:color-mix(in srgb, var(--card) 96%, #000 4%);
+  text-align:center;
+  cursor:pointer;
+  transition: border-color .15s, background .15s, transform .02s;
+}
+.import-drop:hover{
+  border-color: color-mix(in srgb, var(--primary) 55%, #000 45%);
+}
+.import-drop:active{
+  transform: translateY(1px);
+}
+.import-drop.is-dragover{
+  border-style:solid;
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, var(--card) 92%);
+}
+.import-drop strong{
+  font-size:14px;
+}
+.import-hint{
+  font-size:12.5px;
+  color:var(--muted);
+}
+
+/* file input は視覚的には隠すが、ラベルクリックで動く想定 */
+.import-section input[type="file"]{
+  position:absolute;
+  width:1px; height:1px;
+  padding:0; margin:-1px;
+  border:0; clip:rect(0,0,0,0);
+  overflow:hidden;
+}
+
+.import-meta{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+  font-size:13px;
+  color:var(--muted);
+  flex-wrap:wrap;
+}
+.import-file-name{
+  font-weight:500;
+  overflow-wrap:anywhere;
+}
+.import-status{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.import-status .dot{
+  width:8px; height:8px;
+  border-radius:999px;
+  background:var(--muted);
+}
+.import-status.ok{
+  color:var(--success);
+}
+.import-status.ok .dot{
+  background:var(--success);
+}
+.import-status.err{
+  color:var(--danger);
+}
+.import-status.err .dot{
+  background:var(--danger);
+}
+.import-status.warn{
+  color:var(--warning);
+}
+.import-status.warn .dot{
+  background:var(--warning);
+}
+
+/* ===== Responsive ===== */
+@media (max-width:700px){
+  .grid-2{ grid-template-columns:1fr; }
+  .grid-3{ grid-template-columns:1fr 1fr; }
+  .grid-3 > :nth-child(3){ grid-column:1 / -1; }
+}
+@media (max-width:600px){
+  .appbar{
+    backdrop-filter:none;
+    -webkit-backdrop-filter:none;
+    background:linear-gradient(to bottom, rgba(0,0,0,.18), transparent), var(--bg);
+  }
+  body{ background:var(--bg); }
+
+  /* 小技：モバイルで影を削ってペイント負荷軽減 */
+  .card, .tabs button, .iconbtn{
+    box-shadow:none;
+  }
+}
+@media (max-width:560px){
+  #tplPartChips{ gap:10px; margin:6px 0 8px; }
+  #tplPartChips .chip{ padding:8px 12px; }
+}
+@media (max-width:360px){
+  .grid-3{ grid-template-columns:1fr; }
+}
+
+/* iOS WebView 安全策 */
+.container, .card, .chipset { transform:none !important; }
+button, select, input { touch-action:manipulation; }
+
+/* デコレーション層はタップをブロックしない */
+.appbar::before, .appbar::after,
+.card::before, .card::after,
+#toast { pointer-events:none; }
+
+/* スタッキング保険 */
+#tab-analytics, #tab-session, #tab-history, #tab-settings { position:relative; z-index:0; }
+
+/* 低モーション派生 */
+@media (prefers-reduced-motion: reduce){
+  *{ transition:none !important; animation:none !important; }
+}
+
+/* スクロール中は blur を殺す（app.js が .scrolling を付与） */
+body.scrolling .appbar{
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
+  background:linear-gradient(to bottom, rgba(0,0,0,.18), transparent), var(--bg);
+  transition:none;
 }
