@@ -1,8 +1,9 @@
 {
   "id": "train-punch",
-  "name": "Train Punch — 筋トレロガー",
+  "name": "Train Punch v1.1.1 — 筋トレロガー",
   "short_name": "Train Punch",
   "description": "セット・重量・回数・RPEを素早く記録し、週次サマリーやe1RMトレンドを可視化するPWA筋トレログアプリ。",
+  "version": "1.1.1",
   "lang": "ja",
   "dir": "ltr",
   "start_url": "./",
@@ -12,18 +13,79 @@
   "orientation": "portrait-primary",
   "background_color": "#0e1116",
   "theme_color": "#0e1116",
-  "categories": ["health", "fitness", "productivity"],
+  "categories": ["fitness", "health", "productivity"],
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icons/icon-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
   ],
   "shortcuts": [
-    { "name": "セッションを開始", "short_name": "セッション", "url": "./#tab-session", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
-    { "name": "解析を見る", "short_name": "解析", "url": "./#tab-analytics", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
-    { "name": "履歴", "short_name": "履歴", "url": "./#tab-history", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
-    { "name": "設定", "short_name": "設定", "url": "./#tab-settings", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] }
+    {
+      "name": "セッションを開始",
+      "short_name": "セッション",
+      "url": "./#tab-session",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "解析を見る",
+      "short_name": "解析",
+      "url": "./#tab-analytics",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "履歴",
+      "short_name": "履歴",
+      "url": "./#tab-history",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "設定",
+      "short_name": "設定",
+      "url": "./#tab-settings",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ],
-  "launch_handler": { "client_mode": "focus-existing" },
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
   "prefer_related_applications": false
 }
