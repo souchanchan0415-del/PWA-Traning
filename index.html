@@ -203,9 +203,27 @@
             <option>10</option><option selected>20</option><option>50</option>
           </select>
           <button id="btnExport" class="ghost" type="button">CSVエクスポート</button>
-          <label class="btnlike" for="importFile">CSVインポート</label>
-          <input id="importFile" type="file" accept=".csv,text/csv" hidden>
         </div>
+
+        <!-- ▼ インポートUXブロック（ドラッグ＆ドロップ + 状態表示） -->
+        <div class="import-section">
+          <div class="import-drop" id="importDrop">
+            <strong>CSVをインポート</strong>
+            <div class="import-hint">
+              CSVファイルをドロップ、またはタップして選択
+            </div>
+            <input id="importFile" type="file" accept=".csv,text/csv" hidden>
+          </div>
+
+          <div class="import-meta">
+            <span class="import-file-name">ファイル未選択</span>
+            <span class="import-status">
+              <span class="dot"></span>待機中
+            </span>
+          </div>
+        </div>
+        <!-- ▲ インポートUXブロックここまで -->
+
         <ul id="historyList" class="list"></ul>
       </div>
     </section>
