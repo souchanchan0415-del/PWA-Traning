@@ -316,7 +316,9 @@
       var ta=document.getElementById('sessNote');
       if(box && ta){
         if(ta.value && ta.value.trim()!=='') box.open = true;
-        ta.addEventListener('focus', function(){ box.open = true; }, {passive:true});
+        ta.addEventListener('focus', function(){
+          box.open = true;
+        });
       }
 
       // タブ: aria-current="page" の付与
@@ -334,7 +336,9 @@
       if(active) setCurrent(active);
 
       tabs.forEach(function(btn){
-        btn.addEventListener('click', function(){ setCurrent(btn); }, {passive:true});
+        btn.addEventListener('click', function(){
+          setCurrent(btn);
+        });
       });
     });
   </script>
