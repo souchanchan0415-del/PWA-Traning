@@ -59,6 +59,70 @@
       outline-offset: 2px;
       border-radius: 14px;
     }
+
+    /* セッション用ミニカレンダー */
+    .cal-header{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-bottom:4px;
+    }
+    .cal-header-title{
+      flex:1;
+      text-align:center;
+      font-weight:600;
+      font-size:14px;
+    }
+    .cal-weekdays{
+      display:grid;
+      grid-template-columns:repeat(7,minmax(0,1fr));
+      font-size:11px;
+      opacity:.75;
+      margin-top:4px;
+    }
+    .cal-weekdays span{
+      text-align:center;
+    }
+    .cal-grid{
+      display:grid;
+      grid-template-columns:repeat(7,minmax(0,1fr));
+      gap:4px;
+      margin-top:6px;
+      font-size:13px;
+    }
+    .cal-cell{
+      min-height:42px;
+      padding:4px 4px 2px;
+      border-radius:10px;
+      border:1px solid var(--line,#2a3140);
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      justify-content:flex-start;
+      cursor:pointer;
+      user-select:none;
+    }
+    .cal-cell span.cal-date{
+      font-size:12px;
+      opacity:.9;
+    }
+    .cal-cell .cal-dot{
+      width:6px;
+      height:6px;
+      border-radius:999px;
+      background:var(--primary,#0fb6a9);
+      margin-top:auto;
+    }
+    .cal-cell.is-today{
+      border-color:var(--primary,#0fb6a9);
+    }
+    .cal-cell.has-session{
+      background:color-mix(in srgb, var(--primary,#0fb6a9) 12%, transparent);
+    }
+    .cal-cell.is-selected{
+      outline:2px solid var(--primary,#0fb6a9);
+      outline-offset:1px;
+    }
   </style>
 
   <script>console.log('TP index v1.1.1 loaded');</script>
@@ -79,7 +143,26 @@
   <main class="container">
     <!-- ===== Session ===== -->
     <section id="tab-session" class="tab active" aria-labelledby="セッション" role="tabpanel">
-      <div class="card">
+
+      <!-- ▼ 新規：カレンダーカード -->
+      <div class="card" id="sessionCalendarCard">
+        <h3>カレンダー</h3>
+        <div class="cal-header">
+          <button id="calPrevMonth" class="ghost" type="button" aria-label="前の月へ">‹ 前月</button>
+          <div id="calMonthLabel" class="cal-header-title">----</div>
+          <button id="calNextMonth" class="ghost" type="button" aria-label="次の月へ">翌月 ›</button>
+        </div>
+        <div id="sessCalendar" aria-label="トレーニングカレンダー">
+          <div class="cal-weekdays" aria-hidden="true">
+            <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
+          </div>
+          <div id="calGrid" class="cal-grid"></div>
+        </div>
+        <small class="small">日付をタップすると下にその日のセッション編集画面が表示されます。</small>
+      </div>
+      <!-- ▲ カレンダーここまで -->
+
+      <div class="card" id="sessionEditCard">
         <h3>セッション</h3>
 
         <!-- 日付 -->
