@@ -1,7 +1,8 @@
-// Train no Punch — v1.1.2 (perf+import UX, no-WU full replace, sets+RPE)
+// Train no Punch — v1.1.1 (perf+import UX, no-WU full replace, sets+RPE)
 // change: WU（ウォームアップ）機能を全撤去（生成/設定/保存/履歴表示）
 // keep  : IDB+LS fallback, CSV/JSON import/export, charts, watchlist, RPE, 複数セット一括投入
 // add   : 軽いパフォーマンス小技（idleで解析）、ドラッグ&ドロップ対応のインポートUX
+// add   : セッション用ミニカレンダー（DOM描画＆クリックで日付選択）
 
 const DB_NAME = 'trainpunch_v3';
 const DB_VER  = 3;
@@ -200,6 +201,12 @@ const EX_GROUPS = {
 let currentSession = {date:todayStr(),note:'',sets:[]};
 let selectedPart='胸', tplSelectedPart='胸';
 
+// ---- Calendar state (Session tab) ----
+let calYear  = null;       // 表示中の年
+let calMonth = null;       // 0–11
+let calSelectedDate = todayStr(); // 選択中の日付（YYYY-MM-DD）
+let _calendarBound = false;
+
 // watchlist
 let watchlist=[]; let watchSelectedPart='胸';
 let _watchChipsBound=false, _trendEventsBound=false;
@@ -316,6 +323,7 @@ async function init(){
 
   $('#sessDate') && ($('#sessDate').value=todayStr());
   bindSessionUI();
+  initSessionCalendar();   // ★ カレンダー初期化
 
   bindCustomInsertUI();
   renderTplPartChips();
@@ -389,6 +397,16 @@ function bindSessionUI(){
     });
   }
 
+  // 日付入力の手動変更 → カレンダー＆currentSessionに反映
+  const dateInput = $('#sessDate');
+  if(dateInput && !dateInput._boundCalendar){
+    dateInput.addEventListener('change',()=>{
+      const val = dateInput.value || todayStr();
+      onSessionDateSelected(val);
+    });
+    dateInput._boundCalendar = true;
+  }
+
   // スマート入力（weight/reps/sets/@rpe）
   ['weight','reps','sets','rpe'].forEach(id=>{
     const el=$('#'+id);
@@ -399,8 +417,6 @@ function bindSessionUI(){
   // Enterで追加
   $('#sets')?.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#btnAddSet')?.click(); } });
   $('#rpe') ?.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#btnAddSet')?.click(); } });
-
-  // ★ WU関連イベントは全撤去（#wuScheme/#wuRound/#btnGenWarmup/#btnClearWarmup）
 
   $('#btnAddSet')?.addEventListener('click',async()=>{
     const exId=Number($('#exSelect').value);
@@ -416,7 +432,6 @@ function bindSessionUI(){
     let willPR=false;
     if(isWatched(exId)){
       const curE1=e1rm(weight,reps);
-      // ★ PR比較もWU除外
       const hist=(await getAll('sets')).filter(s=>s.exercise_id===exId && !s.wu);
       const histBest=Math.max(0,...hist.map(s=>e1rm(s.weight,s.reps)));
       const sessBest=Math.max(0,...currentSession.sets.filter(s=>s.exercise_id===exId).map(s=>e1rm(s.weight,s.reps)));
@@ -444,12 +459,17 @@ function bindSessionUI(){
     pushUndo();
     const sessionId=await put('sessions',{date,note,created_at:Date.now()});
     for(const s of currentSession.sets){
-      // ★ WUフラグの保存自体を撤去
       await put('sets',{session_id:sessionId,exercise_id:s.exercise_id,weight:s.weight,reps:s.reps,rpe:s.rpe,ts:s.ts,date});
     }
     currentSession={date:todayStr(),note:'',sets:[]};
     $('#sessDate').value=todayStr(); $('#sessNote').value='';
-    renderTodaySets(); renderHistory(); renderAnalytics(); await renderWeeklySummary(); showToast('セッションを保存しました');
+    calSelectedDate = $('#sessDate').value || todayStr();
+    renderTodaySets();
+    renderHistory();
+    renderAnalytics();
+    await renderWeeklySummary();
+    await renderSessionCalendar();
+    showToast('セッションを保存しました');
   });
 
   $('#btnTplCustom')?.addEventListener('click',applyCustomInsert);
@@ -457,11 +477,162 @@ function bindSessionUI(){
   $('#exSelect')?.addEventListener('change',async()=>{
     const exId=Number($('#exSelect').value);
     if(!exId){ $('#weight').value=''; $('#reps').value=''; $('#sets').value=''; $('#rpe') && ($('#rpe').value=''); return; }
-    // ★ 直近の参照もWU除外
     const sets=(await getAll('sets')).filter(s=>s.exercise_id===exId && !s.wu).sort((a,b)=>b.ts-a.ts);
     if(sets[0]){ $('#weight').value=sets[0].weight; $('#reps').value=sets[0].reps; $('#sets').value=''; $('#rpe') && ($('#rpe').value=''); }
     else { $('#weight').value=''; $('#reps').value=''; $('#sets').value=''; $('#rpe') && ($('#rpe').value=''); }
   });
+}
+
+// ===== セッションカレンダー（Session Tab） =====
+function initSessionCalendar(){
+  const input = $('#sessDate');
+  const base = (input && input.value) || todayStr();
+  calSelectedDate = base;
+  const d = new Date(base);
+  if(!Number.isNaN(d.getTime())){
+    calYear  = d.getFullYear();
+    calMonth = d.getMonth();
+  }else{
+    const now = new Date();
+    calYear  = now.getFullYear();
+    calMonth = now.getMonth();
+  }
+  bindCalendarUI();
+  renderSessionCalendar();
+}
+
+function onSessionDateSelected(dateStr){
+  if(!dateStr) dateStr = todayStr();
+  calSelectedDate = dateStr;
+  const d = new Date(dateStr);
+  if(!Number.isNaN(d.getTime())){
+    calYear  = d.getFullYear();
+    calMonth = d.getMonth();
+  }
+  currentSession.date = dateStr;
+  currentSession.sets.forEach(s => { s.date = dateStr; });
+  const input = $('#sessDate');
+  if(input && input.value !== dateStr) input.value = dateStr;
+  renderSessionCalendar();
+}
+
+function bindCalendarUI(){
+  if(_calendarBound) return;
+  const prev = $('#calPrevMonth');
+  const next = $('#calNextMonth');
+  const grid = $('#calGrid');
+
+  function ensureMonthBase(){
+    if(calYear != null && calMonth != null) return;
+    const base = calSelectedDate || $('#sessDate')?.value || todayStr();
+    const d = new Date(base);
+    if(!Number.isNaN(d.getTime())){
+      calYear  = d.getFullYear();
+      calMonth = d.getMonth();
+    }else{
+      const now = new Date();
+      calYear  = now.getFullYear();
+      calMonth = now.getMonth();
+    }
+  }
+
+  if(prev){
+    prev.addEventListener('click',()=>{
+      ensureMonthBase();
+      calMonth--;
+      if(calMonth < 0){ calMonth = 11; calYear--; }
+      renderSessionCalendar();
+    });
+  }
+  if(next){
+    next.addEventListener('click',()=>{
+      ensureMonthBase();
+      calMonth++;
+      if(calMonth > 11){ calMonth = 0; calYear++; }
+      renderSessionCalendar();
+    });
+  }
+  if(grid){
+    grid.addEventListener('click',e=>{
+      const cell = e.target.closest('.cal-cell[data-date]');
+      if(!cell) return;
+      const dateStr = cell.dataset.date;
+      onSessionDateSelected(dateStr);
+      scrollToSessionEdit();
+    });
+  }
+
+  _calendarBound = true;
+}
+
+async function renderSessionCalendar(){
+  const grid  = $('#calGrid');
+  const label = $('#calMonthLabel');
+  if(!grid || !label) return;
+
+  let year  = calYear;
+  let month = calMonth;
+  if(year == null || month == null){
+    const base = calSelectedDate || $('#sessDate')?.value || todayStr();
+    const d = new Date(base);
+    if(!Number.isNaN(d.getTime())){
+      year  = d.getFullYear();
+      month = d.getMonth();
+    }else{
+      const now = new Date();
+      year  = now.getFullYear();
+      month = now.getMonth();
+    }
+    calYear  = year;
+    calMonth = month;
+  }
+
+  label.textContent = `${year}年${String(month+1).padStart(2,'0')}月`;
+
+  const first      = new Date(year, month, 1);
+  const firstDow   = first.getDay(); // 0(日)〜6(土)
+  const daysInMonth= new Date(year, month+1, 0).getDate();
+
+  const sessions = await getAll('sessions');
+  const datesWithSession = new Set((sessions||[]).map(s=>s.date));
+
+  const today = todayStr();
+  const sel   = calSelectedDate || $('#sessDate')?.value || today;
+
+  const cells = [];
+  for(let i=0;i<firstDow;i++){
+    cells.push('<div class="cal-cell cal-empty" aria-hidden="true"></div>');
+  }
+  for(let dNum=1; dNum<=daysInMonth; dNum++){
+    const dateObj = new Date(year, month, dNum);
+    const dateStr = ymdLocal(dateObj);
+    const isToday = (dateStr === today);
+    const isSel   = (dateStr === sel);
+    const has     = datesWithSession.has(dateStr);
+    const cls = ['cal-cell'];
+    if(isToday) cls.push('is-today');
+    if(isSel)   cls.push('is-selected');
+    if(has)     cls.push('has-session');
+    cells.push(
+      `<div class="${cls.join(' ')}" data-date="${dateStr}" role="button" aria-label="${dateStr}">
+        <span class="cal-date">${dNum}</span>
+        ${has?'<span class="cal-dot"></span>':''}
+      </div>`
+    );
+  }
+  grid.innerHTML = cells.join('');
+}
+
+function scrollToSessionEdit(){
+  const card = $('#sessionEditCard');
+  if(!card) return;
+  try{
+    const behavior = prefersReducedMotion() ? 'auto' : 'smooth';
+    card.scrollIntoView({behavior, block:'start'});
+  }catch(_){
+    const rect = card.getBoundingClientRect();
+    window.scrollTo(0, rect.top + window.pageYOffset - 12);
+  }
 }
 
 // smart input（40x8x3@8 / 40*8*3@7.5 / 40x8 / 40*8）
@@ -610,7 +781,6 @@ function bindHistoryUI(){
   }
 }
 function buildSessionDetailsHTML(sets,nameById){
-  // ★ WUセットは表示から除外
   const rows = (sets||[]).filter(x=>!x.wu);
   if(!rows.length) return '<div class="small" style="margin-top:8px">セットがありません。</div>';
   const byEx=new Map();
@@ -651,7 +821,7 @@ async function renderHistory(){
 
   for(const s of sessions){
     const allSets=await indexGetAll('sets','by_session',s.id);
-    const setsNoWU = allSets.filter(x=>!x.wu); // ★ 集計もWU除外
+    const setsNoWU = allSets.filter(x=>!x.wu);
     const vol=setsNoWU.reduce((sum,x)=>sum+(Number(x.weight)||0)*(Number(x.reps)||0),0);
     const est=setsNoWU.length?Math.max(...setsNoWU.map(x=>e1rm(x.weight,x.reps))):0;
     const li=document.createElement('li');
@@ -822,7 +992,6 @@ async function renderAnalytics(immediate=false){
 
 async function _renderAnalyticsImpl(){
   const canvas=$('#chart'); if(canvas){
-    // ★ 解析はWUセット除外
     const allSets = await getAll('sets');
     const sets = allSets.filter(s => !s.wu);
 
@@ -877,7 +1046,6 @@ async function renderTrendChart(){
   const info=$('#trendInfo');
   if(!exId){ _drawLineChart(canvas,[],[]); if(info) info.innerHTML=''; return; }
 
-  // ★ トレンドもWU除外
   const setsAll=await getAll('sets');
   const rows=setsAll.filter(s=>s.exercise_id===exId && !s.wu);
 
@@ -937,7 +1105,7 @@ function bindSettingsUI(){
       for(const s of ['sessions','sets','exercises']) await new Promise((res,rej)=>{ const r=tx([s],'readwrite').objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
     }
     await ensureInitialExercises();
-    await renderExList(); await renderExSelect(); await renderTplExSelect(); renderHistory(); renderAnalytics(); renderTodaySets(); await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary();
+    await renderExList(); await renderExSelect(); await renderTplExSelect(); renderHistory(); renderAnalytics(); renderTodaySets(); await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary(); await renderSessionCalendar();
     renderPartFilterChips();
     showToast('全データを削除しました');
   });
@@ -961,7 +1129,7 @@ function bindSettingsUI(){
       for(const x of (data.sets     ||[])) await put('sets',x);
       for(const x of (data.prefs    ||[])) await put('prefs',x);
     }
-    await renderExList(); await renderExSelect(); await renderTplExSelect(); renderHistory(); renderAnalytics(); renderTodaySets(); await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary();
+    await renderExList(); await renderExSelect(); await renderTplExSelect(); renderHistory(); renderAnalytics(); renderTodaySets(); await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary(); await renderSessionCalendar();
     renderPartFilterChips();
     showToast('復元しました'); e.target.value='';
   });
@@ -1012,7 +1180,7 @@ async function renderExList(){
   ul.querySelectorAll('button').forEach(b=>{
     b.addEventListener('click',async()=>{
       pushUndo(); await del('exercises',Number(b.dataset.id));
-      await renderExList(); await renderExSelect(); await renderTplExSelect(); renderAnalytics(); await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary();
+      await renderExList(); await renderExSelect(); await renderTplExSelect(); renderAnalytics(); await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary(); await renderSessionCalendar();
       renderPartFilterChips();
     });
   });
@@ -1116,7 +1284,7 @@ async function importCSVFromFile(file){
       await put('sets',{id:Number(id),session_id:Number(session_id),exercise_id:Number(exercise_id),weight:Number(weight),reps:Number(reps),rpe:rpe?Number(rpe):null,ts:Number(ts),date});
     }
   }
-  renderHistory(); renderAnalytics(); await renderWeeklySummary();
+  renderHistory(); renderAnalytics(); await renderWeeklySummary(); await renderSessionCalendar();
 }
 
 // input[type=file] 用のラッパー
@@ -1152,7 +1320,7 @@ async function deleteSession(id){
   const sets=await indexGetAll('sets','by_session',id);
   await Promise.all(sets.map(s=>del('sets',s.id)));
   await del('sessions',id);
-  renderHistory(); renderAnalytics(); await renderWeeklySummary();
+  renderHistory(); renderAnalytics(); await renderWeeklySummary(); await renderSessionCalendar();
   showToast('セッションを削除しました');
 }
 async function editSessionNote(id){
@@ -1165,10 +1333,9 @@ async function duplicateSessionToToday(id){
   const src=await get('sessions',id);
   const today=todayStr();
   const newId=await put('sessions',{date:today,note:(src?.note||'')+' (複製)',created_at:Date.now()});
-  // ★ 複製時もWUを除外
   const sets=await indexGetAll('sets','by_session',id);
   for(const x of sets.filter(s=>!s.wu)){ await put('sets',{session_id:newId,exercise_id:x.exercise_id,weight:x.weight,reps:x.reps,rpe:x.rpe,ts:Date.now(),date:today}); }
-  renderHistory(); renderAnalytics(); await renderWeeklySummary(); showToast('今日に複製しました');
+  renderHistory(); renderAnalytics(); await renderWeeklySummary(); await renderSessionCalendar(); showToast('今日に複製しました');
 }
 
 // ===== 週次サマリー =====
@@ -1181,7 +1348,6 @@ function _isoWeekKeyLocal(dateStr){
 }
 async function renderWeeklySummary(){
   const el=document.getElementById('weekly-summary-body'); if(!el) return;
-  // ★ 週次もWU除外
   const sets= (await getAll('sets')).filter(s=>!s.wu);
   if(!sets.length){ el.textContent='記録が見つかりません。入力するとここに今週の要約が出ます。'; return; }
   const map=new Map();
