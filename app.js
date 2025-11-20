@@ -201,6 +201,9 @@ const EX_GROUPS = {
 let currentSession = {date:todayStr(),note:'',sets:[]};
 let selectedPart='胸', tplSelectedPart='胸';
 
+// NEW: セッション編集カードの表示状態
+let sessionEditVisible = false;
+
 // ---- Calendar state (Session tab) ----
 let calYear  = null;       // 表示中の年
 let calMonth = null;       // 0–11
@@ -321,8 +324,13 @@ async function init(){
   // 念のためタイマーUIが残っていたら消す
   $('#btnTimer')?.remove();
 
-  $('#sessDate') && ($('#sessDate').value=todayStr());
+  if($('#sessDate')) $('#sessDate').value=todayStr();
+
   bindSessionUI();
+
+  // ★ 起動直後はセッション編集カードを隠す（Googleカレンダー風）
+  setSessionEditVisible(false);
+
   initSessionCalendar();   // ★ カレンダー初期化
 
   bindCustomInsertUI();
@@ -387,6 +395,14 @@ function bindTabs(){
 // =================== Session ===================
 function renderPartChips(){ $$('#partChips .chip').forEach(ch=>{ ch.classList.toggle('active', ch.dataset.part===selectedPart); }); }
 
+// NEW: セッション編集カードの表示/非表示
+function setSessionEditVisible(visible){
+  const card = $('#sessionEditCard');
+  if(!card) return;
+  sessionEditVisible = !!visible;
+  card.style.display = visible ? '' : 'none';
+}
+
 function bindSessionUI(){
   const chips=$('#partChips');
   if(chips){
@@ -397,12 +413,12 @@ function bindSessionUI(){
     });
   }
 
-  // 日付入力の手動変更 → カレンダー＆currentSessionに反映
+  // 日付入力の手動変更 → カレンダー＆currentSessionに反映（スクロールはしない）
   const dateInput = $('#sessDate');
   if(dateInput && !dateInput._boundCalendar){
     dateInput.addEventListener('change',()=>{
       const val = dateInput.value || todayStr();
-      onSessionDateSelected(val);
+      onSessionDateSelected(val,{noScroll:true});
     });
     dateInput._boundCalendar = true;
   }
@@ -501,7 +517,8 @@ function initSessionCalendar(){
   renderSessionCalendar();
 }
 
-function onSessionDateSelected(dateStr){
+// options: {noScroll?:boolean}
+function onSessionDateSelected(dateStr,options={}){
   if(!dateStr) dateStr = todayStr();
   calSelectedDate = dateStr;
   const d = new Date(dateStr);
@@ -513,7 +530,15 @@ function onSessionDateSelected(dateStr){
   currentSession.sets.forEach(s => { s.date = dateStr; });
   const input = $('#sessDate');
   if(input && input.value !== dateStr) input.value = dateStr;
+
+  // 日付を選択したタイミングでセッション編集カードを表示
+  setSessionEditVisible(true);
+
   renderSessionCalendar();
+
+  if(!options.noScroll){
+    scrollToSessionEdit();
+  }
 }
 
 function bindCalendarUI(){
@@ -557,8 +582,7 @@ function bindCalendarUI(){
       const cell = e.target.closest('.cal-cell[data-date]');
       if(!cell) return;
       const dateStr = cell.dataset.date;
-      onSessionDateSelected(dateStr);
-      scrollToSessionEdit();
+      onSessionDateSelected(dateStr);   // ここで表示＋スクロール
     });
   }
 
@@ -572,6 +596,7 @@ async function renderSessionCalendar(){
 
   let year  = calYear;
   let month = calMonth;
+
   if(year == null || month == null){
     const base = calSelectedDate || $('#sessDate')?.value || todayStr();
     const d = new Date(base);
@@ -587,11 +612,28 @@ async function renderSessionCalendar(){
     calMonth = month;
   }
 
-  label.textContent = `${year}年${String(month+1).padStart(2,'0')}月`;
+  // ここでさらにガード：数値でなければ今日にフォールバック
+  if(!Number.isFinite(year) || !Number.isFinite(month)){
+    const now = new Date();
+    year  = now.getFullYear();
+    month = now.getMonth();
+    calYear = year;
+    calMonth = month;
+  }
 
-  const first      = new Date(year, month, 1);
-  const firstDow   = first.getDay(); // 0(日)〜6(土)
-  const daysInMonth= new Date(year, month+1, 0).getDate();
+  const first = new Date(year, month, 1);
+  if(Number.isNaN(first.getTime())){
+    const now = new Date();
+    year  = now.getFullYear();
+    month = now.getMonth();
+  }
+
+  const firstFixed = new Date(year, month, 1);
+  const firstDow   = firstFixed.getDay(); // 0(日)〜6(土)
+  let daysInMonth  = new Date(year, month+1, 0).getDate();
+  if(!Number.isFinite(daysInMonth) || daysInMonth <= 0) daysInMonth = 31;
+
+  label.textContent = `${year}年${String(month+1).padStart(2,'0')}月`;
 
   const sessions = await getAll('sessions');
   const datesWithSession = new Set((sessions||[]).map(s=>s.date));
@@ -621,11 +663,13 @@ async function renderSessionCalendar(){
     );
   }
   grid.innerHTML = cells.join('');
+
+  console.log('[TP] renderSessionCalendar', {year,month,firstDow,daysInMonth});
 }
 
 function scrollToSessionEdit(){
   const card = $('#sessionEditCard');
-  if(!card) return;
+  if(!card || !sessionEditVisible) return;
   try{
     const behavior = prefersReducedMotion() ? 'auto' : 'smooth';
     card.scrollIntoView({behavior, block:'start'});
