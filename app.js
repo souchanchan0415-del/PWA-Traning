@@ -39,6 +39,14 @@ try{ if('scrollRestoration' in history) history.scrollRestoration = 'manual'; }c
 
 // ---- Hard Refresh ----
 async function hardRefresh(){
+  // index.html 側でグローバルの __tpHardRefresh が定義されていればそれを優先して使う
+  try{
+    if (typeof window !== 'undefined' && typeof window.__tpHardRefresh === 'function') {
+      return window.__tpHardRefresh();
+    }
+  }catch(_){}
+
+  // フォールバック：ここだけでもキャッシュとSWをクリア
   try{
     if('serviceWorker' in navigator){
       const regs = await navigator.serviceWorker.getRegistrations();
@@ -276,9 +284,12 @@ async function init(){
     },{passive:true});
   })();
 
+  // 設定タブの「キャッシュをリセット」
   $('#btnHardRefresh')?.addEventListener('click',async()=>{
     const b=$('#btnHardRefresh'); const old=b.textContent;
-    b.disabled=true; b.textContent='更新…'; showToast('最新に更新します…'); await hardRefresh();
+    b.disabled=true; b.textContent='リセット中…';
+    showToast('キャッシュをリセットします…');
+    await hardRefresh();
     b.textContent=old; b.disabled=false;
   });
 
