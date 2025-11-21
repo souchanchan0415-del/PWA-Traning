@@ -130,7 +130,6 @@
 <body>
   <!-- App bar -->
   <header class="appbar">
-    <button id="btnHardRefresh" class="iconbtn" title="更新" aria-label="強制更新" type="button">↻</button>
     <h1 class="logo">Train Punch</h1>
     <nav class="tabs" aria-label="Main tabs" role="tablist">
       <button class="active" data-tab="session" aria-selected="true" aria-current="page" role="tab" type="button">セッション</button>
@@ -388,8 +387,28 @@
       <!-- ▲ ご指定ブロックここまで -->
 
       <div class="card">
-        <h3>危険ゾーン</h3>
-        <button id="btnWipe" class="danger" type="button">全データ削除</button>
+        <h3>トラブル時のリセット</h3>
+        <p class="small" style="color:var(--muted)">
+          アプリの表示がおかしい時や、データを完全に消したい時だけ使ってください。
+        </p>
+
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+          <!-- キャッシュリセット -->
+          <button id="btnHardRefresh" type="button" class="ghost">
+            キャッシュをリセット
+          </button>
+          <p class="small" style="color:var(--muted);margin-top:-4px">
+            画面が更新されない・レイアウトが崩れるときに、キャッシュを消して再読み込みします。
+          </p>
+
+          <!-- 全データ削除 -->
+          <button id="btnWipe" class="danger" type="button">
+            全データ削除
+          </button>
+          <p class="small" style="color:var(--muted);margin-top:-4px">
+            記録・種目・設定をすべて初期化します。この操作は元に戻せません。
+          </p>
+        </div>
       </div>
     </section>
   </main>
@@ -449,7 +468,7 @@
     (function(){
       window.__tpHardRefresh = async function(){
         if(window.__tpHRRunning) return; window.__tpHRRunning=true;
-        var btn=document.getElementById('btnHardRefresh'); if(btn){btn.disabled=true;btn.textContent='更新…'}
+        var btn=document.getElementById('btnHardRefresh'); if(btn){btn.disabled=true;btn.textContent='リセット中…'}
         try{
           if('serviceWorker' in navigator){
             var regs=await navigator.serviceWorker.getRegistrations();
