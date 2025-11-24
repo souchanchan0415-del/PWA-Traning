@@ -39,14 +39,12 @@ try{ if('scrollRestoration' in history) history.scrollRestoration = 'manual'; }c
 
 // ---- Hard Refresh ----
 async function hardRefresh(){
-  // index.html 側でグローバルの __tpHardRefresh が定義されていればそれを優先して使う
   try{
     if (typeof window !== 'undefined' && typeof window.__tpHardRefresh === 'function') {
       return window.__tpHardRefresh();
     }
   }catch(_){}
 
-  // フォールバック：ここだけでもキャッシュとSWをクリア
   try{
     if('serviceWorker' in navigator){
       const regs = await navigator.serviceWorker.getRegistrations();
@@ -172,7 +170,7 @@ async function get(store,key){
   if(USE_LS){ const data=_lsLoad(); if(store==='prefs') return data.prefs.find(p=>p.key===key)||undefined; return (data[store]||[]).find(x=>Number(x.id)===Number(key)); }
   return new Promise((res,rej)=>{
     try{ const r=tx([store]).objectStore(store).get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }catch(err){ rej(err); }
-  }).catch(async err=>{ await enableLocalStorageFallback(err?.message||err); return get(store,key); });
+  }).catch(async err=>{ await enableLocalStorageFallback(err?.message||err); return get(store); });
 }
 async function getAll(store){
   if(USE_LS){ const data=_lsLoad(); return (data[store]||[]).slice(); }
@@ -257,7 +255,7 @@ function openSettingsFeel(){
   }
   showToast('設定を開きました');
   const firstCtl = $('#darkToggle')
-                || $('#tab-settings [autofocus])
+                || $('#tab-settings [autofocus]')
                 || $('#tab-settings input, #tab-settings select, #tab-settings textarea, #tab-settings button, #tab-settings [href], #tab-settings [tabindex]:not([tabindex="-1"])');
   try{ firstCtl?.focus({preventScroll:true}); }catch(_){ firstCtl?.focus(); }
 }
@@ -292,7 +290,6 @@ function doUndo(){
 
 // =================== Init ===================
 async function init(){
-  // スクロール中は blur をOFF（body.scrolling付け外し）
   (function(){
     let _t;
     window.addEventListener('scroll',()=>{
@@ -302,7 +299,6 @@ async function init(){
     },{passive:true});
   })();
 
-  // 設定タブの「キャッシュをリセット」
   $('#btnHardRefresh')?.addEventListener('click',async()=>{
     const b=$('#btnHardRefresh'); const old=b.textContent;
     b.disabled=true; b.textContent='リセット中…';
@@ -313,7 +309,6 @@ async function init(){
 
   bindTabs();
 
-  // タブアンカー対応
   const activateByTabName = (tab) => activateTab(tab);
   const applyHashTab = () => {
     if(location.hash && location.hash.startsWith('#tab-')){
@@ -341,7 +336,6 @@ async function init(){
 
   await ensureInitialExercises();
 
-  // prefs (watchlist / theme / last tab)
   try{ watchlist = (await get('prefs','watchlist'))?.value || []; }catch(e){ console.warn(e); }
 
   const lastTab=(await get('prefs','last_tab'))?.value;
@@ -350,17 +344,15 @@ async function init(){
     if(ok && lastTab==='settings' && _pendingSettingsFeel){ queueOpenSettingsFeel(); }
   }
 
-  // 念のためタイマーUIが残っていたら消す
   $('#btnTimer')?.remove();
 
   if($('#sessDate')) $('#sessDate').value=todayStr();
 
   bindSessionUI();
 
-  // ★ 起動直後はセッション編集カードを隠す（Googleカレンダー風）
   setSessionEditVisible(false);
 
-  initSessionCalendar();   // ★ カレンダー初期化
+  initSessionCalendar();
 
   bindCustomInsertUI();
   renderTplPartChips();
@@ -375,7 +367,7 @@ async function init(){
   await renderExSelect();
   renderTodaySets();
   renderHistory();
-  renderAnalytics(); // idleタイミングで解析（小技）
+  renderAnalytics();
   await renderExList();
   renderPartFilterChips();
 
@@ -385,7 +377,6 @@ async function init(){
 
   await renderWeeklySummary();
 
-  // ★ データステータス / 今日のワンポイント ローテーション開始（全タブ共通バー）
   startSettingsInfoRotation();
 }
 
@@ -427,7 +418,6 @@ function bindTabs(){
 // =================== Session ===================
 function renderPartChips(){ $$('#partChips .chip').forEach(ch=>{ ch.classList.toggle('active', ch.dataset.part===selectedPart); }); }
 
-// NEW: セッション編集カードの表示/非表示
 function setSessionEditVisible(visible){
   const card = $('#sessionEditCard');
   if(!card) return;
@@ -445,7 +435,6 @@ function bindSessionUI(){
     });
   }
 
-  // 日付入力の手動変更 → カレンダー＆currentSessionに反映（スクロールはしない）
   const dateInput = $('#sessDate');
   if(dateInput && !dateInput._boundCalendar){
     dateInput.addEventListener('change',()=>{
@@ -455,14 +444,12 @@ function bindSessionUI(){
     dateInput._boundCalendar = true;
   }
 
-  // スマート入力（weight/reps/sets/@rpe）
   ['weight','reps','sets','rpe'].forEach(id=>{
     const el=$('#'+id);
     el?.addEventListener('input',handleSmartInput,{passive:true});
     el?.addEventListener('change',handleSmartInput);
     el?.addEventListener('paste',()=>setTimeout(handleSmartInput,0));
   });
-  // Enterで追加
   $('#sets')?.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#btnAddSet')?.click(); } });
   $('#rpe') ?.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#btnAddSet')?.click(); } });
 
@@ -549,7 +536,6 @@ function initSessionCalendar(){
   renderSessionCalendar();
 }
 
-// options: {noScroll?:boolean}
 function onSessionDateSelected(dateStr,options={}){
   if(!dateStr) dateStr = todayStr();
   calSelectedDate = dateStr;
@@ -563,7 +549,6 @@ function onSessionDateSelected(dateStr,options={}){
   const input = $('#sessDate');
   if(input && input.value !== dateStr) input.value = dateStr;
 
-  // 日付を選択したタイミングでセッション編集カードを表示
   setSessionEditVisible(true);
 
   renderSessionCalendar();
@@ -614,7 +599,7 @@ function bindCalendarUI(){
       const cell = e.target.closest('.cal-cell[data-date]');
       if(!cell) return;
       const dateStr = cell.dataset.date;
-      onSessionDateSelected(dateStr);   // ここで表示＋スクロール
+      onSessionDateSelected(dateStr);
     });
   }
 
@@ -644,7 +629,6 @@ async function renderSessionCalendar(){
     calMonth = month;
   }
 
-  // ここでさらにガード：数値でなければ今日にフォールバック
   if(!Number.isFinite(year) || !Number.isFinite(month)){
     const now = new Date();
     year  = now.getFullYear();
@@ -663,7 +647,7 @@ async function renderSessionCalendar(){
   }
 
   const firstFixed = new Date(year, month, 1);
-  const firstDow   = firstFixed.getDay(); // 0(日)〜6(土)
+  const firstDow   = firstFixed.getDay();
   let daysInMonth  = new Date(year, month+1, 0).getDate();
   if(!Number.isFinite(daysInMonth) || daysInMonth <= 0) daysInMonth = 31;
 
@@ -713,7 +697,7 @@ function scrollToSessionEdit(){
   }
 }
 
-// smart input（40x8x3@8 / 40*8*3@7.5 / 40x8 / 40*8）
+// smart input
 function parseSmart(s){
   if(!s||typeof s!=='string') return null;
   const str=s.trim().replace(/＊/g,'*').replace(/×/g,'x').toLowerCase();
@@ -753,7 +737,6 @@ async function renderExSelect(){
   }
 }
 
-// today list
 function renderTodaySets(){
   const ul=$('#todaySets'); if(!ul) return;
   if(!currentSession.sets.length){ ul.innerHTML='<li>まだありません</li>'; return; }
@@ -810,7 +793,6 @@ function bindHistoryUI(){
     fileInput._bound = true;
   }
 
-  // インポート用ドラッグ＆ドロップUX
   const drop = $('#importDrop');
   if(drop && !drop._bound){
     const prevent = ev => { ev.preventDefault(); ev.stopPropagation(); };
@@ -957,7 +939,6 @@ function _niceRange(min,max,ticksDesired=5){
   let step=(norm<=1)?1*mag:(norm<=2)?2*mag:(norm<=5)?5*mag:10*mag;
   const niceMin=Math.floor(min/step)*step; const niceMax=Math.ceil(max/step)*step; return {niceMin,niceMax,step};
 }
-// --- Bar ---
 function _drawBarChart(canvas,days,totals,hoverIndex=-1){
   _resizeCanvas(canvas,260);
   const ctx=canvas.getContext('2d'); const W=canvas.getBoundingClientRect().width, H=260;
@@ -987,12 +968,14 @@ function _drawBarChart(canvas,days,totals,hoverIndex=-1){
 
   const barW=Math.min(32,stepX*0.58);
   for(let i=0;i<totals.length;i++){
-    const v=totals[i]; const xC=L+i*stepX+stepX/2; const h=((v-niceMin)/(niceMax-niceMin))*(H-B-T); const x=xC-barW/2; const y=(H-B)-h;
+    const v=totals[i]; const xC=L+i*stepX+stepX/2; const h=((v-niceMin)/(niceMax-niceMax?niceMax-niceMin:1))*(H-B-T);
+    const x=xC-barW/2; const y=(H-B)-h;
     ctx.fillStyle=(i===hoverIndex)?'#0fb6a9':'#6cc7bf'; ctx.fillRect(Math.round(x)+0.5,Math.round(y),Math.round(barW),Math.round(h));
     if(v>0){ const yLabel=Math.max(T+12,y-6); ctx.fillStyle='#4a5568'; ctx.textAlign='center'; ctx.textBaseline='alphabetic'; ctx.fillText(String(Math.round(v)),xC,yLabel); }
   }
   canvas._chartDims={L,step:stepX,barW,W,H,T,B,max:niceMax}; canvas._days=days; canvas._totals=totals;
 }
+
 // --- Line ---
 function _drawLineChart(canvas,labels,values,hoverIndex=-1){
   _resizeCanvas(canvas,260);
@@ -1049,7 +1032,6 @@ function _drawLineChart(canvas,labels,values,hoverIndex=-1){
 let _chartEventsBound=false;
 let _analyticsIdleHandle=null;
 
-// パフォーマンス小技：解析は idle/短いtimeout にまとめて実行
 async function renderAnalytics(immediate=false){
   if(immediate){
     if(_analyticsIdleHandle!=null){
@@ -1188,7 +1170,6 @@ function bindSettingsUI(){
     showToast('全データを削除しました');
   });
 
-  // JSON backup
   $('#btnExportJson')?.addEventListener('click',async()=>{
     const data={ sessions:await getAll('sessions'), sets:await getAll('sets'), exercises:await getAll('exercises'), prefs:await getAll('prefs') };
     const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
@@ -1239,7 +1220,6 @@ function applyPartFilterVisibility(){
   });
 }
 
-/* 種目リストの描画（dataset.part 付与版） */
 async function renderExList(){
   const filt=$('#filterPart')?.value||'all';
   let exs=await getAll('exercises'); if(filt!=='all') exs=exs.filter(e=>e.group===filt);
@@ -1298,8 +1278,6 @@ async function renderWatchUI(){
 }
 
 // =================== CSV ===================
-
-// インポートステータス用の小ヘルパー
 function setImportStatus(state,text,filename){
   const nameEl = $('.import-file-name');
   if(nameEl && filename) nameEl.textContent = filename;
@@ -1330,7 +1308,6 @@ async function exportCSV(){
   const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='train_punch_export.csv'; a.click(); URL.revokeObjectURL(url);
 }
 
-// 実際のCSV取り込み処理（入力元に依存しない）
 async function importCSVFromFile(file){
   if(!file) throw new Error('ファイルが指定されていません');
   const text=await file.text();
@@ -1365,7 +1342,6 @@ async function importCSVFromFile(file){
   renderHistory(); renderAnalytics(); await renderWeeklySummary(); await renderSessionCalendar();
 }
 
-// input[type=file] 用のラッパー
 async function importCSV(e){
   const file=e.target.files[0]; if(!file) return;
   setImportStatus(null,'読み込み中…',file.name);
@@ -1457,7 +1433,7 @@ const SETTINGS_TIPS = [
   '同じ種目でもグリップ幅やスタンスを少し変えると、マンネリ防止と刺激の分散になります。'
 ];
 
-let _settingsInfoMode = 'status';   // 'status' | 'tip'
+let _settingsInfoMode = 'status';
 let _settingsInfoTimer = null;
 
 function pickDailyTip(){
@@ -1468,20 +1444,18 @@ function pickDailyTip(){
   return SETTINGS_TIPS[idx];
 }
 
-// ★ ここを「カレンダーで選択している日付だけの件数」に修正
+// ★ カレンダーで選択している日付だけの件数
 async function buildDataStatusText(){
   const [sessions, sets] = await Promise.all([
     getAll('sessions'),
     getAll('sets')
   ]);
 
-  // カレンダーで選択中の日付（なければ入力欄 or 今日）
   const selectedDate =
     calSelectedDate ||
     $('#sessDate')?.value ||
     todayStr();
 
-  // 選択日のセッション・セット・種目数
   const daySessions = sessions.filter(s => s.date === selectedDate);
   const daySets     = sets.filter(s => !s.wu && s.date === selectedDate);
   const dayExCount  = new Set(daySets.map(s => s.exercise_id)).size;
@@ -1492,7 +1466,6 @@ async function buildDataStatusText(){
   parts.push(`セット ${daySets.length}本`);
   if(dayExCount > 0) parts.push(`種目 ${dayExCount}種`);
 
-  // ウォッチ種目は全体設定なので、そのまま表示
   if(Array.isArray(watchlist) && watchlist.length){
     parts.push(`ウォッチ ${watchlist.length}種目`);
   }
@@ -1504,7 +1477,7 @@ async function refreshSettingsInfoNow(mode){
   const card  = $('#dataStatusCard');
   const title = $('#dataStatusTitle');
   const body  = $('#dataStatusBody');
-  if(!card || !title || !body) return;  // カードが無ければ何もしない
+  if(!card || !title || !body) return;
 
   const m = mode || _settingsInfoMode || 'status';
 
@@ -1513,7 +1486,6 @@ async function refreshSettingsInfoNow(mode){
     title.textContent = 'データステータス';
     body.textContent  = '読み込み中…';
 
-    // ★ 保険：3.5秒経っても変わらなければ最低限の文言に差し替える
     const fallbackTimer = setTimeout(()=>{
       if(body.textContent === '読み込み中…'){
         body.textContent = 'まだ記録がありません。最初のセッションを保存してみましょう。';
@@ -1538,17 +1510,15 @@ async function refreshSettingsInfoNow(mode){
 
 function startSettingsInfoRotation(){
   const card = $('#dataStatusCard');
-  if(!card) return;               // カードがなければ何もしない
+  if(!card) return;
 
   if(_settingsInfoTimer){
     clearInterval(_settingsInfoTimer);
     _settingsInfoTimer = null;
   }
 
-  // 初回はデータステータス
   refreshSettingsInfoNow('status');
 
-  // 10秒おきにステータス ⇔ ワンポイントを交互に表示
   _settingsInfoTimer = setInterval(()=>{
     const next = (_settingsInfoMode === 'status') ? 'tip' : 'status';
     refreshSettingsInfoNow(next);
