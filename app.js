@@ -654,6 +654,8 @@ async function renderSessionCalendar(){
     const now = new Date();
     year  = now.getFullYear();
     month = now.getMonth();
+    calYear  = year;
+    calMonth = month;
   }
 
   const firstFixed = new Date(year, month, 1);
@@ -677,7 +679,6 @@ async function renderSessionCalendar(){
     const dateObj = new Date(year, month, dNum);
     const dateStr = ymdLocal(dateObj);
     const isToday = (dateStr === today);
-    the_end:
     const isSel   = (dateStr === sel);
     const has     = datesWithSession.has(dateStr);
     const cls = ['cal-cell'];
@@ -1499,11 +1500,21 @@ async function refreshSettingsInfoNow(mode){
     _settingsInfoMode = 'status';
     title.textContent = 'データステータス';
     body.textContent  = '読み込み中…';
+
+    // ★ 保険：3.5秒経っても変わらなければ最低限の文言に差し替える
+    const fallbackTimer = setTimeout(()=>{
+      if(body.textContent === '読み込み中…'){
+        body.textContent = 'まだ記録がありません。最初のセッションを保存してみましょう。';
+      }
+    }, 3500);
+
     try{
       const text = await buildDataStatusText();
+      clearTimeout(fallbackTimer);
       body.textContent = text || 'まだ記録がありません。最初のセッションを保存してみましょう。';
     }catch(err){
       console.warn('[TP] settings info status error', err);
+      clearTimeout(fallbackTimer);
       body.textContent = 'ステータスの取得に失敗しました。';
     }
   }else{
