@@ -113,9 +113,13 @@ function openDB(){
           s.createIndex('by_session','session_id',{unique:false});
           s.createIndex('by_date','date',{unique:false});
         }else{
-          const s = e.target.transaction.objectStore('sets');
-          if(!s.indexNames.contains('by_session')) s.createIndex('by_session','session_id',{unique:false});
-          if(!s.indexNames.contains('by_date')) s.createIndex('by_date','date',{unique:false});
+          const s = d.objectStoreNames.contains('sets')
+            ? e.target.transaction.objectStore('sets')
+            : null;
+          if(s){
+            if(!s.indexNames.contains('by_session')) s.createIndex('by_session','session_id',{unique:false});
+            if(!s.indexNames.contains('by_date')) s.createIndex('by_date','date',{unique:false});
+          }
         }
         if(!d.objectStoreNames.contains('prefs')) d.createObjectStore('prefs',{keyPath:'key'});
       };
@@ -253,7 +257,7 @@ function openSettingsFeel(){
   }
   showToast('設定を開きました');
   const firstCtl = $('#darkToggle')
-                || $('#tab-settings [autofocus]')
+                || $('#tab-settings [autofocus])
                 || $('#tab-settings input, #tab-settings select, #tab-settings textarea, #tab-settings button, #tab-settings [href], #tab-settings [tabindex]:not([tabindex="-1"])');
   try{ firstCtl?.focus({preventScroll:true}); }catch(_){ firstCtl?.focus(); }
 }
@@ -1464,27 +1468,35 @@ function pickDailyTip(){
   return SETTINGS_TIPS[idx];
 }
 
+// ★ ここを「カレンダーで選択している日付だけの件数」に修正
 async function buildDataStatusText(){
-  const [sessions, sets, exercises] = await Promise.all([
+  const [sessions, sets] = await Promise.all([
     getAll('sessions'),
-    getAll('sets'),
-    getAll('exercises')
+    getAll('sets')
   ]);
-  const sessCount = sessions.length;
-  const setCount  = sets.filter(s=>!s.wu).length;
-  const exCount   = exercises.length;
 
-  let latestDate = null;
-  for(const s of sessions){
-    if(s.date && (!latestDate || s.date > latestDate)) latestDate = s.date;
-  }
+  // カレンダーで選択中の日付（なければ入力欄 or 今日）
+  const selectedDate =
+    calSelectedDate ||
+    $('#sessDate')?.value ||
+    todayStr();
+
+  // 選択日のセッション・セット・種目数
+  const daySessions = sessions.filter(s => s.date === selectedDate);
+  const daySets     = sets.filter(s => !s.wu && s.date === selectedDate);
+  const dayExCount  = new Set(daySets.map(s => s.exercise_id)).size;
 
   const parts = [];
-  parts.push(`セッション ${sessCount}件`);
-  if(setCount > 0) parts.push(`セット ${setCount}本`);
-  if(exCount > 0) parts.push(`種目 ${exCount}種`);
-  if(Array.isArray(watchlist) && watchlist.length) parts.push(`ウォッチ ${watchlist.length}種目`);
-  if(latestDate) parts.push(`最終記録 ${latestDate}`);
+  parts.push(`日付 ${selectedDate}`);
+  parts.push(`セッション ${daySessions.length}件`);
+  parts.push(`セット ${daySets.length}本`);
+  if(dayExCount > 0) parts.push(`種目 ${dayExCount}種`);
+
+  // ウォッチ種目は全体設定なので、そのまま表示
+  if(Array.isArray(watchlist) && watchlist.length){
+    parts.push(`ウォッチ ${watchlist.length}種目`);
+  }
+
   return parts.join(' ／ ');
 }
 
