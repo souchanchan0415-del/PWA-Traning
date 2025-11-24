@@ -227,16 +227,6 @@ const isWatched = id => Array.isArray(watchlist) && watchlist.includes(id);
 let partFilterActive = null;           // null=全消し（初期は非表示）
 let _partFilterBound  = false;
 
-// undo stack
-const undoStack=[];
-function pushUndo(){ try{ undoStack.push(JSON.stringify(currentSession.sets)); if(undoStack.length>30) undoStack.shift(); }catch(_){ } }
-function doUndo(){
-  if(!undoStack.length){ showToast('戻すものがありません'); return; }
-  const last=undoStack.pop();
-  try{ currentSession.sets=JSON.parse(last)||[]; renderTodaySets(); showToast('戻しました'); }
-  catch{ showToast('戻せませんでした'); }
-}
-
 // ========= 「導線の開いた感」スタンダード実装 =========
 let _pendingSettingsFeel = false;
 
@@ -366,6 +356,9 @@ async function init(){
   document.documentElement.dataset.theme= dark ? 'dark' : 'light';
 
   await renderWeeklySummary();
+
+  // ★ 設定タブの「データステータス / 今日のワンポイント」ローテーション開始
+  startSettingsInfoRotation();
 }
 
 async function ensureInitialExercises(){
@@ -1099,7 +1092,7 @@ async function renderTrendChart(){
   const range=(rangeSel?.value||'10');
 
   const info=$('#trendInfo');
-  if(!exId){ _drawLineChart(canvas,[],[]); if(info) info.innerHTML=''; return; }
+  もし(!exId){ _drawLineChart(canvas,[],[]); if(info) info.innerHTML=''; return; }
 
   const setsAll=await getAll('sets');
   const rows=setsAll.filter(s=>s.exercise_id===exId && !s.wu);
@@ -1420,6 +1413,98 @@ async function renderWeeklySummary(){
       <strong>強度スコア：</strong><span style="font-size:1.25rem">${score}/10</span>
       ${avgRpe!=null?`<strong>平均RPE：</strong><span>${avgRpe.toFixed(1)}</span>`:''}
     </div><p style="margin-top:.5rem">${comment}</p>`;
+}
+
+/* ===== Settings info card（データステータス / 今日のワンポイント）===== */
+
+const SETTINGS_TIPS = [
+  '重量を増やす前に、フォーム動画を撮ってセルフチェックしてみましょう。',
+  '脚トレ翌日は、股関節と足首のストレッチを 5 分だけでも入れると回復が早くなります。',
+  'ベンチの日こそ、肩まわりのウォーミングアップを丁寧に。肩甲骨の動きを意識。',
+  'RPE が高い日が続いたら、1 セッションだけ「技術練習の日」を作って軽めに調整。',
+  'プログラムよりも「継続」を優先。まずは 3 ヶ月、記録を空白にしないことを目標に。',
+  '寝不足の日は MAX 更新を狙わず、ボリューム 8 割くらいで抑えるのがおすすめです。',
+  '同じ種目でもグリップ幅やスタンスを少し変えると、マンネリ防止と刺激の分散になります。'
+];
+
+let _settingsInfoMode = 'status';   // 'status' | 'tip'
+let _settingsInfoTimer = null;
+
+function pickDailyTip(){
+  if(!SETTINGS_TIPS.length) return '';
+  const today = new Date();
+  const seed = today.getFullYear()*10000 + (today.getMonth()+1)*100 + today.getDate();
+  const idx = seed % SETTINGS_TIPS.length;
+  return SETTINGS_TIPS[idx];
+}
+
+async function buildDataStatusText(){
+  const [sessions, sets, exercises] = await Promise.all([
+    getAll('sessions'),
+    getAll('sets'),
+    getAll('exercises')
+  ]);
+  const sessCount = sessions.length;
+  const setCount  = sets.filter(s=>!s.wu).length;
+  const exCount   = exercises.length;
+
+  let latestDate = null;
+  for(const s of sessions){
+    if(s.date && (!latestDate || s.date > latestDate)) latestDate = s.date;
+  }
+
+  const parts = [];
+  parts.push(`セッション ${sessCount}件`);
+  if(setCount > 0) parts.push(`セット ${setCount}本`);
+  if(exCount > 0) parts.push(`種目 ${exCount}種`);
+  if(Array.isArray(watchlist) && watchlist.length) parts.push(`ウォッチ ${watchlist.length}種目`);
+  if(latestDate) parts.push(`最終記録 ${latestDate}`);
+  return parts.join(' ／ ');
+}
+
+async function refreshSettingsInfoNow(mode){
+  const card  = $('#settingsInfoCard');
+  const title = $('#settingsInfoTitle');
+  const body  = $('#settingsInfoBody');
+  if(!card || !title || !body) return;  // index.html にカードが無ければ何もしない
+
+  const m = mode || _settingsInfoMode || 'status';
+
+  if(m === 'status'){
+    _settingsInfoMode = 'status';
+    title.textContent = 'データステータス';
+    body.textContent  = '読み込み中…';
+    try{
+      const text = await buildDataStatusText();
+      body.textContent = text || 'まだ記録がありません。最初のセッションを保存してみましょう。';
+    }catch(err){
+      console.warn('[TP] settings info status error', err);
+      body.textContent = 'ステータスの取得に失敗しました。';
+    }
+  }else{
+    _settingsInfoMode = 'tip';
+    title.textContent = '今日のワンポイント';
+    body.textContent  = pickDailyTip() || '今日のポイントは、無理をしないで継続すること。';
+  }
+}
+
+function startSettingsInfoRotation(){
+  const card = $('#settingsInfoCard');
+  if(!card) return;               // カードがなければ何もしない
+
+  if(_settingsInfoTimer){
+    clearInterval(_settingsInfoTimer);
+    _settingsInfoTimer = null;
+  }
+
+  // 初回はデータステータス
+  refreshSettingsInfoNow('status');
+
+  // 10秒おきにステータス ⇔ ワンポイントを交互に表示
+  _settingsInfoTimer = setInterval(()=>{
+    const next = (_settingsInfoMode === 'status') ? 'tip' : 'status';
+    refreshSettingsInfoNow(next);
+  }, 10000);
 }
 
 // ==== DOM ready ====
