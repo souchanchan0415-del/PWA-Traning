@@ -262,6 +262,30 @@ function queueOpenSettingsFeel(){
   requestAnimationFrame(()=>requestAnimationFrame(openSettingsFeel));
 }
 
+// ==== Undo（簡易版）====
+let _undoStack = [];
+function pushUndo(){
+  try{
+    const snap = {
+      currentSession: JSON.parse(JSON.stringify(currentSession)),
+      selectedPart,
+      tplSelectedPart
+    };
+    _undoStack.push(snap);
+    if(_undoStack.length > 50) _undoStack.shift();
+  }catch(_){}
+}
+function doUndo(){
+  const snap = _undoStack.pop();
+  if(!snap){ showToast('戻せる操作がありません'); return; }
+  currentSession   = snap.currentSession || {date:todayStr(),note:'',sets:[]};
+  selectedPart     = snap.selectedPart   ?? selectedPart;
+  tplSelectedPart  = snap.tplSelectedPart?? tplSelectedPart;
+  renderPartChips();
+  renderTodaySets();
+  showToast('1つ前の状態に戻しました');
+}
+
 // =================== Init ===================
 async function init(){
   // スクロール中は blur をOFF（body.scrolling付け外し）
@@ -653,6 +677,7 @@ async function renderSessionCalendar(){
     const dateObj = new Date(year, month, dNum);
     const dateStr = ymdLocal(dateObj);
     const isToday = (dateStr === today);
+    the_end:
     const isSel   = (dateStr === sel);
     const has     = datesWithSession.has(dateStr);
     const cls = ['cal-cell'];
