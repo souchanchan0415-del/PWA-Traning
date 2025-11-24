@@ -123,6 +123,24 @@
       outline:2px solid var(--primary,#0fb6a9);
       outline-offset:1px;
     }
+
+    /* 設定タブ上部のインフォカード */
+    .settings-info{
+      padding-top:10px;
+      padding-bottom:10px;
+    }
+    .settings-info-title{
+      font-size:11px;
+      font-weight:600;
+      color:var(--muted,#6b7280);
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      margin-bottom:2px;
+    }
+    .settings-info-body{
+      font-size:13px;
+      line-height:1.5;
+    }
   </style>
 
   <script>console.log('TP index v1.1.1 loaded');</script>
@@ -312,6 +330,13 @@
 
     <!-- ===== Settings ===== -->
     <section id="tab-settings" class="tab" aria-labelledby="設定" role="tabpanel">
+
+      <!-- データステータス / 今日のワンポイント（10秒ごとにapp.jsで切り替え） -->
+      <div class="card settings-info" id="settingsInfoCard" aria-live="polite">
+        <div id="settingsInfoTitle" class="settings-info-title">データステータス</div>
+        <div id="settingsInfoBody" class="settings-info-body">読み込み中…</div>
+      </div>
+
       <div class="card">
         <h3>一般</h3>
         <div class="grid grid-3">
@@ -476,7 +501,7 @@
           }
           if('caches' in window){
             var keys=await caches.keys();
-            await Promise.all(keys.map(function(k){ return caches.delete(k).catch(function(){}); }));
+            await Promise.all(keys.map(function(k){ return caches.delete(k).catch(function(){})); }));
           }
         }catch(_){}
         location.reload();
