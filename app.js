@@ -357,7 +357,7 @@ async function init(){
 
   await renderWeeklySummary();
 
-  // ★ 設定タブの「データステータス / 今日のワンポイント」ローテーション開始
+  // ★ データステータス / 今日のワンポイント ローテーション開始（全タブ共通バー）
   startSettingsInfoRotation();
 }
 
@@ -1092,7 +1092,7 @@ async function renderTrendChart(){
   const range=(rangeSel?.value||'10');
 
   const info=$('#trendInfo');
-  もし(!exId){ _drawLineChart(canvas,[],[]); if(info) info.innerHTML=''; return; }
+  if(!exId){ _drawLineChart(canvas,[],[]); if(info) info.innerHTML=''; return; }
 
   const setsAll=await getAll('sets');
   const rows=setsAll.filter(s=>s.exercise_id===exId && !s.wu);
@@ -1463,10 +1463,10 @@ async function buildDataStatusText(){
 }
 
 async function refreshSettingsInfoNow(mode){
-  const card  = $('#settingsInfoCard');
-  const title = $('#settingsInfoTitle');
-  const body  = $('#settingsInfoBody');
-  if(!card || !title || !body) return;  // index.html にカードが無ければ何もしない
+  const card  = $('#dataStatusCard');
+  const title = $('#dataStatusTitle');
+  const body  = $('#dataStatusBody');
+  if(!card || !title || !body) return;  // カードが無ければ何もしない
 
   const m = mode || _settingsInfoMode || 'status';
 
@@ -1489,7 +1489,7 @@ async function refreshSettingsInfoNow(mode){
 }
 
 function startSettingsInfoRotation(){
-  const card = $('#settingsInfoCard');
+  const card = $('#dataStatusCard');
   if(!card) return;               // カードがなければ何もしない
 
   if(_settingsInfoTimer){
