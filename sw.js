@@ -1,10 +1,9 @@
-// Train Punch Service Worker — v1.1.1
-// - 単一 VERSION で app.js / styles.css のクエリを統一（中央管理）
-// - SPAナビ: preload → network → 同一ページcache → index.html の順でフォールバック
-// - ignoreSearch は HTML のみ（資産はクエリでバージョン固定）
-// - 旧キャッシュ掃除 / navigationPreload 有効化
-// - 自動 skipWaiting はしない（message: SKIP_WAITING で即時適用）
-// - 互換安定化: index.html の cache.match をスコープ絶対URLで参照
+// Train Punch Service Worker — v1.1.1 (auto update)
+// - VERSION ごとにキャッシュ名を分離
+// - HTML: navigationPreload + ネット優先 → 同一ページキャッシュ → index.html
+// - JS/CSS/画像など: ネット優先 → 成功時にキャッシュ更新 → オフライン時はキャッシュ
+// - install で skipWaiting() して新 SW を即アクティブ化
+// - activate で旧キャッシュ掃除 + clients.claim()
 
 const VERSION = '1.1.1';
 const CACHE   = `trainpunch-${VERSION}`;
@@ -39,6 +38,7 @@ const ASSETS = [
 // スコープ絶対URL（Safari等での相対key不一致を避ける）
 const INDEX_ABS = new URL('./index.html', self.registration.scope).toString();
 
+// ===== install =====
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
@@ -47,27 +47,35 @@ self.addEventListener('install', (event) => {
         cache.add(new Request(url, { cache: 'reload' })).catch(() => {})
       )
     );
+
+    // ★ 新しい SW を即座に有効化（待機しない）
+    self.skipWaiting();
   })());
 });
 
+// ===== activate =====
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
-    // 表示の体感向上（対応ブラウザ）
+    // navigation preload 有効化（対応ブラウザのみ）
     try { await self.registration.navigationPreload?.enable(); } catch (_) {}
 
     // 古いキャッシュ掃除
     const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
+    await Promise.all(
+      keys.filter(k => k !== CACHE).map(k => caches.delete(k))
+    );
 
+    // 既存タブも新 SW 管理下へ
     await self.clients.claim();
   })());
 });
 
-// 必要時のみ即時有効化（sw-register.js から）
+// 必要時のみ即時有効化（sw-register.js からの明示メッセージにも対応は残す）
 self.addEventListener('message', (e) => {
   if (e?.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
+// ===== fetch =====
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
@@ -81,7 +89,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // ---- HTMLナビ（Safari対策で Accept 判定も含む）----
+  // ---- HTMLナビ（SPA遷移含む）----
   const isHTMLNav =
     req.mode === 'navigate' ||
     (req.headers.get('accept') || '').includes('text/html');
@@ -94,7 +102,7 @@ self.addEventListener('fetch', (event) => {
         if (preload) {
           if (url.origin === ORIGIN) {
             const c = await caches.open(CACHE);
-            c.put(req, preload.clone()).catch(()=>{});
+            c.put(req, preload.clone()).catch(() => {});
           }
           return preload;
         }
@@ -105,7 +113,7 @@ self.addEventListener('fetch', (event) => {
         const res = await fetch(req);
         if (res && res.ok && url.origin === ORIGIN) {
           const c = await caches.open(CACHE);
-          c.put(req, res.clone()).catch(()=>{});
+          c.put(req, res.clone()).catch(() => {});
         }
         return res;
       } catch (_) {
@@ -114,31 +122,41 @@ self.addEventListener('fetch', (event) => {
         const own = await c.match(req, { ignoreSearch: true });
         if (own) return own;
 
-        const index = await c.match(INDEX_ABS, { ignoreSearch: true }) ||
-                      await c.match('./index.html', { ignoreSearch: true });
-        return index || new Response('<!doctype html><title>offline</title><h1>Offline</h1>', {
-          status: 200,
-          headers: { 'Content-Type': 'text/html; charset=utf-8' }
-        });
+        const index =
+          await c.match(INDEX_ABS, { ignoreSearch: true }) ||
+          await c.match('./index.html', { ignoreSearch: true });
+
+        return (
+          index ||
+          new Response(
+            '<!doctype html><title>offline</title><h1>Offline</h1>',
+            {
+              status: 200,
+              headers: { 'Content-Type': 'text/html; charset=utf-8' }
+            }
+          )
+        );
       }
     })());
     return;
   }
 
-  // ---- 非HTML（静的資産）：キャッシュ優先 → ネット成功時に保存（同一オリジンのみ）----
+  // ---- 非HTML（静的資産）：ネット優先 → キャッシュFallback ----
   event.respondWith((async () => {
     const c = await caches.open(CACHE);
-    const hit = await c.match(req);
-    if (hit) return hit;
 
+    // 1) まずネットを取りに行く（オンライン時は常に最新を取得）
     try {
       const res = await fetch(req);
       if (res && res.ok && url.origin === ORIGIN) {
-        c.put(req, res.clone()).catch(()=>{});
+        c.put(req, res.clone()).catch(() => {});
       }
       return res;
     } catch (_) {
-      return hit || Response.error();
+      // 2) オフライン等で失敗したらキャッシュから
+      const hit = await c.match(req);
+      if (hit) return hit;
+      return Response.error();
     }
   })());
 });
