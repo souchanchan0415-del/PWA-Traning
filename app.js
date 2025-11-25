@@ -1,4 +1,4 @@
-// Train no Punch — v1.1.2 (perf+import UX, no-WU full replace, sets+RPE)
+// Train no Punch — v1.1.2 (perf+import UX, no-WU full replace, sets+RPE, fixed dark theme)
 // change: WU（ウォームアップ）機能を全撤去（生成/設定/保存/履歴表示）
 // keep  : IDB+LS fallback, CSV/JSON import/export, charts, watchlist, RPE, 複数セット一括投入
 // add   : 軽いパフォーマンス小技（idleで解析）、ドラッグ&ドロップ対応のインポートUX
@@ -262,7 +262,7 @@ function openSettingsFeel(){
     setTimeout(()=> ringTarget.classList.remove('flash-ring'), 1300);
   }
   showToast('設定を開きました');
-  const firstCtl = $('#darkToggle')
+  const firstCtl = $('#btnNotif')
                 || $('#tab-settings [autofocus]')
                 || $('#tab-settings input, #tab-settings select, #tab-settings textarea, #tab-settings button, #tab-settings [href], #tab-settings [tabindex]:not([tabindex="-1"])');
   try{ firstCtl?.focus({preventScroll:true}); }catch(_){ firstCtl?.focus(); }
@@ -347,7 +347,7 @@ async function init(){
 
   await ensureInitialExercises();
 
-  // prefs (watchlist / theme / last tab)
+  // prefs (watchlist / last tab)
   try{ watchlist = (await get('prefs','watchlist'))?.value || []; }catch(e){ console.warn(e); }
 
   const lastTab=(await get('prefs','last_tab'))?.value;
@@ -385,9 +385,8 @@ async function init(){
   await renderExList();
   renderPartFilterChips();
 
-  const dark=(await get('prefs','dark'))?.value || false;
-  $('#darkToggle')?.setAttribute('checked', dark ? 'checked' : '');
-  document.documentElement.dataset.theme= dark ? 'dark' : 'light';
+  // テーマは固定でダーク
+  document.documentElement.dataset.theme = 'dark';
 
   await renderWeeklySummary();
 
@@ -1002,9 +1001,6 @@ async function renderHistory(){
 
 // =================== Settings ===================
 function bindSettingsUI(){
-  $('#darkToggle')?.addEventListener('change',async e=>{
-    const on=e.target.checked; document.documentElement.dataset.theme=on?'dark':'light'; await put('prefs',{key:'dark',value:on});
-  });
   $('#btnNotif')?.addEventListener('click',async()=>{
     if(!('Notification' in window)){ showToast('この端末は通知に未対応'); return; }
     const perm=await Notification.requestPermission();
