@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0e1116">
   <meta name="format-detection" content="telephone=no">
-  <meta name="color-scheme" content="dark">
+  <meta name="color-scheme" content="light dark">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -14,503 +14,346 @@
   <link rel="icon" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
 
-  <title>Train Punch v1.1.2</title>
+  <title>Train Punch v1.1.3</title>
 
   <!-- styles -->
-  <link rel="preload" href="styles.css?v=1.1.2" as="style">
-  <link rel="stylesheet" href="styles.css?v=1.1.2">
-  <noscript><style>noscript{display:block;padding:12px}.nojs{display:block}</style></noscript>
-
-  <!-- audio（将来用にプリロードだけ） -->
-  <link rel="preload" href="beep.wav" as="audio" type="audio/wav">
-
-  <!-- 最小フォールバックCSS（SW更新ドット / セット+RPEの双子枠 / リング演出） -->
-  <style>
-    .iconbtn.update{position:relative}
-    .iconbtn.update::after{
-      content:""; position:absolute; top:6px; right:6px; width:8px; height:8px; border-radius:50%;
-      background:#ff5a5a; box-shadow:0 0 0 0 rgba(255,90,90,.7); animation:tp-pulse 1.6s infinite;
-    }
-    @keyframes tp-pulse{
-      0%{box-shadow:0 0 0 0 rgba(255,90,90,.7)}
-      70%{box-shadow:0 0 0 10px rgba(255,90,90,0)}
-      100%{box-shadow:0 0 0 0 rgba(255,90,90,0)}
-    }
-
-    #tp-debug{
-      position:fixed;left:8px;right:8px;bottom:8px;max-height:40vh;overflow:auto;background:#111c;color:#fff;
-      font:12px/1.5 system-ui;padding:8px;border-radius:8px;z-index:2147483647;box-shadow:0 8px 30px rgba(0,0,0,.35);display:none
-    }
-
-    /* セット数 + RPE を横並びにする軽量CSS */
-    .twins{display:flex;gap:8px}
-    .twins>input{flex:1;min-width:0}
-
-    /* リング・ハイライトの簡易フォールバック（styles.cssにも定義あり） */
-    @keyframes tp-once-ring {
-      0% { box-shadow:0 0 0 0 rgba(15,182,169,.28) }
-      80% { box-shadow:0 0 0 8px rgba(15,182,169,.0) }
-      100%{ box-shadow:none }
-    }
-    .flash-ring{
-      position:relative;
-      animation: tp-once-ring 1.2s ease-out 1;
-      outline: 2px solid rgba(15,182,169,.35);
-      outline-offset: 2px;
-      border-radius: 14px;
-    }
-
-    /* セッション用ミニカレンダー */
-    .cal-header{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      margin-bottom:4px;
-    }
-    .cal-header-title{
-      flex:1;
-      text-align:center;
-      font-weight:600;
-      font-size:14px;
-    }
-    .cal-weekdays{
-      display:grid;
-      grid-template-columns:repeat(7,minmax(0,1fr));
-      font-size:11px;
-      opacity:.75;
-      margin-top:4px;
-    }
-    .cal-weekdays span{
-      text-align:center;
-    }
-    .cal-grid{
-      display:grid;
-      grid-template-columns:repeat(7,minmax(0,1fr));
-      gap:4px;
-      margin-top:6px;
-      font-size:13px;
-    }
-    .cal-cell{
-      min-height:42px;
-      padding:4px 4px 2px;
-      border-radius:10px;
-      border:1px solid var(--line,#2a3140);
-      display:flex;
-      flex-direction:column;
-      align-items:flex-end;
-      justify-content:flex-start;
-      cursor:pointer;
-      user-select:none;
-    }
-    .cal-cell span.cal-date{
-      font-size:12px;
-      opacity:.9;
-    }
-    .cal-cell .cal-dot{
-      width:6px;
-      height:6px;
-      border-radius:999px;
-      background:var(--primary,#0fb6a9);
-      margin-top:auto;
-    }
-    .cal-cell.is-today{
-      border-color:var(--primary,#0fb6a9);
-    }
-    .cal-cell.has-session{
-      background:color-mix(in srgb, var(--primary,#0fb6a9) 12%, transparent);
-    }
-    .cal-cell.is-selected{
-      outline:2px solid var(--primary,#0fb6a9);
-      outline-offset:1px;
-    }
-
-    /* インフォカード（データステータス / 今日のワンポイント） */
-    .settings-info{
-      padding-top:10px;
-      padding-bottom:10px;
-    }
-    .settings-info-title{
-      font-size:11px;
-      font-weight:600;
-      color:var(--muted,#6b7280);
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      margin-bottom:2px;
-    }
-    .settings-info-body{
-      font-size:13px;
-      line-height:1.5;
-    }
-  </style>
-
-  <script>console.log('TP index v1.1.2 loaded');</script>
+  <link rel="preload" href="styles.css?v=1.1.3" as="style">
+  <link rel="stylesheet" href="styles.css?v=1.1.3">
 </head>
 <body>
-  <!-- App bar -->
-  <header class="appbar">
-    <h1 class="logo">Train Punch</h1>
-    <nav class="tabs" aria-label="Main tabs" role="tablist">
-      <button class="active" data-tab="session" aria-selected="true" aria-current="page" role="tab" type="button">セッション</button>
-      <button data-tab="analytics" aria-selected="false" role="tab" type="button">解析</button>
-      <button data-tab="history" aria-selected="false" role="tab" type="button">履歴</button>
-      <button data-tab="settings" aria-selected="false" role="tab" type="button">設定</button>
+  <div id="app">
+    <header class="topbar">
+      <h1>Train Punch</h1>
+    </header>
+
+    <div id="toast" aria-live="polite"></div>
+
+    <!-- Tabs -->
+    <nav class="tabs" role="tablist">
+      <button type="button" data-tab="session"  class="active" aria-selected="true">セッション</button>
+      <button type="button" data-tab="history"  aria-selected="false">履歴</button>
+      <button type="button" data-tab="analytics" aria-selected="false">分析</button>
+      <button type="button" data-tab="settings" aria-selected="false">設定</button>
     </nav>
-  </header>
 
-  <main class="container">
-
-    <!-- データステータス / 今日のワンポイント（全タブ共通バー） -->
-    <div class="card settings-info" id="dataStatusCard" aria-live="polite">
-      <div id="dataStatusTitle" class="settings-info-title">データステータス</div>
-      <div id="dataStatusBody" class="settings-info-body">読み込み中…</div>
-    </div>
-
-    <!-- ===== Session ===== -->
-    <section id="tab-session" class="tab active" aria-labelledby="セッション" role="tabpanel">
-
-      <!-- ▼ 新規：カレンダーカード -->
-      <div class="card" id="sessionCalendarCard">
-        <h3>カレンダー</h3>
-        <div class="cal-header">
-          <button id="calPrevMonth" class="ghost" type="button" aria-label="前の月へ">‹ 前月</button>
-          <div id="calMonthLabel" class="cal-header-title">----</div>
-          <button id="calNextMonth" class="ghost" type="button" aria-label="次の月へ">翌月 ›</button>
-        </div>
-        <div id="sessCalendar" aria-label="トレーニングカレンダー">
-          <div class="cal-weekdays" aria-hidden="true">
-            <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
-          </div>
-          <div id="calGrid" class="cal-grid"></div>
-        </div>
-        <small class="small">日付をタップすると下にその日のセッション編集画面が表示されます。</small>
-      </div>
-      <!-- ▲ カレンダーここまで -->
-
-      <div class="card" id="sessionEditCard">
-        <h3>セッション</h3>
-
-        <!-- 日付 -->
-        <div class="row">
-          <input id="sessDate" type="date" aria-label="日付">
-        </div>
-
-        <!-- 部位 -->
-        <div>
-          <h4 class="subtle">部位</h4>
-          <div id="partChips" class="chipset" role="tablist" aria-label="部位選択">
-            <div class="chip active" data-part="胸" role="tab" aria-selected="true" tabindex="0">胸</div>
-            <div class="chip" data-part="背中" role="tab" aria-selected="false" tabindex="0">背中</div>
-            <div class="chip" data-part="肩" role="tab" aria-selected="false" tabindex="0">肩</div>
-            <div class="chip" data-part="脚" role="tab" aria-selected="false" tabindex="0">脚</div>
-            <div class="chip" data-part="腕" role="tab" aria-selected="false" tabindex="0">腕</div>
-          </div>
-        </div>
-
-        <!-- 種目 -->
-        <div class="row">
-          <label for="exSelect">種目</label>
-          <select id="exSelect" aria-label="種目選択">
-            <option value="" disabled selected>（選択する）</option>
-          </select>
-        </div>
-
-        <!-- 入力欄：重量 / 回数 / （セット数 + RPE） -->
-        <div class="grid grid-3">
-          <input id="weight" inputmode="decimal" autocomplete="off" placeholder="重量 kg（例: 40x8x3@8 もOK）" aria-label="重量">
-          <input id="reps"   inputmode="numeric" autocomplete="off" placeholder="回数" aria-label="回数">
-          <div class="twins">
-            <input id="sets" inputmode="numeric" autocomplete="off" placeholder="セット数" aria-label="セット数">
-            <input id="rpe"  inputmode="decimal" autocomplete="off" placeholder="RPE（疲労度）" aria-label="RPE（疲労度）">
-          </div>
-        </div>
-
-        <!-- ▼ 折りたたみメモ（WU削除に伴い直下に配置） -->
-        <details id="memoDetails" class="memo">
-          <summary>メモを追加</summary>
-          <textarea id="sessNote" rows="2" placeholder="メモ（任意）" aria-label="メモ"></textarea>
-        </details>
-
-        <!-- ▼ クイック投入（tpl*：app.jsのapplyCustomInsert系と一致） -->
-        <div class="card" style="margin-top:12px">
-          <h3>クイック投入</h3>
-          <div id="tplPartChips" class="chipset" aria-label="クイック投入の部位選択">
-            <div class="chip active" data-part="胸" tabindex="0">胸</div>
-            <div class="chip" data-part="背中" tabindex="0">背中</div>
-            <div class="chip" data-part="肩" tabindex="0">肩</div>
-            <div class="chip" data-part="脚" tabindex="0">脚</div>
-            <div class="chip" data-part="腕" tabindex="0">腕</div>
-          </div>
-          <div class="grid grid-3">
-            <select id="tplExCustom" aria-label="種目（クイック投入）"><option value="">（種目を選ぶ）</option></select>
-            <input id="tplCustomSets" inputmode="numeric" autocomplete="off" placeholder="セット数（例:5）" aria-label="セット数（クイック）">
-            <input id="tplCustomReps" inputmode="numeric" autocomplete="off" placeholder="回数（例:5）" aria-label="回数（クイック）">
-          </div>
-          <div class="row">
-            <label for="tplCustomWeight">重量</label>
-            <input id="tplCustomWeight" inputmode="decimal" autocomplete="off" placeholder="重量 kg（例: 40）" aria-label="重量（クイック）">
-            <button id="btnTplCustom" type="button">カスタム投入</button>
-          </div>
-          <small class="small">※ 選んだ種目に同じセット×回数×重量を一括で投入します。</small>
-        </div>
-
-        <!-- 追加／Undo -->
-        <div class="row end">
-          <button id="btnUndo" class="ghost" type="button">一手戻す</button>
-          <button id="btnAddSet" type="button">セット追加</button>
-        </div>
-
-        <!-- 今日のセット -->
-        <ul id="todaySets" class="list" aria-live="polite">
-          <li>まだありません</li>
-        </ul>
-      </div>
-    </section>
-
-    <!-- ===== Analytics ===== -->
-    <section id="tab-analytics" class="tab" aria-labelledby="解析" role="tabpanel">
-      <div class="card" id="weekly-summary">
-        <h3>今週のサマリー</h3>
-        <div id="weekly-summary-body" aria-live="polite">計算中…</div>
-      </div>
-
-      <div class="card">
-        <h3>直近7日の合計ボリューム</h3>
-        <canvas id="chart" width="800" height="260" aria-label="7日間ボリューム推移"></canvas>
-        <div id="metrics"></div>
-        <div id="legend" class="legend"></div>
-      </div>
-
-      <div class="card">
-        <h3>e1RM トレンド</h3>
-        <div class="row">
-          <label for="exTrendSelect">種目</label>
-          <select id="exTrendSelect">
-            <option value="">設定 → ウォッチ種目で追加してください</option>
-          </select>
-          <label for="trendRange">範囲</label>
-          <select id="trendRange">
-            <option value="10">最新10</option>
-            <option value="20">最新20</option>
-            <option value="all">すべて</option>
-          </select>
-        </div>
-        <canvas id="trendChart" width="800" height="260" aria-label="e1RMトレンド"></canvas>
-        <div id="trendInfo" class="legend"></div>
-        <p id="trendHint" class="small"></p>
-      </div>
-    </section>
-
-    <!-- ===== History ===== -->
-    <section id="tab-history" class="tab" aria-labelledby="履歴" role="tabpanel">
-      <div class="card">
-        <h3>履歴</h3>
-        <div class="row">
-          <label for="historyCount">表示件数</label>
-          <select id="historyCount">
-            <option>10</option><option selected>20</option><option>50</option>
-          </select>
-          <button id="btnExport" class="ghost" type="button">CSVエクスポート</button>
-        </div>
-
-        <!-- ▼ インポートUXブロック（ドラッグ＆ドロップ + 状態表示） -->
-        <div class="import-section">
-          <div class="import-drop" id="importDrop">
-            <strong>CSVをインポート</strong>
-            <div class="import-hint">
-              CSVファイルをドロップ、またはタップして選択
+    <main>
+      <!-- ========== SESSION TAB ========== -->
+      <section id="tab-session" class="tab active" role="tabpanel">
+        <!-- 日付＋カレンダー -->
+        <section class="card">
+          <header class="card-header">
+            <h2>日付とカレンダー</h2>
+          </header>
+          <div class="card-body">
+            <div class="sess-date-row">
+              <label for="sessDate">日付</label>
+              <input id="sessDate" type="date" inputmode="numeric">
             </div>
-            <input id="importFile" type="file" accept=".csv,text/csv" hidden>
+
+            <div class="mini-calender">
+              <div class="cal-header">
+                <button type="button" id="calPrevMonth" class="ghost">&lt;</button>
+                <div id="calMonthLabel" class="cal-month-label">----</div>
+                <button type="button" id="calNextMonth" class="ghost">&gt;</button>
+              </div>
+              <div class="cal-weekdays">
+                <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
+              </div>
+              <div id="calGrid" class="cal-grid" aria-label="セッションカレンダー"></div>
+            </div>
           </div>
+        </section>
 
-          <div class="import-meta">
-            <span class="import-file-name">ファイル未選択</span>
-            <span class="import-status">
-              <span class="dot"></span>待機中
-            </span>
+        <!-- ★ クイック/カスタム投入カードは削除済み ★ -->
+
+        <!-- セッション編集カード -->
+        <section id="sessionEditCard" class="card">
+          <header class="card-header">
+            <h2>今日のトレーニング</h2>
+          </header>
+          <div class="card-body">
+            <!-- 部位チップ -->
+            <div class="chip-row" id="partChips" aria-label="部位">
+              <button type="button" class="chip active" data-part="胸">胸</button>
+              <button type="button" class="chip" data-part="背中">背中</button>
+              <button type="button" class="chip" data-part="脚">脚</button>
+              <button type="button" class="chip" data-part="肩">肩</button>
+              <button type="button" class="chip" data-part="腕">腕</button>
+              <button type="button" class="chip" data-part="体幹">体幹</button>
+            </div>
+
+            <!-- 入力行 -->
+            <div class="form-grid">
+              <label class="field">
+                <span>種目</span>
+                <select id="exSelect">
+                  <option value="">（選択する）</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>重量 (kg)</span>
+                <input id="weight" type="number" inputmode="decimal" placeholder="60">
+              </label>
+              <label class="field">
+                <span>回数</span>
+                <input id="reps" type="number" inputmode="numeric" placeholder="8">
+              </label>
+              <label class="field">
+                <span>セット数</span>
+                <input id="sets" type="number" inputmode="numeric" placeholder="1">
+              </label>
+              <label class="field">
+                <span>RPE</span>
+                <input id="rpe" type="number" inputmode="decimal" min="1" max="10" step="0.5" placeholder="8">
+              </label>
+            </div>
+
+            <p class="hint small">※「60x8x3@8」のようにまとめて入力してもOK（スマート入力）</p>
+
+            <div class="btn-row">
+              <button type="button" id="btnAddSet" class="primary">セットを追加</button>
+              <button type="button" id="btnUndo" class="ghost">1つ戻す</button>
+            </div>
+
+            <div class="field">
+              <label for="sessNote">メモ</label>
+              <textarea id="sessNote" rows="2" placeholder="今日のコンディションなど"></textarea>
+            </div>
+
+            <div class="btn-row end">
+              <button type="button" id="btnSaveSession" class="primary">セッションを保存</button>
+            </div>
+
+            <hr>
+
+            <h3 class="subheading">今日のセット</h3>
+            <ul id="todaySets" class="list">
+              <li>まだありません</li>
+            </ul>
           </div>
-        </div>
-        <!-- ▲ インポートUXブロックここまで -->
+        </section>
+      </section>
 
-        <ul id="historyList" class="list"></ul>
-      </div>
-    </section>
+      <!-- ========== HISTORY TAB ========== -->
+      <section id="tab-history" class="tab" role="tabpanel" hidden>
+        <section class="card">
+          <header class="card-header">
+            <h2>履歴一覧</h2>
+          </header>
+          <div class="card-body">
+            <div class="field-inline">
+              <label for="historyCount">表示件数</label>
+              <select id="historyCount">
+                <option value="10">10件</option>
+                <option value="20" selected>20件</option>
+                <option value="50">50件</option>
+                <option value="100">100件</option>
+              </select>
+            </div>
+            <ul id="historyList" class="list">
+              <li>まだありません</li>
+            </ul>
+          </div>
+        </section>
 
-    <!-- ===== Settings ===== -->
-    <section id="tab-settings" class="tab" aria-labelledby="設定" role="tabpanel">
-      <div class="card">
-        <h3>一般</h3>
-        <div class="row">
-          <button id="btnNotif" class="ghost" type="button">通知を許可</button>
-        </div>
-        <small class="small muted" style="margin-top:4px;display:block">
-          通知はPR達成時などのプッシュ通知に利用予定です（ブラウザで許可が必要です）。
-        </small>
-      </div>
+        <section class="card">
+          <header class="card-header">
+            <h2>CSVエクスポート / インポート</h2>
+          </header>
+          <div class="card-body">
+            <div class="btn-row">
+              <button type="button" id="btnExport" class="ghost">CSVを書き出し</button>
+            </div>
 
-      <div class="card">
-        <h3>種目</h3>
+            <div class="import-area">
+              <div id="importDrop" class="drop-zone" tabindex="0">
+                <p class="import-title">CSVをインポート</p>
+                <p class="import-file-name">ファイル未選択</p>
+                <p class="import-status">
+                  <span class="dot"></span> 待機中
+                </p>
+              </div>
+              <input id="importFile" type="file" accept=".csv,text/csv" hidden>
+            </div>
+          </div>
+        </section>
+      </section>
 
-        <!-- ▼ 追加：部位フィルタ用のチップバー（中身はJSで生成） -->
-        <div id="partFilter" class="chipbar" role="group" aria-label="部位フィルタ"></div>
+      <!-- ========== ANALYTICS TAB ========== -->
+      <section id="tab-analytics" class="tab" role="tabpanel" hidden>
+        <section class="card">
+          <header class="card-header">
+            <h2>ウォッチ種目トレンド</h2>
+          </header>
+          <div class="card-body">
+            <div class="field">
+              <label for="trendExSelect">種目</label>
+              <select id="trendExSelect">
+                <option value="">ウォッチ種目から選択</option>
+              </select>
+            </div>
+            <div class="chart-wrap">
+              <!-- 実際の描画は JS 側で -->
+              <canvas id="trendChart" aria-label="ウォッチ種目トレンド"></canvas>
+            </div>
+          </div>
+        </section>
 
-        <div class="grid grid-3">
-          <input id="newExName" placeholder="種目名（例：懸垂）" autocomplete="off">
-          <select id="newExPart">
-            <option value="" disabled selected>部位</option>
-            <option>胸</option><option>背中</option><option>肩</option><option>脚</option><option>腕</option>
-          </select>
-          <button id="btnCreateEx" type="button">追加</button>
-        </div>
+        <section class="card">
+          <header class="card-header">
+            <h2>週間サマリー</h2>
+          </header>
+          <div class="card-body">
+            <div id="weeklySummary" class="weekly-summary">
+              <!-- JS が埋め込む -->
+              <p class="small muted">記録を保存するとここに1週間分のサマリーが表示されます。</p>
+            </div>
+          </div>
+        </section>
+      </section>
 
-        <div class="row">
-          <label for="filterPart">絞り込み</label>
-          <select id="filterPart">
-            <option value="all" selected>すべて</option>
-            <option>胸</option><option>背中</option><option>肩</option><option>脚</option><option>腕</option>
-          </select>
-        </div>
+      <!-- ========== SETTINGS TAB ========== -->
+      <section id="tab-settings" class="tab" role="tabpanel" hidden>
+        <!-- データステータス / 今日のワンポイント -->
+        <section id="dataStatusCard" class="card">
+          <header class="card-header">
+            <h2 id="dataStatusTitle">データステータス</h2>
+          </header>
+          <div class="card-body">
+            <p id="dataStatusBody" class="small">読み込み中…</p>
+          </div>
+        </section>
 
-        <ul id="exList" class="list"></ul>
-      </div>
+        <!-- 種目管理 -->
+        <section class="card">
+          <header class="card-header">
+            <h2>種目管理</h2>
+          </header>
+          <div class="card-body">
+            <div class="form-grid">
+              <label class="field">
+                <span>種目名</span>
+                <input id="newExName" type="text" placeholder="ベンチプレス">
+              </label>
+              <label class="field">
+                <span>部位</span>
+                <select id="newExPart">
+                  <option value="">（任意）</option>
+                  <option value="胸">胸</option>
+                  <option value="背中">背中</option>
+                  <option value="脚">脚</option>
+                  <option value="肩">肩</option>
+                  <option value="腕">腕</option>
+                  <option value="体幹">体幹</option>
+                </select>
+              </label>
+            </div>
+            <div class="btn-row">
+              <button type="button" id="btnCreateEx" class="primary">種目を追加</button>
+            </div>
 
-      <div class="card">
-        <h3>ウォッチ種目（PR通知/e1RMトレンド）</h3>
-        <div id="watchPartChips" class="chipset">
-          <div class="chip active" data-part="胸" tabindex="0">胸</div>
-          <div class="chip" data-part="背中" tabindex="0">背中</div>
-          <div class="chip" data-part="肩" tabindex="0">肩</div>
-          <div class="chip" data-part="脚" tabindex="0">脚</div>
-          <div class="chip" data-part="腕" tabindex="0">腕</div>
-        </div>
-        <div class="row">
-          <select id="watchExSelect"><option value="">（選択する）</option></select>
-          <button id="btnWatchAdd" type="button">追加</button>
-        </div>
-        <ul id="watchList" class="list"></ul>
-      </div>
+            <hr>
 
-      <div class="card">
-        <h3>バックアップ</h3>
-        <div class="row">
-          <button id="btnExportJson" class="ghost" type="button">JSONエクスポート</button>
-          <label class="btnlike" for="jsonIn">JSONインポート</label>
-          <input id="jsonIn" type="file" accept="application/json" hidden>
-        </div>
-        <small class="small muted" style="margin-top:8px; display:block">
-          上記ページはオフラインでも表示できるようプリキャッシュされます。
-        </small>
-      </div>
+            <div class="field-inline">
+              <label for="filterPart">種目の絞り込み</label>
+              <select id="filterPart">
+                <option value="all" selected>すべて</option>
+                <option value="胸">胸</option>
+                <option value="背中">背中</option>
+                <option value="脚">脚</option>
+                <option value="肩">肩</option>
+                <option value="腕">腕</option>
+                <option value="体幹">体幹</option>
+              </select>
+            </div>
 
-      <!-- ▼ ここからご指定のブロック（そのまま挿入） -->
-      <div class="card">
-        <h3>サポート ＆ ポリシー</h3>
-        <div style="display:grid; gap:8px">
-          <a class="btnlike ghost" href="./contact.html"><span>問い合わせ</span></a>
-          <a class="btnlike ghost" href="./privacy.html"><span>プライバシーポリシー</span></a>
-          <a class="btnlike ghost" href="./tokusho.html"><span>特定商取引法に基づく表記</span></a>
-          <a class="btnlike ghost" href="./support.html"><span>サポート</span></a>
-        </div>
-      </div>
-      <!-- ▲ ご指定ブロックここまで -->
+            <div id="partFilter" class="chip-row" aria-label="表示する部位フィルタ">
+              <!-- JSで部位チップを描画 -->
+            </div>
 
-      <div class="card">
-        <h3>トラブル時のリセット</h3>
-        <p class="small" style="color:var(--muted)">
-          アプリの表示がおかしい時や、データを完全に消したい時だけ使ってください。
-        </p>
+            <ul id="exerciseList" class="list">
+              <li>まだありません</li>
+            </ul>
+          </div>
+        </section>
 
-        <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
-          <!-- キャッシュリセット -->
-          <button id="btnHardRefresh" type="button" class="ghost">
-            キャッシュをリセット
-          </button>
-          <p class="small" style="color:var(--muted);margin-top:-4px">
-            画面が更新されない・レイアウトが崩れるときに、キャッシュを消して再読み込みします。
-          </p>
+        <!-- ウォッチリスト -->
+        <section class="card">
+          <header class="card-header">
+            <h2>ウォッチ種目</h2>
+          </header>
+          <div class="card-body">
+            <div id="watchPartChips" class="chip-row" aria-label="部位（ウォッチ）">
+              <button type="button" class="chip active" data-part="胸">胸</button>
+              <button type="button" class="chip" data-part="背中">背中</button>
+              <button type="button" class="chip" data-part="脚">脚</button>
+              <button type="button" class="chip" data-part="肩">肩</button>
+              <button type="button" class="chip" data-part="腕">腕</button>
+              <button type="button" class="chip" data-part="体幹">体幹</button>
+            </div>
 
-          <!-- 全データ削除 -->
-          <button id="btnWipe" class="danger" type="button">
-            全データ削除
-          </button>
-          <p class="small" style="color:var(--muted);margin-top:-4px">
-            記録・種目・設定をすべて初期化します。この操作は元に戻せません。
-          </p>
-        </div>
-      </div>
-    </section>
-  </main>
+            <div class="form-grid">
+              <label class="field">
+                <span>種目</span>
+                <select id="watchExSelect">
+                  <option value="">（選択する）</option>
+                </select>
+              </label>
+            </div>
 
-  <!-- Sticky Save: 画面下固定の保存バー -->
-  <footer class="sticky-save" role="contentinfo">
-    <button id="btnSaveSession" type="button">セッション保存</button>
-  </footer>
+            <div class="btn-row">
+              <button type="button" id="btnWatchAdd" class="primary">ウォッチに追加</button>
+            </div>
 
-  <!-- Toast & Debug -->
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+            <ul id="watchList" class="list">
+              <li>まだありません</li>
+            </ul>
+          </div>
+        </section>
 
-  <noscript><p class="nojs">JavaScript を有効にしてください。</p></noscript>
+        <!-- バックアップ / リセット / 通知 -->
+        <section class="card">
+          <header class="card-header">
+            <h2>バックアップとその他</h2>
+          </header>
+          <div class="card-body">
+            <div class="btn-row">
+              <button type="button" id="btnNotif" class="ghost">通知を許可（対応端末のみ）</button>
+            </div>
 
-  <!-- scripts -->
-  <script defer src="./app-data.js?v=1.1.2"></script>
-  <script defer src="./app-analytics.js?v=1.1.2"></script>
-  <script defer src="./app.js?v=1.1.2"></script>
-  <!-- SWローダーは全ページでこれに統一 -->
-  <script defer src="./sw-register.js?v=1.6.1-unify"></script>
+            <h3 class="subheading">JSONバックアップ</h3>
+            <div class="btn-row">
+              <button type="button" id="btnExportJson" class="ghost">JSONを書き出し</button>
+            </div>
+            <div class="field">
+              <label for="jsonIn">JSONから復元</label>
+              <input id="jsonIn" type="file" accept="application/json">
+            </div>
 
-  <!-- 折りたたみメモのUX補助 + タブのaria-current制御 -->
+            <hr>
+
+            <h3 class="subheading">キャッシュ / データ</h3>
+            <div class="btn-row">
+              <button type="button" id="btnHardRefresh" class="ghost">キャッシュをリセット</button>
+            </div>
+            <div class="btn-row">
+              <button type="button" id="btnWipe" class="danger">全データを削除</button>
+            </div>
+            <p class="small muted">※全データ削除は元に戻せません。バックアップを取ってから行ってください。</p>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
   <script>
-    document.addEventListener('DOMContentLoaded', function(){
-      // メモの折りたたみ
-      var box=document.getElementById('memoDetails');
-      var ta=document.getElementById('sessNote');
-      if(box && ta){
-        if(ta.value && ta.value.trim()!=='') box.open = true;
-        ta.addEventListener('focus', function(){
-          box.open = true;
-        });
-      }
-
-      // タブ: aria-current="page" の付与
-      var tabs = document.querySelectorAll('.tabs button');
-      function setCurrent(btn){
-        tabs.forEach(function(b){
-          if(b === btn){
-            b.setAttribute('aria-current','page');
-          }else{
-            b.removeAttribute('aria-current');
-          }
-        });
-      }
-      var active = document.querySelector('.tabs button.active');
-      if(active) setCurrent(active);
-
-      tabs.forEach(function(btn){
-        btn.addEventListener('click', function(){
-          setCurrent(btn);
-        });
+    // SW register（必要なら）
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js').catch(() => {});
       });
-    });
+    }
   </script>
-
-  <!-- 強制更新（ボタンクリック/保険用グローバル関数） -->
-  <script>
-    (function(){
-      window.__tpHardRefresh = async function(){
-        if(window.__tpHRRunning) return; window.__tpHRRunning=true;
-        var btn=document.getElementById('btnHardRefresh'); if(btn){btn.disabled=true;btn.textContent='リセット中…'}
-        try{
-          if('serviceWorker' in navigator){
-            var regs=await navigator.serviceWorker.getRegistrations();
-            await Promise.all(regs.map(function(r){ return r.unregister().catch(function(){}); }));
-          }
-          if('caches' in window){
-            var keys=await caches.keys();
-            await Promise.all(keys.map(function(k){ return caches.delete(k).catch(function(){}); }));
-          }
-        }catch(_){}
-        location.reload();
-      };
-    })();
-  </script>
+  <script src="app.js?v=1.1.3"></script>
 </body>
 </html>
