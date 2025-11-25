@@ -64,8 +64,6 @@
           </div>
         </section>
 
-        <!-- ★ クイック/カスタム投入カードは削除済み ★ -->
-
         <!-- セッション編集カード -->
         <section id="sessionEditCard" class="card">
           <header class="card-header">
@@ -193,7 +191,6 @@
               </select>
             </div>
             <div class="chart-wrap">
-              <!-- 実際の描画は JS 側で -->
               <canvas id="trendChart" aria-label="ウォッチ種目トレンド"></canvas>
             </div>
           </div>
@@ -205,7 +202,6 @@
           </header>
           <div class="card-body">
             <div id="weeklySummary" class="weekly-summary">
-              <!-- JS が埋め込む -->
               <p class="small muted">記録を保存するとここに1週間分のサマリーが表示されます。</p>
             </div>
           </div>
@@ -346,40 +342,20 @@
     </main>
   </div>
 
-  <!-- グローバル定数（app.js で参照） -->
-  <script>
-    const PARTS = ['胸', '背中', '脚', '肩', '腕', '体幹'];
+  <!-- 必要なスクリプト群 -->
+  <!-- Chart.js は app.js / app-analytics.js のどちらかで使う可能性があるので残しておく -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 
-    const EX_GROUPS = {
-      '胸':   ['ベンチプレス', 'インクラインベンチプレス', 'ダンベルフライ'],
-      '背中': ['デッドリフト', 'ラットプルダウン', 'ベントオーバーロウ'],
-      '脚':   ['スクワット', 'レッグプレス', 'ルーマニアンデッドリフト'],
-      '肩':   ['ショルダープレス', 'サイドレイズ'],
-      '腕':   ['バーベルカール', 'トライセプスエクステンション'],
-      '体幹': ['プランク', 'ロシアンツイスト']
-    };
+  <!-- 種目データ / 今日のワンポイント -->
+  <script src="app-data.js?v=1.1.4" defer></script>
 
-    const SETTINGS_TIPS = [
-      'まずは週2〜3回、無理のない頻度から始めましょう。',
-      'セットごとにRPEをつけると疲労管理がしやすくなります。',
-      '週単位でボリュームを見直すと伸びやすい負荷が分かります。',
-      '扱う重量よりもフォームの安定を最優先にしましょう。',
-      '連続で重い日が続いたら、1日は軽めの日を入れてみましょう。',
-      '伸び悩んだら、回数ゾーンを変えてみるのも一つの方法です。'
-    ];
-  </script>
+  <!-- メインアプリ本体 -->
+  <script src="app.js?v=1.1.4" defer></script>
 
-  <!-- Chart.js（分析タブ用） -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- 分析タブ専用ロジック -->
+  <script src="app-analytics.js?v=1.1.4" defer></script>
 
-  <script>
-    // SW register
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js').catch(() => {});
-      });
-    }
-  </script>
-  <script src="app.js?v=1.1.4"></script>
+  <!-- PWA用 Service Worker 登録 -->
+  <script src="sw-register.js?v=1.1.4"></script>
 </body>
 </html>
