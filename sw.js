@@ -26,7 +26,8 @@ const PAGES = [
 const ASSETS = [
   ...PAGES,
   `./styles.css${Q}`,
-  `./app-data.js${Q}`,   // ★ 追加：種目データ＆ワンポイント
+  `./app-data.js${Q}`,        // 種目データ＆ワンポイント
+  `./app-analytics.js${Q}`,   // ★ 追加：解析用ヘルパー
   `./app.js${Q}`,
   `./sw-register.js${Q}`,
   './manifest.webmanifest',
