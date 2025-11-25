@@ -731,6 +731,15 @@ details.memo summary {
   font-size: 12px;
 }
 
+/* ===== Charts ===== */
+/* グラフが横に伸びすぎないよう、カード幅にフィットさせる */
+#chart,
+#trendChart {
+  width: 100%;
+  max-width: 100%;
+  display: block;
+}
+
 /* ===== Settings links ===== */
 
 .btnlike {
