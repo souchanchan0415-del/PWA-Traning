@@ -347,7 +347,7 @@
   </div>
 
   <script>
-    // SW register（必要なら）
+    // SW register
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('service-worker.js').catch(() => {});
