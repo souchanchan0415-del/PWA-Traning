@@ -1,5 +1,6 @@
-// Train no Punch — v1.1.2 (perf+import UX, no-WU full replace, sets+RPE, fixed dark theme)
+// Train no Punch — v1.1.3 (no-QuickInsert, perf+import UX, no-WU full replace, sets+RPE, fixed dark theme)
 // change: WU（ウォームアップ）機能を全撤去（生成/設定/保存/履歴表示）
+// change: クイック投入機能を全撤去（UI/JS）
 // keep  : IDB+LS fallback, CSV/JSON import/export, charts, watchlist, RPE, 複数セット一括投入
 // add   : 軽いパフォーマンス小技（idleで解析）、ドラッグ&ドロップ対応のインポートUX
 // add   : セッション用ミニカレンダー（DOM描画＆クリックで日付選択）
@@ -215,7 +216,7 @@ const indexGetAll=(store,idx,q)=>new Promise(async(res)=>{
 
 // ---- UI state ----
 let currentSession = {date:todayStr(),note:'',sets:[]};
-let selectedPart='胸', tplSelectedPart='胸';
+let selectedPart='胸';
 
 // NEW: セッション編集カードの表示状態
 let sessionEditVisible = false;
@@ -278,8 +279,7 @@ function pushUndo(){
   try{
     const snap = {
       currentSession: JSON.parse(JSON.stringify(currentSession)),
-      selectedPart,
-      tplSelectedPart
+      selectedPart
     };
     _undoStack.push(snap);
     if(_undoStack.length > 50) _undoStack.shift();
@@ -290,7 +290,6 @@ function doUndo(){
   if(!snap){ showToast('戻せる操作がありません'); return; }
   currentSession   = snap.currentSession || {date:todayStr(),note:'',sets:[]};
   selectedPart     = snap.selectedPart   ?? selectedPart;
-  tplSelectedPart  = snap.tplSelectedPart?? tplSelectedPart;
   renderPartChips();
   renderTodaySets();
   showToast('1つ前の状態に戻しました');
@@ -367,10 +366,6 @@ async function init(){
   setSessionEditVisible(false);
 
   initSessionCalendar();   // ★ カレンダー初期化
-
-  bindCustomInsertUI();
-  renderTplPartChips();
-  await renderTplExSelect();
 
   bindHistoryUI();
   bindSettingsUI();
@@ -535,8 +530,6 @@ function bindSessionUI(){
     await renderSessionCalendar();
     showToast('セッションを保存しました');
   });
-
-  $('#btnTplCustom')?.addEventListener('click',applyCustomInsert);
 
   $('#exSelect')?.addEventListener('change',async()=>{
     const exId=Number($('#exSelect').value);
@@ -751,30 +744,6 @@ function handleSmartInput(e){
   showToast('スマート入力を適用');
 }
 
-// ======== Custom insert ========
-function renderTplPartChips(){ $$('#tplPartChips .chip').forEach(ch=>{ ch.classList.toggle('active',ch.dataset.part===tplSelectedPart); }); }
-function bindCustomInsertUI(){
-  const chips=$('#tplPartChips'); if(!chips) return;
-  chips.addEventListener('click',async e=>{
-    const b=e.target.closest('.chip'); if(!b) return;
-    tplSelectedPart=b.dataset.part; renderTplPartChips(); await renderTplExSelect();
-  });
-}
-async function renderTplExSelect(){
-  const sel=$('#tplExCustom'); if(!sel) return;
-  let exs=await getAll('exercises'); exs=exs.filter(e=>e.group===tplSelectedPart).sort((a,b)=>a.name.localeCompare(b.name,'ja'));
-  sel.innerHTML=`<option value="">（選択する）</option>`+(exs.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('')||'<option>オプションなし</option>');
-  sel.value='';
-}
-async function renderExSelect(){
-  let exs=await getAll('exercises'); exs=exs.filter(e=>e.group===selectedPart).sort((a,b)=>a.name.localeCompare(b.name,'ja'));
-  const sel=$('#exSelect'); if(sel){
-    const prev=sel.value||'';
-    sel.innerHTML=`<option value="">（選択する）</option>`+(exs.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('')||'<option>オプションなし</option>');
-    if(prev && exs.some(e=>String(e.id)===prev)) sel.value=prev; else sel.value='';
-  }
-}
-
 // today list
 function renderTodaySets(){
   const ul=$('#todaySets'); if(!ul) return;
@@ -818,30 +787,8 @@ function renderTodaySets(){
   });
 }
 function exNameById(id){
-  const opt=$('#exSelect')?.querySelector(`option[value="${id}"]`)||$('#tplExCustom')?.querySelector(`option[value="${id}"]`);
+  const opt=$('#exSelect')?.querySelector(`option[value="${id}"]`);
   return opt?opt.textContent:'種目';
-}
-async function applyCustomInsert(){
-  const n=Number($('#tplCustomSets').value||'5');
-  const r=Number($('#tplCustomReps').value||'5');
-  const w=Number($('#tplCustomWeight').value||'0');
-  const exId=Number($('#tplExCustom').value);
-  if(!exId){ showToast('種目を選んでください'); return; }
-  const date=$('#sessDate').value || todayStr(); const now=Date.now();
-  pushUndo();
-  for(let i=0;i<n;i++){
-    currentSession.sets.push({
-      temp_id:(crypto?.randomUUID?.()||now+'_'+i),
-      exercise_id:exId,
-      weight:w,
-      reps:r,
-      rpe:null,
-      ts:now+i,
-      date
-    });
-  }
-  renderTodaySets();
-  showToast('カスタム投入しました');
 }
 
 // =================== History ===================
@@ -1011,7 +958,7 @@ function bindSettingsUI(){
     if(!name) return;
     try{
       await put('exercises',{name,group:part}); $('#newExName').value='';
-      await renderExList(); await renderExSelect(); await renderTplExSelect(); await renderWatchUI(); await renderTrendSelect();
+      await renderExList(); await renderExSelect(); await renderWatchUI(); await renderTrendSelect();
       renderPartFilterChips();
       showToast('追加しました');
     }catch{
@@ -1031,7 +978,7 @@ function bindSettingsUI(){
         });
     }
     await ensureInitialExercises();
-    await renderExList(); await renderExSelect(); await renderTplExSelect();
+    await renderExList(); await renderExSelect();
     renderHistory(); renderAnalytics(); renderTodaySets();
     await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary(); await renderSessionCalendar();
     renderPartFilterChips();
@@ -1073,7 +1020,7 @@ function bindSettingsUI(){
       for(const x of (data.sets     ||[])) await put('sets',x);
       for(const x of (data.prefs    ||[])) await put('prefs',x);
     }
-    await renderExList(); await renderExSelect(); await renderTplExSelect();
+    await renderExList(); await renderExSelect();
     renderHistory(); renderAnalytics(); renderTodaySets();
     await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary(); await renderSessionCalendar();
     renderPartFilterChips();
@@ -1128,7 +1075,7 @@ async function renderExList(){
     b.addEventListener('click',async()=>{
       pushUndo();
       await del('exercises',Number(b.dataset.id));
-      await renderExList(); await renderExSelect(); await renderTplExSelect(); renderAnalytics();
+      await renderExList(); await renderExSelect(); renderAnalytics();
       await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary(); await renderSessionCalendar();
       renderPartFilterChips();
     });
