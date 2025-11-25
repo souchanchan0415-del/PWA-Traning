@@ -5,6 +5,69 @@
 // add   : 軽いパフォーマンス小技（idleで解析）、ドラッグ&ドロップ対応のインポートUX
 // add   : セッション用ミニカレンダー（DOM描画＆クリックで日付選択）
 
+// ================== 定数（不足していたものを補完） ==================
+
+// 部位タブ／チップで使う部位一覧
+const PARTS = ['胸', '背中', '脚', '肩', '腕', '体幹', 'その他'];
+
+// 初期登録する種目グループ
+const EX_GROUPS = {
+  '胸': [
+    'ベンチプレス',
+    'インクラインベンチプレス',
+    'ダンベルベンチプレス',
+    'ディップス'
+  ],
+  '背中': [
+    'デッドリフト',
+    'ベントオーバーロウ',
+    'ラットプルダウン',
+    'チンニング'
+  ],
+  '脚': [
+    'スクワット',
+    'フロントスクワット',
+    'レッグプレス',
+    'ランジ'
+  ],
+  '肩': [
+    'ショルダープレス',
+    'サイドレイズ',
+    'リアレイズ'
+  ],
+  '腕': [
+    'バーベルカール',
+    'ダンベルカール',
+    'トライセプスエクステンション'
+  ],
+  '体幹': [
+    'プランク',
+    'シットアップ',
+    'レッグレイズ'
+  ],
+  'その他': [
+    'アダクション',
+    'アブダクション',
+    'カーフレイズ'
+  ]
+};
+
+// 設定タブの「今日のワンポイント」で使うテキスト
+const SETTINGS_TIPS = [
+  'フォームが安定しない日は重量を落として丁寧に。積み重ねが力になります。',
+  'RPEが高すぎる日が続いたら、あえて軽めの日を作って神経を休ませましょう。',
+  '同じ部位でも種目を少し入れ替えると、停滞期を抜けやすくなります。',
+  'ウォームアップは短くてもOK。大事なのは「毎回欠かさない」ことです。',
+  'セット間のスマホいじりは最小限に。呼吸とフォームの確認に意識を向けましょう。',
+  '前回の記録を超えなくても大丈夫。継続している時点で大きな前進です。',
+  '痛みと「効いている感」は別物です。鋭い痛みが出たら一度中止しましょう。',
+  '寝不足の日は無理に追い込まず、テクニックの確認日にするのもアリです。',
+  '週単位のボリュームを眺めると、トレーニングの癖が見えてきます。',
+  '調子の良い日は主観RPEをメモしておくと、後から強度調整に役立ちます。'
+];
+
+// ================== ここから元コード ==================
+
 const DB_NAME = 'trainpunch_v3';
 const DB_VER  = 3;
 let db;
@@ -376,7 +439,7 @@ async function init(){
   await renderExSelect();
   renderTodaySets();
   renderHistory();
-  renderAnalytics(); // idle タイミングで解析
+  renderAnalytics(); // idle タイミングで解析（簡易）
   await renderExList();
   renderPartFilterChips();
 
@@ -394,14 +457,20 @@ async function ensureInitialExercises(){
   if(all && all.length){
     const byName=Object.fromEntries(all.map(e=>[e.name,e]));
     for(const p of PARTS){
-      for(const name of EX_GROUPS[p]){
+      const list = EX_GROUPS[p] || [];
+      for(const name of list){
         const hit=byName[name];
         if(hit && !hit.group) await put('exercises',{...hit,group:p});
       }
     }
     return;
   }
-  for(const p of PARTS){ for(const name of EX_GROUPS[p]) await put('exercises',{name,group:p}); }
+  for(const p of PARTS){
+    const list = EX_GROUPS[p] || [];
+    for(const name of list){
+      await put('exercises',{name,group:p});
+    }
+  }
 }
 
 // =================== Tabs ===================
@@ -425,7 +494,11 @@ function bindTabs(){
 }
 
 // =================== Session ===================
-function renderPartChips(){ $$('#partChips .chip').forEach(ch=>{ ch.classList.toggle('active', ch.dataset.part===selectedPart); }); }
+function renderPartChips(){
+  $$('#partChips .chip').forEach(ch=>{
+    ch.classList.toggle('active', ch.dataset.part===selectedPart);
+  });
+}
 
 // NEW: セッション編集カードの表示/非表示
 function setSessionEditVisible(visible){
@@ -1512,7 +1585,7 @@ let _settingsInfoMode = 'status';   // 'status' | 'tip'
 let _settingsInfoTimer = null;
 
 function pickDailyTip(){
-  if(!SETTINGS_TIPS.length) return '';
+  if(!Array.isArray(SETTINGS_TIPS) || !SETTINGS_TIPS.length) return '';
   const today = new Date();
   const seed = today.getFullYear()*10000 + (today.getMonth()+1)*100 + today.getDate();
   const idx = seed % SETTINGS_TIPS.length;
