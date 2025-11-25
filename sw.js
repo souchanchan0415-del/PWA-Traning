@@ -1,11 +1,11 @@
-// Train Punch Service Worker — v1.1.1 (auto update)
+// Train Punch Service Worker — v1.1.2 (auto update)
 // - VERSION ごとにキャッシュ名を分離
 // - HTML: navigationPreload + ネット優先 → 同一ページキャッシュ → index.html
 // - JS/CSS/画像など: ネット優先 → 成功時にキャッシュ更新 → オフライン時はキャッシュ
 // - install で skipWaiting() して新 SW を即アクティブ化
 // - activate で旧キャッシュ掃除 + clients.claim()
 
-const VERSION = '1.1.1';
+const VERSION = '1.1.2';
 const CACHE   = `trainpunch-${VERSION}`;
 const ORIGIN  = self.location.origin;
 const Q       = `?v=${VERSION}`;
@@ -26,6 +26,7 @@ const PAGES = [
 const ASSETS = [
   ...PAGES,
   `./styles.css${Q}`,
+  `./app-data.js${Q}`,   // ★ 追加：種目データ＆ワンポイント
   `./app.js${Q}`,
   `./sw-register.js${Q}`,
   './manifest.webmanifest',
