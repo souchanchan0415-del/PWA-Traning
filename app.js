@@ -791,6 +791,19 @@ function exNameById(id){
   return opt?opt.textContent:'種目';
 }
 
+// ========= 種目セレクト =========
+async function renderExSelect(){
+  const sel = $('#exSelect');
+  if(!sel) return;
+  let exs = await getAll('exercises');
+  exs = exs
+    .filter(e => !selectedPart || !e.group || e.group === selectedPart)
+    .sort((a,b)=>(a.group||'').localeCompare(b.group||'','ja') || a.name.localeCompare(b.name,'ja'));
+  const opts = ['<option value="">（選択する）</option>']
+    .concat(exs.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`));
+  sel.innerHTML = opts.join('');
+}
+
 // =================== History ===================
 function bindHistoryUI(){
   $('#historyCount')?.addEventListener('change',renderHistory);
@@ -1294,6 +1307,205 @@ async function duplicateSessionToToday(id){
   showToast('今日に複製しました');
 }
 
+/* ===== Analytics / Trend / Weekly summary ===== */
+
+let _trendChartInstance = null;
+
+// ウォッチ種目からプルダウンを作る
+async function renderTrendSelect(){
+  const sel = $('#trendExSelect');
+  if(!sel) return;
+
+  const allEx = await getAll('exercises');
+  const nameById = Object.fromEntries(allEx.map(e => [e.id, e.name]));
+
+  const prev = sel.value || '';
+
+  const opts = [];
+  opts.push('<option value="">ウォッチ種目から選択</option>');
+  if (Array.isArray(watchlist)) {
+    for (const id of watchlist) {
+      if (!nameById[id]) continue;
+      opts.push(`<option value="${id}">${esc(nameById[id])}</option>`);
+    }
+  }
+  sel.innerHTML = opts.join('');
+
+  if (prev && watchlist.includes(Number(prev))) {
+    sel.value = prev;
+  } else if (!sel.value && watchlist.length) {
+    sel.value = String(watchlist[0]);
+  }
+
+  if (!_trendEventsBound) {
+    sel.addEventListener('change', () => {
+      renderTrendChart();
+    });
+    _trendEventsBound = true;
+  }
+
+  await renderTrendChart();
+}
+
+// 選択されたウォッチ種目の推定1RMトレンドを描画
+async function renderTrendChart(){
+  const canvas = $('#trendChart');
+  if (!canvas) return;
+
+  const sel  = $('#trendExSelect');
+  const exId = Number(sel?.value || 0);
+
+  const ctx = canvas.getContext('2d');
+
+  if (_trendChartInstance) {
+    _trendChartInstance.destroy();
+    _trendChartInstance = null;
+  }
+
+  if (!exId) {
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    return;
+  }
+
+  const allSets = (await getAll('sets')).filter(s => !s.wu && s.exercise_id === exId);
+  if (!allSets.length) {
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    return;
+  }
+
+  const byDate = new Map();
+  for (const s of allSets) {
+    const d   = s.date || ymdLocal(new Date(s.ts || Date.now()));
+    const v   = e1rm(s.weight, s.reps);
+    const cur = byDate.get(d);
+    if (cur == null || v > cur) byDate.set(d, v);
+  }
+
+  const dates  = Array.from(byDate.keys()).sort();
+  const values = dates.map(d => Math.round(byDate.get(d)));
+
+  if (typeof Chart === 'undefined' || !ctx) return;
+
+  _trendChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: [{
+        label: '推定1RM',
+        data: values,
+        tension: 0.25,
+        pointRadius: 3,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { mode: 'index', intersect: false }
+      },
+      scales: {
+        x: {
+          ticks: {
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 6
+          }
+        },
+        y: {
+          beginAtZero: false
+        }
+      }
+    }
+  });
+}
+
+// 直近1週間分のボリュームなどを集計して表示
+async function renderWeeklySummary(){
+  const box = $('#weeklySummary');
+  if (!box) return;
+
+  const [sets, exercises] = await Promise.all([
+    getAll('sets'),
+    getAll('exercises')
+  ]);
+
+  const allSets = (sets || []).filter(s => !s.wu);
+  if (!allSets.length) {
+    box.innerHTML = '<p class="small muted">記録を保存するとここに1週間分のサマリーが表示されます。</p>';
+    return;
+  }
+
+  const exById = Object.fromEntries(exercises.map(e => [e.id, e]));
+
+  const today = new Date();
+  const days  = [];
+  const dayMap = new Map();
+
+  for (let i = 6; i >= 0; i--) {
+    const d     = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+    const key   = ymdLocal(d);
+    const label = `${d.getMonth() + 1}/${d.getDate()}`;
+    const obj = {
+      key,
+      label,
+      vol: 0,
+      sets: 0,
+      sessions: new Set(),
+      byPart: {}
+    };
+    days.push(obj);
+    dayMap.set(key, obj);
+  }
+
+  for (const s of allSets) {
+    const day = dayMap.get(s.date);
+    if (!day) continue;
+
+    const vol = (Number(s.weight) || 0) * (Number(s.reps) || 0);
+    day.vol  += vol;
+    day.sets += 1;
+    if (s.session_id != null) day.sessions.add(s.session_id);
+
+    const ex   = exById[s.exercise_id];
+    const part = ex?.group || 'その他';
+    day.byPart[part] = (day.byPart[part] || 0) + vol;
+  }
+
+  const rowsHtml = days.map(day => {
+    const main = day.sets
+      ? `${Math.round(day.vol)}kg ／ ${day.sets}セット ／ ${day.sessions.size}セッション`
+      : '記録なし';
+
+    const partsStr = Object.entries(day.byPart)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([p, v]) => `${p}:${Math.round(v)}kg`)
+      .join('、 ');
+
+    return `
+      <div class="weekly-row">
+        <div class="weekly-date">${day.label}</div>
+        <div class="weekly-main small">${main}</div>
+        ${partsStr ? `<div class="weekly-sub small muted">${partsStr}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  box.innerHTML = `
+    <div class="weekly-grid">
+      ${rowsHtml}
+    </div>
+  `;
+}
+
+// 解析タブ全体を更新するラッパー
+async function renderAnalytics(){
+  await renderTrendSelect();
+  await renderWeeklySummary();
+}
+
 /* ===== Settings info card（データステータス / 今日のワンポイント）===== */
 
 let _settingsInfoMode = 'status';   // 'status' | 'tip'
@@ -1329,7 +1541,6 @@ async function buildDataStatusText(){
   parts.push(`セット ${daySets.length}本`);
   if(dayExCount > 0) parts.push(`種目 ${dayExCount}種`);
 
-  // ウォッチ種目は全体設定なので、そのまま表示
   if(Array.isArray(watchlist) && watchlist.length){
     parts.push(`ウォッチ ${watchlist.length}種目`);
   }
@@ -1381,10 +1592,8 @@ function startSettingsInfoRotation(){
     _settingsInfoTimer = null;
   }
 
-  // 初回はデータステータス
   refreshSettingsInfoNow('status');
 
-  // 10秒おきにステータス ⇔ ワンポイントを交互に表示
   _settingsInfoTimer = setInterval(()=>{
     const next = (_settingsInfoMode === 'status') ? 'tip' : 'status';
     refreshSettingsInfoNow(next);
