@@ -1,4 +1,4 @@
-// Train no Punch — v1.1.1 (no-QuickInsert, perf+import UX, no-WU full replace, sets+RPE, fixed dark theme)
+// Train no Punch — v1.1.4 (no-QuickInsert, perf+import UX, no-WU full replace, sets+RPE, fixed dark theme)
 // change: WU（ウォームアップ）機能を全撤去（生成/設定/保存/履歴表示）
 // change: クイック投入機能を全撤去（UI/JS）
 // keep  : IDB+LS fallback, CSV/JSON import/export, charts, watchlist, RPE, 複数セット一括投入
