@@ -22,25 +22,29 @@
 </head>
 <body>
   <div id="app">
-    <!-- ヘッダー：全ページ共通の .appbar / .logo を利用 -->
-    <header class="appbar" role="banner">
-      <h1 class="logo">TRAIN PUNCH</h1>
+    <!-- ===== ヒーローヘッダー＋丸タブ ===== -->
+    <header class="hero" role="banner">
+      <div class="hero-inner">
+        <div class="hero-logo">
+          <h1 class="logo">TRAIN PUNCH</h1>
+        </div>
 
-      <!-- タブナビはヘッダー内にまとめる（旧デザインに寄せる） -->
-      <nav class="tabs" role="tablist" aria-label="Train Punch タブ">
-        <button type="button" data-tab="session"  class="active" aria-selected="true">セッション</button>
-        <button type="button" data-tab="analytics" aria-selected="false">分析</button>
-        <button type="button" data-tab="history"  aria-selected="false">履歴</button>
-        <button type="button" data-tab="settings" aria-selected="false">設定</button>
-      </nav>
+        <!-- タブはそのまま（JS互換のため class="tabs" / data-tab は変更しない） -->
+        <nav class="tabs" role="tablist">
+          <button type="button" data-tab="session"  class="active" aria-selected="true">セッション</button>
+          <button type="button" data-tab="analytics" aria-selected="false">解析</button>
+          <button type="button" data-tab="history"  aria-selected="false">履歴</button>
+          <button type="button" data-tab="settings" aria-selected="false">設定</button>
+        </nav>
+      </div>
     </header>
 
-    <!-- トースト：sw-register.js が期待している #toast + .toast -->
-    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <!-- Toast（sw-register.js / app.js 共通） -->
+    <div id="toast" class="toast" aria-live="polite"></div>
 
     <main class="container">
       <!-- ========== SESSION TAB ========== -->
-      <section id="tab-session" class="tab active" role="tabpanel" aria-labelledby="tabbtn-session">
+      <section id="tab-session" class="tab active" role="tabpanel">
         <!-- 日付＋カレンダー -->
         <section class="card">
           <header class="card-header">
@@ -54,11 +58,11 @@
 
             <div class="mini-calender">
               <div class="cal-header">
-                <button type="button" id="calPrevMonth" class="ghost" aria-label="前の月へ">&lt;</button>
+                <button type="button" id="calPrevMonth" class="ghost">&lt;</button>
                 <div id="calMonthLabel" class="cal-month-label">----</div>
-                <button type="button" id="calNextMonth" class="ghost" aria-label="次の月へ">&gt;</button>
+                <button type="button" id="calNextMonth" class="ghost">&gt;</button>
               </div>
-              <div class="cal-weekdays" aria-hidden="true">
+              <div class="cal-weekdays">
                 <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
               </div>
               <div id="calGrid" class="cal-grid" aria-label="セッションカレンダー"></div>
