@@ -14,31 +14,33 @@
   <link rel="icon" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
 
-  <title>Train Punch v1.1.3</title>
+  <title>Train Punch v1.1.1</title>
 
   <!-- styles -->
-  <link rel="preload" href="styles.css?v=1.1.3" as="style">
-  <link rel="stylesheet" href="styles.css?v=1.1.3">
+  <link rel="preload" href="styles.css?v=1.1.1" as="style">
+  <link rel="stylesheet" href="styles.css?v=1.1.1">
 </head>
 <body>
   <div id="app">
-    <header class="topbar">
-      <h1>Train Punch</h1>
+    <!-- ヘッダー：全ページ共通の .appbar / .logo を利用 -->
+    <header class="appbar" role="banner">
+      <h1 class="logo">TRAIN PUNCH</h1>
+
+      <!-- タブナビはヘッダー内にまとめる（旧デザインに寄せる） -->
+      <nav class="tabs" role="tablist" aria-label="Train Punch タブ">
+        <button type="button" data-tab="session"  class="active" aria-selected="true">セッション</button>
+        <button type="button" data-tab="analytics" aria-selected="false">分析</button>
+        <button type="button" data-tab="history"  aria-selected="false">履歴</button>
+        <button type="button" data-tab="settings" aria-selected="false">設定</button>
+      </nav>
     </header>
 
-    <div id="toast" aria-live="polite"></div>
+    <!-- トースト：sw-register.js が期待している #toast + .toast -->
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <!-- Tabs -->
-    <nav class="tabs" role="tablist">
-      <button type="button" data-tab="session"  class="active" aria-selected="true">セッション</button>
-      <button type="button" data-tab="history"  aria-selected="false">履歴</button>
-      <button type="button" data-tab="analytics" aria-selected="false">分析</button>
-      <button type="button" data-tab="settings" aria-selected="false">設定</button>
-    </nav>
-
-    <main>
+    <main class="container">
       <!-- ========== SESSION TAB ========== -->
-      <section id="tab-session" class="tab active" role="tabpanel">
+      <section id="tab-session" class="tab active" role="tabpanel" aria-labelledby="tabbtn-session">
         <!-- 日付＋カレンダー -->
         <section class="card">
           <header class="card-header">
@@ -52,19 +54,17 @@
 
             <div class="mini-calender">
               <div class="cal-header">
-                <button type="button" id="calPrevMonth" class="ghost">&lt;</button>
+                <button type="button" id="calPrevMonth" class="ghost" aria-label="前の月へ">&lt;</button>
                 <div id="calMonthLabel" class="cal-month-label">----</div>
-                <button type="button" id="calNextMonth" class="ghost">&gt;</button>
+                <button type="button" id="calNextMonth" class="ghost" aria-label="次の月へ">&gt;</button>
               </div>
-              <div class="cal-weekdays">
+              <div class="cal-weekdays" aria-hidden="true">
                 <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
               </div>
               <div id="calGrid" class="cal-grid" aria-label="セッションカレンダー"></div>
             </div>
           </div>
         </section>
-
-        <!-- ★ クイック/カスタム投入カードは削除済み ★ -->
 
         <!-- セッション編集カード -->
         <section id="sessionEditCard" class="card">
@@ -193,7 +193,6 @@
               </select>
             </div>
             <div class="chart-wrap">
-              <!-- 実際の描画は JS 側で -->
               <canvas id="trendChart" aria-label="ウォッチ種目トレンド"></canvas>
             </div>
           </div>
@@ -205,7 +204,6 @@
           </header>
           <div class="card-body">
             <div id="weeklySummary" class="weekly-summary">
-              <!-- JS が埋め込む -->
               <p class="small muted">記録を保存するとここに1週間分のサマリーが表示されます。</p>
             </div>
           </div>
@@ -346,14 +344,21 @@
     </main>
   </div>
 
-  <script>
-    // SW register（必要なら）
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js').catch(() => {});
-      });
-    }
-  </script>
-  <script src="app.js?v=1.1.3"></script>
+  <!-- ===== 必要なスクリプト群 ===== -->
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- 種目データ / 今日のワンポイント -->
+  <script src="app-data.js?v=1.1.1"></script>
+
+  <!-- メインアプリ本体 -->
+  <script src="app.js?v=1.1.1"></script>
+
+  <!-- 分析タブ専用ロジック -->
+  <script src="app-analytics.js?v=1.1.1"></script>
+
+  <!-- PWA用 Service Worker 登録 -->
+  <script src="sw-register.js?v=1.1.1"></script>
 </body>
 </html>
