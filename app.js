@@ -1,14 +1,8 @@
-// Train no Punch — v1.1.1
+// Train no Punch — v1.1.2 (perf+import UX, no-WU full replace, sets+RPE, fixed dark theme)
 // change: WU（ウォームアップ）機能を全撤去（生成/設定/保存/履歴表示）
-// change: クイック投入機能を全撤去（UI/JS）
 // keep  : IDB+LS fallback, CSV/JSON import/export, charts, watchlist, RPE, 複数セット一括投入
 // add   : 軽いパフォーマンス小技（idleで解析）、ドラッグ&ドロップ対応のインポートUX
 // add   : セッション用ミニカレンダー（DOM描画＆クリックで日付選択）
-
-// ================== 定数について ==================
-// PARTS / EX_GROUPS / SETTINGS_TIPS は app-data.js で定義済み。
-// index.html で必ず app-data.js を app.js より前に読み込むこと。
-// ここでは再定義しない（const の二重定義エラーを避ける）。
 
 const DB_NAME = 'trainpunch_v3';
 const DB_VER  = 3;
@@ -221,7 +215,7 @@ const indexGetAll=(store,idx,q)=>new Promise(async(res)=>{
 
 // ---- UI state ----
 let currentSession = {date:todayStr(),note:'',sets:[]};
-let selectedPart='胸';
+let selectedPart='胸', tplSelectedPart='胸';
 
 // NEW: セッション編集カードの表示状態
 let sessionEditVisible = false;
@@ -234,7 +228,8 @@ let _calendarBound = false;
 
 // watchlist
 let watchlist=[]; let watchSelectedPart='胸';
-let _watchChipsBound=false;
+let _watchChipsBound=false, _trendEventsBound=false;
+const isWatched = id => Array.isArray(watchlist) && watchlist.includes(id);
 
 // ===== NEW: Settings/Exercises chip filter state =====
 let partFilterActive = null;           // null=全消し（初期は非表示）
@@ -283,7 +278,8 @@ function pushUndo(){
   try{
     const snap = {
       currentSession: JSON.parse(JSON.stringify(currentSession)),
-      selectedPart
+      selectedPart,
+      tplSelectedPart
     };
     _undoStack.push(snap);
     if(_undoStack.length > 50) _undoStack.shift();
@@ -294,16 +290,11 @@ function doUndo(){
   if(!snap){ showToast('戻せる操作がありません'); return; }
   currentSession   = snap.currentSession || {date:todayStr(),note:'',sets:[]};
   selectedPart     = snap.selectedPart   ?? selectedPart;
+  tplSelectedPart  = snap.tplSelectedPart?? tplSelectedPart;
   renderPartChips();
   renderTodaySets();
   showToast('1つ前の状態に戻しました');
 }
-
-// ---- Analytics stubs（実装は app-analytics.js 側で上書き）----
-async function renderAnalytics(){ /* stub: app-analytics.js で上書き */ }
-async function renderTrendSelect(){ /* stub */ }
-async function renderTrendChart(){ /* stub */ }
-async function renderWeeklySummary(){ /* stub */ }
 
 // =================== Init ===================
 async function init(){
@@ -377,6 +368,10 @@ async function init(){
 
   initSessionCalendar();   // ★ カレンダー初期化
 
+  bindCustomInsertUI();
+  renderTplPartChips();
+  await renderTplExSelect();
+
   bindHistoryUI();
   bindSettingsUI();
   await renderWatchUI();
@@ -386,7 +381,7 @@ async function init(){
   await renderExSelect();
   renderTodaySets();
   renderHistory();
-  renderAnalytics(); // idle タイミングで解析（本体は app-analytics.js）
+  renderAnalytics(); // idle タイミングで解析
   await renderExList();
   renderPartFilterChips();
 
@@ -403,74 +398,39 @@ async function ensureInitialExercises(){
   const all=await getAll('exercises');
   if(all && all.length){
     const byName=Object.fromEntries(all.map(e=>[e.name,e]));
-    for(const p of (window.PARTS || [])){
-      const list = (window.EX_GROUPS && window.EX_GROUPS[p]) || [];
-      for(const name of list){
+    for(const p of PARTS){
+      for(const name of EX_GROUPS[p]){
         const hit=byName[name];
         if(hit && !hit.group) await put('exercises',{...hit,group:p});
       }
     }
     return;
   }
-  for(const p of (window.PARTS || [])){
-    const list = (window.EX_GROUPS && window.EX_GROUPS[p]) || [];
-    for(const name of list){
-      await put('exercises',{name,group:p});
-    }
-  }
+  for(const p of PARTS){ for(const name of EX_GROUPS[p]) await put('exercises',{name,group:p}); }
 }
 
 // =================== Tabs ===================
 function bindTabs(){
   $$('.tabs button').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      // ボタン側の状態
-      $$('.tabs button').forEach(b=>{
-        b.classList.remove('active');
-        b.setAttribute('aria-selected','false');
-      });
-      btn.classList.add('active');
-      btn.setAttribute('aria-selected','true');
-
-      const tab = btn.dataset.tab;
-      const targetId = 'tab-' + tab;
-
-      // パネル側の表示切り替え（active + hidden を両方制御）
-      $$('.tab').forEach(panel=>{
-        if(panel.id === targetId){
-          panel.classList.add('active');
-          panel.removeAttribute('hidden');
-        }else{
-          panel.classList.remove('active');
-          panel.setAttribute('hidden','');
-        }
-      });
-
-      // 最後に開いたタブを保存
+    btn.addEventListener('click',async()=>{
+      $$('.tabs button').forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-selected','true');
+      const tab=btn.dataset.tab;
+      $$('.tab').forEach(s=>s.classList.remove('active'));
+      $('#tab-'+tab)?.classList.add('active');
       put('prefs',{key:'last_tab',value:tab}).catch(()=>{});
-
-      // タブごとの追加処理
-      if(tab==='history')   renderHistory();
+      if(tab==='history') renderHistory();
       if(tab==='analytics') renderAnalytics();
       if(tab==='settings'){
-        await renderExList();
-        renderPartFilterChips();
-        renderWatchUI();
-        if(_pendingSettingsFeel){
-          _pendingSettingsFeel=false;
-          queueOpenSettingsFeel();
-        }
+        await renderExList(); renderPartFilterChips(); renderWatchUI();
+        if(_pendingSettingsFeel){ _pendingSettingsFeel=false; queueOpenSettingsFeel(); }
       }
     });
   });
 }
 
 // =================== Session ===================
-function renderPartChips(){
-  $$('#partChips .chip').forEach(ch=>{
-    ch.classList.toggle('active', ch.dataset.part===selectedPart);
-  });
-}
+function renderPartChips(){ $$('#partChips .chip').forEach(ch=>{ ch.classList.toggle('active', ch.dataset.part===selectedPart); }); }
 
 // NEW: セッション編集カードの表示/非表示
 function setSessionEditVisible(visible){
@@ -575,6 +535,8 @@ function bindSessionUI(){
     await renderSessionCalendar();
     showToast('セッションを保存しました');
   });
+
+  $('#btnTplCustom')?.addEventListener('click',applyCustomInsert);
 
   $('#exSelect')?.addEventListener('change',async()=>{
     const exId=Number($('#exSelect').value);
@@ -789,6 +751,30 @@ function handleSmartInput(e){
   showToast('スマート入力を適用');
 }
 
+// ======== Custom insert ========
+function renderTplPartChips(){ $$('#tplPartChips .chip').forEach(ch=>{ ch.classList.toggle('active',ch.dataset.part===tplSelectedPart); }); }
+function bindCustomInsertUI(){
+  const chips=$('#tplPartChips'); if(!chips) return;
+  chips.addEventListener('click',async e=>{
+    const b=e.target.closest('.chip'); if(!b) return;
+    tplSelectedPart=b.dataset.part; renderTplPartChips(); await renderTplExSelect();
+  });
+}
+async function renderTplExSelect(){
+  const sel=$('#tplExCustom'); if(!sel) return;
+  let exs=await getAll('exercises'); exs=exs.filter(e=>e.group===tplSelectedPart).sort((a,b)=>a.name.localeCompare(b.name,'ja'));
+  sel.innerHTML=`<option value="">（選択する）</option>`+(exs.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('')||'<option>オプションなし</option>');
+  sel.value='';
+}
+async function renderExSelect(){
+  let exs=await getAll('exercises'); exs=exs.filter(e=>e.group===selectedPart).sort((a,b)=>a.name.localeCompare(b.name,'ja'));
+  const sel=$('#exSelect'); if(sel){
+    const prev=sel.value||'';
+    sel.innerHTML=`<option value="">（選択する）</option>`+(exs.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('')||'<option>オプションなし</option>');
+    if(prev && exs.some(e=>String(e.id)===prev)) sel.value=prev; else sel.value='';
+  }
+}
+
 // today list
 function renderTodaySets(){
   const ul=$('#todaySets'); if(!ul) return;
@@ -832,21 +818,30 @@ function renderTodaySets(){
   });
 }
 function exNameById(id){
-  const opt=$('#exSelect')?.querySelector(`option[value="${id}"]`);
+  const opt=$('#exSelect')?.querySelector(`option[value="${id}"]`)||$('#tplExCustom')?.querySelector(`option[value="${id}"]`);
   return opt?opt.textContent:'種目';
 }
-
-// ========= 種目セレクト =========
-async function renderExSelect(){
-  const sel = $('#exSelect');
-  if(!sel) return;
-  let exs = await getAll('exercises');
-  exs = exs
-    .filter(e => !selectedPart || !e.group || e.group === selectedPart)
-    .sort((a,b)=>(a.group||'').localeCompare(b.group||'','ja') || a.name.localeCompare(b.name,'ja'));
-  const opts = ['<option value="">（選択する）</option>']
-    .concat(exs.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`));
-  sel.innerHTML = opts.join('');
+async function applyCustomInsert(){
+  const n=Number($('#tplCustomSets').value||'5');
+  const r=Number($('#tplCustomReps').value||'5');
+  const w=Number($('#tplCustomWeight').value||'0');
+  const exId=Number($('#tplExCustom').value);
+  if(!exId){ showToast('種目を選んでください'); return; }
+  const date=$('#sessDate').value || todayStr(); const now=Date.now();
+  pushUndo();
+  for(let i=0;i<n;i++){
+    currentSession.sets.push({
+      temp_id:(crypto?.randomUUID?.()||now+'_'+i),
+      exercise_id:exId,
+      weight:w,
+      reps:r,
+      rpe:null,
+      ts:now+i,
+      date
+    });
+  }
+  renderTodaySets();
+  showToast('カスタム投入しました');
 }
 
 // =================== History ===================
@@ -1016,7 +1011,7 @@ function bindSettingsUI(){
     if(!name) return;
     try{
       await put('exercises',{name,group:part}); $('#newExName').value='';
-      await renderExList(); await renderExSelect(); await renderWatchUI(); await renderTrendSelect();
+      await renderExList(); await renderExSelect(); await renderTplExSelect(); await renderWatchUI(); await renderTrendSelect();
       renderPartFilterChips();
       showToast('追加しました');
     }catch{
@@ -1036,7 +1031,7 @@ function bindSettingsUI(){
         });
     }
     await ensureInitialExercises();
-    await renderExList(); await renderExSelect();
+    await renderExList(); await renderExSelect(); await renderTplExSelect();
     renderHistory(); renderAnalytics(); renderTodaySets();
     await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary(); await renderSessionCalendar();
     renderPartFilterChips();
@@ -1078,7 +1073,7 @@ function bindSettingsUI(){
       for(const x of (data.sets     ||[])) await put('sets',x);
       for(const x of (data.prefs    ||[])) await put('prefs',x);
     }
-    await renderExList(); await renderExSelect();
+    await renderExList(); await renderExSelect(); await renderTplExSelect();
     renderHistory(); renderAnalytics(); renderTodaySets();
     await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary(); await renderSessionCalendar();
     renderPartFilterChips();
@@ -1090,8 +1085,7 @@ function bindSettingsUI(){
 /* ===== NEW: 部位チップ（#partFilter）と表示切替 ===== */
 function renderPartFilterChips(){
   const bar = $('#partFilter'); if(!bar) return;
-  const partsList = window.PARTS || [];
-  bar.innerHTML = partsList.map(p=>`<button type="button" data-part="${p}" class="${p===partFilterActive?'is-active':''}">${p}</button>`).join('');
+  bar.innerHTML = PARTS.map(p=>`<button type="button" data-part="${p}" class="${p===partFilterActive?'is-active':''}">${p}</button>`).join('');
   if(!_partFilterBound){
     bar.addEventListener('click',e=>{
       const btn=e.target.closest('button'); if(!btn) return;
@@ -1134,7 +1128,7 @@ async function renderExList(){
     b.addEventListener('click',async()=>{
       pushUndo();
       await del('exercises',Number(b.dataset.id));
-      await renderExList(); await renderExSelect(); renderAnalytics();
+      await renderExList(); await renderExSelect(); await renderTplExSelect(); renderAnalytics();
       await renderWatchUI(); await renderTrendSelect(); await renderWeeklySummary(); await renderSessionCalendar();
       renderPartFilterChips();
     });
@@ -1359,11 +1353,11 @@ let _settingsInfoMode = 'status';   // 'status' | 'tip'
 let _settingsInfoTimer = null;
 
 function pickDailyTip(){
-  if(!Array.isArray(window.SETTINGS_TIPS) || !window.SETTINGS_TIPS.length) return '';
+  if(!SETTINGS_TIPS.length) return '';
   const today = new Date();
   const seed = today.getFullYear()*10000 + (today.getMonth()+1)*100 + today.getDate();
-  const idx = seed % window.SETTINGS_TIPS.length;
-  return window.SETTINGS_TIPS[idx];
+  const idx = seed % SETTINGS_TIPS.length;
+  return SETTINGS_TIPS[idx];
 }
 
 // ★ カレンダーで選択している日付だけの件数
@@ -1388,6 +1382,7 @@ async function buildDataStatusText(){
   parts.push(`セット ${daySets.length}本`);
   if(dayExCount > 0) parts.push(`種目 ${dayExCount}種`);
 
+  // ウォッチ種目は全体設定なので、そのまま表示
   if(Array.isArray(watchlist) && watchlist.length){
     parts.push(`ウォッチ ${watchlist.length}種目`);
   }
@@ -1439,8 +1434,10 @@ function startSettingsInfoRotation(){
     _settingsInfoTimer = null;
   }
 
+  // 初回はデータステータス
   refreshSettingsInfoNow('status');
 
+  // 10秒おきにステータス ⇔ ワンポイントを交互に表示
   _settingsInfoTimer = setInterval(()=>{
     const next = (_settingsInfoMode === 'status') ? 'tip' : 'status';
     refreshSettingsInfoNow(next);
