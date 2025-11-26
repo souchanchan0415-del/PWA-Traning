@@ -1,372 +1,95 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0e1116">
-  <meta name="format-detection" content="telephone=no">
-  <meta name="color-scheme" content="light dark">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" sizes="192x192" href="icons/icon-192.png">
-  <link rel="apple-touch-icon" href="icons/icon-180.png">
-
-  <title>Train Punch v1.1.1</title>
-
-  <!-- styles -->
-  <link rel="preload" href="styles.css?v=1.1.1" as="style">
-  <link rel="stylesheet" href="styles.css?v=1.1.1">
+  <meta charset="UTF-8">
+  <title>Train Punch v0.1</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111111">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="manifest" href="./manifest.webmanifest">
 </head>
-<body class="index-page">
-  <div id="app">
-    <!-- ★ ヒーローヘッダー＋タブ（スクショ1のイメージ） -->
-    <header class="appbar appbar--hero" role="banner">
-      <div class="hero-inner">
-        <div class="hero-brand">
-          <div class="hero-logo-square">TP</div>
-          <div class="hero-title-lines">
-            <span>TRAIN</span>
-            <span>PUNCH</span>
+<body>
+  <header class="header">
+    <h1>Train Punch</h1>
+    <p class="header-sub">トレーニング記録アプリ / ローカル保存版 v0.1</p>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2 class="card-title">記録入力</h2>
+      <form id="logForm" class="form">
+        <div class="field">
+          <label for="date">日付</label>
+          <input type="date" id="date" required>
+        </div>
+
+        <div class="field">
+          <label for="exercise">種目</label>
+          <input type="text" id="exercise" placeholder="ベンチプレス" required>
+        </div>
+
+        <div class="field-group">
+          <div class="field">
+            <label for="weight">重量(kg)</label>
+            <input type="number" id="weight" step="0.5" inputmode="decimal" required>
+          </div>
+          <div class="field">
+            <label for="reps">回数</label>
+            <input type="number" id="reps" inputmode="numeric" required>
+          </div>
+          <div class="field">
+            <label for="rpe">RPE</label>
+            <input type="number" id="rpe" step="0.5" inputmode="decimal" placeholder="7.5">
           </div>
         </div>
 
-        <!-- タブ：data-tab や text は今までと同じ -->
-        <nav class="tabs tabs-hero" role="tablist">
-          <button type="button" data-tab="session"  class="active" aria-selected="true">セッション</button>
-          <button type="button" data-tab="analytics" aria-selected="false">解析</button>
-          <button type="button" data-tab="history"  aria-selected="false">履歴</button>
-          <button type="button" data-tab="settings" aria-selected="false">設定</button>
-        </nav>
+        <div class="field">
+          <label for="memo">メモ</label>
+          <textarea id="memo" rows="2" placeholder="セットの感覚など自由に"></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary">保存する</button>
+        <p id="message" class="message"></p>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="card-header-row">
+        <h2 class="card-title">記録一覧</h2>
+        <button id="clearAll" class="btn-danger small">全部削除</button>
       </div>
-    </header>
+      <div id="emptyState" class="empty">まだ記録がありません</div>
+      <div class="table-wrapper">
+        <table class="log-table" id="logTable">
+          <thead>
+            <tr>
+              <th>日付</th>
+              <th>種目</th>
+              <th>重量</th>
+              <th>回数</th>
+              <th>RPE</th>
+              <th>メモ</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="logBody">
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
 
-    <!-- Toast -->
-    <div id="toast" class="toast" aria-live="polite"></div>
+  <footer class="footer">
+    <small>Train Punch のデータは、この端末のブラウザ(localStorage)に保存されます。</small>
+  </footer>
 
-    <main class="container">
-      <!-- ========== SESSION TAB ========== -->
-      <section id="tab-session" class="tab active" role="tabpanel">
-        <!-- 日付＋カレンダー -->
-        <section class="card">
-          <header class="card-header">
-            <h2>日付とカレンダー</h2>
-          </header>
-          <div class="card-body">
-            <div class="sess-date-row">
-              <label for="sessDate">日付</label>
-              <input id="sessDate" type="date" inputmode="numeric">
-            </div>
-
-            <div class="mini-calender">
-              <div class="cal-header">
-                <button type="button" id="calPrevMonth" class="ghost">&lt;</button>
-                <div id="calMonthLabel" class="cal-month-label">----</div>
-                <button type="button" id="calNextMonth" class="ghost">&gt;</button>
-              </div>
-              <div class="cal-weekdays">
-                <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
-              </div>
-              <div id="calGrid" class="cal-grid" aria-label="セッションカレンダー"></div>
-            </div>
-          </div>
-        </section>
-
-        <!-- セッション編集カード -->
-        <section id="sessionEditCard" class="card">
-          <header class="card-header">
-            <h2>今日のトレーニング</h2>
-          </header>
-          <div class="card-body">
-            <!-- 部位チップ -->
-            <div class="chip-row" id="partChips" aria-label="部位">
-              <button type="button" class="chip active" data-part="胸">胸</button>
-              <button type="button" class="chip" data-part="背中">背中</button>
-              <button type="button" class="chip" data-part="脚">脚</button>
-              <button type="button" class="chip" data-part="肩">肩</button>
-              <button type="button" class="chip" data-part="腕">腕</button>
-              <button type="button" class="chip" data-part="体幹">体幹</button>
-            </div>
-
-            <!-- 入力行 -->
-            <div class="form-grid">
-              <label class="field">
-                <span>種目</span>
-                <select id="exSelect">
-                  <option value="">（選択する）</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>重量 (kg)</span>
-                <input id="weight" type="number" inputmode="decimal" placeholder="60">
-              </label>
-              <label class="field">
-                <span>回数</span>
-                <input id="reps" type="number" inputmode="numeric" placeholder="8">
-              </label>
-              <label class="field">
-                <span>セット数</span>
-                <input id="sets" type="number" inputmode="numeric" placeholder="1">
-              </label>
-              <label class="field">
-                <span>RPE</span>
-                <input id="rpe" type="number" inputmode="decimal" min="1" max="10" step="0.5" placeholder="8">
-              </label>
-            </div>
-
-            <p class="hint small">※「60x8x3@8」のようにまとめて入力してもOK（スマート入力）</p>
-
-            <div class="btn-row">
-              <button type="button" id="btnAddSet" class="primary">セットを追加</button>
-              <button type="button" id="btnUndo" class="ghost">1つ戻す</button>
-            </div>
-
-            <div class="field">
-              <label for="sessNote">メモ</label>
-              <textarea id="sessNote" rows="2" placeholder="今日のコンディションなど"></textarea>
-            </div>
-
-            <div class="btn-row end">
-              <button type="button" id="btnSaveSession" class="primary">セッションを保存</button>
-            </div>
-
-            <hr>
-
-            <h3 class="subheading">今日のセット</h3>
-            <ul id="todaySets" class="list">
-              <li>まだありません</li>
-            </ul>
-          </div>
-        </section>
-      </section>
-
-      <!-- ========== HISTORY TAB ========== -->
-      <section id="tab-history" class="tab" role="tabpanel" hidden>
-        <section class="card">
-          <header class="card-header">
-            <h2>履歴一覧</h2>
-          </header>
-          <div class="card-body">
-            <div class="field-inline">
-              <label for="historyCount">表示件数</label>
-              <select id="historyCount">
-                <option value="10">10件</option>
-                <option value="20" selected>20件</option>
-                <option value="50">50件</option>
-                <option value="100">100件</option>
-              </select>
-            </div>
-            <ul id="historyList" class="list">
-              <li>まだありません</li>
-            </ul>
-          </div>
-        </section>
-
-        <section class="card">
-          <header class="card-header">
-            <h2>CSVエクスポート / インポート</h2>
-          </header>
-          <div class="card-body">
-            <div class="btn-row">
-              <button type="button" id="btnExport" class="ghost">CSVを書き出し</button>
-            </div>
-
-            <div class="import-area">
-              <div id="importDrop" class="drop-zone" tabindex="0">
-                <p class="import-title">CSVをインポート</p>
-                <p class="import-file-name">ファイル未選択</p>
-                <p class="import-status">
-                  <span class="dot"></span> 待機中
-                </p>
-              </div>
-              <input id="importFile" type="file" accept=".csv,text/csv" hidden>
-            </div>
-          </div>
-        </section>
-      </section>
-
-      <!-- ========== ANALYTICS TAB ========== -->
-      <section id="tab-analytics" class="tab" role="tabpanel" hidden>
-        <section class="card">
-          <header class="card-header">
-            <h2>ウォッチ種目トレンド</h2>
-          </header>
-          <div class="card-body">
-            <div class="field">
-              <label for="trendExSelect">種目</label>
-              <select id="trendExSelect">
-                <option value="">ウォッチ種目から選択</option>
-              </select>
-            </div>
-            <div class="chart-wrap">
-              <canvas id="trendChart" aria-label="ウォッチ種目トレンド"></canvas>
-            </div>
-          </div>
-        </section>
-
-        <section class="card">
-          <header class="card-header">
-            <h2>週間サマリー</h2>
-          </header>
-          <div class="card-body">
-            <div id="weeklySummary" class="weekly-summary">
-              <p class="small muted">記録を保存するとここに1週間分のサマリーが表示されます。</p>
-            </div>
-          </div>
-        </section>
-      </section>
-
-      <!-- ========== SETTINGS TAB ========== -->
-      <section id="tab-settings" class="tab" role="tabpanel" hidden>
-        <!-- データステータス / 今日のワンポイント -->
-        <section id="dataStatusCard" class="card">
-          <header class="card-header">
-            <h2 id="dataStatusTitle">データステータス</h2>
-          </header>
-          <div class="card-body">
-            <p id="dataStatusBody" class="small">読み込み中…</p>
-          </div>
-        </section>
-
-        <!-- 種目管理 -->
-        <section class="card">
-          <header class="card-header">
-            <h2>種目管理</h2>
-          </header>
-          <div class="card-body">
-            <div class="form-grid">
-              <label class="field">
-                <span>種目名</span>
-                <input id="newExName" type="text" placeholder="ベンチプレス">
-              </label>
-              <label class="field">
-                <span>部位</span>
-                <select id="newExPart">
-                  <option value="">（任意）</option>
-                  <option value="胸">胸</option>
-                  <option value="背中">背中</option>
-                  <option value="脚">脚</option>
-                  <option value="肩">肩</option>
-                  <option value="腕">腕</option>
-                  <option value="体幹">体幹</option>
-                </select>
-              </label>
-            </div>
-            <div class="btn-row">
-              <button type="button" id="btnCreateEx" class="primary">種目を追加</button>
-            </div>
-
-            <hr>
-
-            <div class="field-inline">
-              <label for="filterPart">種目の絞り込み</label>
-              <select id="filterPart">
-                <option value="all" selected>すべて</option>
-                <option value="胸">胸</option>
-                <option value="背中">背中</option>
-                <option value="脚">脚</option>
-                <option value="肩">肩</option>
-                <option value="腕">腕</option>
-                <option value="体幹">体幹</option>
-              </select>
-            </div>
-
-            <div id="partFilter" class="chip-row" aria-label="表示する部位フィルタ">
-              <!-- JSで部位チップを描画 -->
-            </div>
-
-            <ul id="exerciseList" class="list">
-              <li>まだありません</li>
-            </ul>
-          </div>
-        </section>
-
-        <!-- ウォッチリスト -->
-        <section class="card">
-          <header class="card-header">
-            <h2>ウォッチ種目</h2>
-          </header>
-          <div class="card-body">
-            <div id="watchPartChips" class="chip-row" aria-label="部位（ウォッチ）">
-              <button type="button" class="chip active" data-part="胸">胸</button>
-              <button type="button" class="chip" data-part="背中">背中</button>
-              <button type="button" class="chip" data-part="脚">脚</button>
-              <button type="button" class="chip" data-part="肩">肩</button>
-              <button type="button" class="chip" data-part="腕">腕</button>
-              <button type="button" class="chip" data-part="体幹">体幹</button>
-            </div>
-
-            <div class="form-grid">
-              <label class="field">
-                <span>種目</span>
-                <select id="watchExSelect">
-                  <option value="">（選択する）</option>
-                </select>
-              </label>
-            </div>
-
-            <div class="btn-row">
-              <button type="button" id="btnWatchAdd" class="primary">ウォッチに追加</button>
-            </div>
-
-            <ul id="watchList" class="list">
-              <li>まだありません</li>
-            </ul>
-          </div>
-        </section>
-
-        <!-- バックアップ / リセット / 通知 -->
-        <section class="card">
-          <header class="card-header">
-            <h2>バックアップとその他</h2>
-          </header>
-          <div class="card-body">
-            <div class="btn-row">
-              <button type="button" id="btnNotif" class="ghost">通知を許可（対応端末のみ）</button>
-            </div>
-
-            <h3 class="subheading">JSONバックアップ</h3>
-            <div class="btn-row">
-              <button type="button" id="btnExportJson" class="ghost">JSONを書き出し</button>
-            </div>
-            <div class="field">
-              <label for="jsonIn">JSONから復元</label>
-              <input id="jsonIn" type="file" accept="application/json">
-            </div>
-
-            <hr>
-
-            <h3 class="subheading">キャッシュ / データ</h3>
-            <div class="btn-row">
-              <button type="button" id="btnHardRefresh" class="ghost">キャッシュをリセット</button>
-            </div>
-            <div class="btn-row">
-              <button type="button" id="btnWipe" class="danger">全データを削除</button>
-            </div>
-            <p class="small muted">※全データ削除は元に戻せません。バックアップを取ってから行ってください。</p>
-          </div>
-        </section>
-      </section>
-    </main>
-  </div>
-
-  <!-- ===== 必要なスクリプト群 ===== -->
-
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <!-- 種目データ / 今日のワンポイント -->
-  <script src="app-data.js?v=1.1.1"></script>
-
-  <!-- メインアプリ本体 -->
-  <script src="app.js?v=1.1.1"></script>
-
-  <!-- 分析タブ専用ロジック -->
-  <script src="app-analytics.js?v=1.1.1"></script>
-
-  <!-- PWA用 Service Worker 登録 -->
-  <script src="sw-register.js?v=1.1.1"></script>
+  <script src="./app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(console.error);
+      });
+    }
+  </script>
 </body>
 </html>
