@@ -342,20 +342,21 @@
     </main>
   </div>
 
-  <!-- 必要なスクリプト群 -->
-  <!-- Chart.js は app.js / app-analytics.js のどちらかで使う可能性があるので残しておく -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+  <!-- ===== 必要なスクリプト群 ===== -->
+
+  <!-- Chart.js（旧コード互換用。使っていなければそのうち外してOK） -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- 種目データ / 今日のワンポイント -->
-  <script src="app-data.js?v=1.1.4" defer></script>
+  <script src="app-data.js?v=1.1.4"></script>
 
   <!-- メインアプリ本体 -->
-  <script src="app.js?v=1.1.4" defer></script>
+  <script src="app.js?v=1.1.4"></script>
 
   <!-- 分析タブ専用ロジック -->
-  <script src="app-analytics.js?v=1.1.4" defer></script>
+  <script src="app-analytics.js?v=1.1.4"></script>
 
-  <!-- PWA用 Service Worker 登録 -->
+  <!-- PWA用 Service Worker 登録（2️⃣で中身を書き直すやつ） -->
   <script src="sw-register.js?v=1.1.4"></script>
 </body>
 </html>
