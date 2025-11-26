@@ -5,66 +5,10 @@
 // add   : 軽いパフォーマンス小技（idleで解析）、ドラッグ&ドロップ対応のインポートUX
 // add   : セッション用ミニカレンダー（DOM描画＆クリックで日付選択）
 
-// ================== 定数（不足していたものを補完） ==================
-
-// 部位タブ／チップで使う部位一覧
-const PARTS = ['胸', '背中', '脚', '肩', '腕', '体幹', 'その他'];
-
-// 初期登録する種目グループ
-const EX_GROUPS = {
-  '胸': [
-    'ベンチプレス',
-    'インクラインベンチプレス',
-    'ダンベルベンチプレス',
-    'ディップス'
-  ],
-  '背中': [
-    'デッドリフト',
-    'ベントオーバーロウ',
-    'ラットプルダウン',
-    'チンニング'
-  ],
-  '脚': [
-    'スクワット',
-    'フロントスクワット',
-    'レッグプレス',
-    'ランジ'
-  ],
-  '肩': [
-    'ショルダープレス',
-    'サイドレイズ',
-    'リアレイズ'
-  ],
-  '腕': [
-    'バーベルカール',
-    'ダンベルカール',
-    'トライセプスエクステンション'
-  ],
-  '体幹': [
-    'プランク',
-    'シットアップ',
-    'レッグレイズ'
-  ],
-  'その他': [
-    'アダクション',
-    'アブダクション',
-    'カーフレイズ'
-  ]
-};
-
-// 設定タブの「今日のワンポイント」で使うテキスト
-const SETTINGS_TIPS = [
-  'フォームが安定しない日は重量を落として丁寧に。積み重ねが力になります。',
-  'RPEが高すぎる日が続いたら、あえて軽めの日を作って神経を休ませましょう。',
-  '同じ部位でも種目を少し入れ替えると、停滞期を抜けやすくなります。',
-  'ウォームアップは短くてもOK。大事なのは「毎回欠かさない」ことです。',
-  'セット間のスマホいじりは最小限に。呼吸とフォームの確認に意識を向けましょう。',
-  '前回の記録を超えなくても大丈夫。継続している時点で大きな前進です。',
-  '痛みと「効いている感」は別物です。鋭い痛みが出たら一度中止しましょう。',
-  '寝不足の日は無理に追い込まず、テクニックの確認日にするのもアリです。',
-  '週単位のボリュームを眺めると、トレーニングの癖が見えてきます。',
-  '調子の良い日は主観RPEをメモしておくと、後から強度調整に役立ちます。'
-];
+// ================== 定数について ==================
+// PARTS / EX_GROUPS / SETTINGS_TIPS は app-data.js で定義済み。
+// index.html で必ず app-data.js を app.js より前に読み込むこと。
+// ここでは再定義しない（const の二重定義エラーを避ける）。
 
 // ================== ここから元コード ==================
 
@@ -476,18 +420,43 @@ async function ensureInitialExercises(){
 // =================== Tabs ===================
 function bindTabs(){
   $$('.tabs button').forEach(btn=>{
-    btn.addEventListener('click',async()=>{
-      $$('.tabs button').forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
-      btn.classList.add('active'); btn.setAttribute('aria-selected','true');
-      const tab=btn.dataset.tab;
-      $$('.tab').forEach(s=>s.classList.remove('active'));
-      $('#tab-'+tab)?.classList.add('active');
+    btn.addEventListener('click', async ()=>{
+      // ボタン側の状態
+      $$('.tabs button').forEach(b=>{
+        b.classList.remove('active');
+        b.setAttribute('aria-selected','false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected','true');
+
+      const tab = btn.dataset.tab;
+      const targetId = 'tab-' + tab;
+
+      // パネル側の表示切り替え（active + hidden を両方制御）
+      $$('.tab').forEach(panel=>{
+        if(panel.id === targetId){
+          panel.classList.add('active');
+          panel.removeAttribute('hidden');
+        }else{
+          panel.classList.remove('active');
+          panel.setAttribute('hidden','');
+        }
+      });
+
+      // 最後に開いたタブを保存
       put('prefs',{key:'last_tab',value:tab}).catch(()=>{});
-      if(tab==='history') renderHistory();
+
+      // タブごとの追加処理
+      if(tab==='history')   renderHistory();
       if(tab==='analytics') renderAnalytics();
       if(tab==='settings'){
-        await renderExList(); renderPartFilterChips(); renderWatchUI();
-        if(_pendingSettingsFeel){ _pendingSettingsFeel=false; queueOpenSettingsFeel(); }
+        await renderExList();
+        renderPartFilterChips();
+        renderWatchUI();
+        if(_pendingSettingsFeel){
+          _pendingSettingsFeel=false;
+          queueOpenSettingsFeel();
+        }
       }
     });
   });
