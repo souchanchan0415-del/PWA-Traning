@@ -262,14 +262,36 @@
       let t=document.getElementById('toast');
       if(!t){
         t=document.createElement('div'); t.id='toast';
-        Object.assign(t.style,{position:'fixed',left:'50%',bottom:'28px',transform:'translateX(-50%)',background:'var(--text)',color:'var(--card)',padding:'10px 14px',borderRadius:'999px',zIndex:50,opacity:'0',transition:'opacity .18s ease, transform .18s ease',boxShadow:'var(--shadow)',fontWeight:'700',pointerEvents:'none'});
+        Object.assign(t.style,{
+          position:'fixed',
+          left:'50%',
+          bottom:'28px',
+          transform:'translateX(-50%)',
+          background:'var(--text)',
+          color:'var(--card)',
+          padding:'10px 14px',
+          borderRadius:'999px',
+          zIndex:50,
+          opacity:'0',
+          transition:'opacity .18s ease, transform .18s ease',
+          boxShadow:'var(--shadow)',
+          fontWeight:'700',
+          pointerEvents:'none'
+        });
         document.body.appendChild(t);
       }
-      t.textContent=msg; t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(-4px)';
-      setTimeout(()=>{t.style.opacity='0'; t.style.transform='translateX(-50%)';},1400);
+      t.textContent=msg;
+      t.style.opacity='1';
+      t.style.transform='translateX(-50%) translateY(-4px)';
+      setTimeout(()=>{
+        t.style.opacity='0';
+        t.style.transform='translateX(-50%)';
+      },1400);
     }
   </script>
 
+  <!-- 簡易アナリティクス -->
+  <script defer src="./app-analytics.js?v=1.1.1"></script>
   <!-- SW を全ページ同一で読み込む（統一版） -->
   <script defer src="./sw-register.js?v=1.6.1-unify"></script>
 </body>
