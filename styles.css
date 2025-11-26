@@ -1,5 +1,5 @@
 /* Train Punch UI — heavy gym × diesel punk
-   index.html v1.1.4 用フルテーマCSS
+   index.html v1.1.1 用フルテーマCSS
    ※このファイルを styles.css に丸ごと置き換えでOK
 */
 
@@ -61,7 +61,8 @@ body.scrolling {
 
 /* ===== App bar / Tabs ===== */
 
-.appbar {
+.appbar,
+.topbar {
   position: sticky;
   top: 0;
   z-index: 40;
@@ -244,7 +245,8 @@ input[type="date"] {
   color-scheme: dark;
 }
 
-.row {
+.row,
+.btn-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -252,7 +254,8 @@ input[type="date"] {
   margin: 6px 0;
 }
 
-.row.end {
+.row.end,
+.btn-row.end {
   justify-content: flex-end;
 }
 
@@ -307,6 +310,30 @@ select {
 textarea {
   resize: vertical;
   min-height: 60px;
+}
+
+/* Field layout */
+
+.field {
+  display: block;
+  margin: 6px 0;
+}
+
+.form-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.field-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.field-inline label {
+  white-space: nowrap;
 }
 
 /* Check & labels */
@@ -421,13 +448,15 @@ button.danger {
 
 /* ===== Chips ===== */
 
-.chipset {
+.chipset,
+.chip-row {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
-.chipset .chip {
+.chipset .chip,
+.chip-row .chip {
   padding: 5px 11px;
   border-radius: var(--radius-pill);
   font-size: 12px;
@@ -443,7 +472,8 @@ button.danger {
     box-shadow .12s ease;
 }
 
-.chipset .chip.active {
+.chipset .chip.active,
+.chip-row .chip.active {
   background:
     radial-gradient(circle at top, rgba(248,250,252,.18) 0, transparent 55%),
     linear-gradient(135deg, var(--accent), #22c55e);
@@ -523,7 +553,8 @@ button.danger {
 
 /* ===== Toast ===== */
 
-.toast {
+.toast,
+#toast {
   position: fixed;
   left: 50%;
   bottom: 74px;
@@ -545,7 +576,8 @@ button.danger {
   z-index: 60;
 }
 
-.toast.show {
+.toast.show,
+#toast.show {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
@@ -560,8 +592,9 @@ button.danger {
   display: block;
 }
 
-/* ===== Import section ===== */
+/* ===== Import section / CSVインポート ===== */
 
+/* v1.1.4 由来のクラス（念のため残しつつ） */
 .import-section {
   margin-top: 10px;
   border-radius: 14px;
@@ -633,6 +666,46 @@ button.danger {
 
 .import-status.err .dot {
   background: #f97373;
+}
+
+/* v1.1.1 index.html のクラスに合わせたエイリアス */
+.import-area {
+  margin-top: 10px;
+  border-radius: 14px;
+  background: rgba(15,23,42,.9);
+  border: 1px dashed rgba(148,163,184,.75);
+  padding: 10px;
+}
+
+.drop-zone {
+  position: relative;
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(15,23,42,.9);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    background .15s ease,
+    border-color .15s ease,
+    box-shadow .15s ease;
+}
+
+.drop-zone:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.import-title {
+  font-size: 13px;
+  margin: 0 0 2px;
+}
+
+.import-area .import-file-name {
+  font-size: 11px;
+}
+
+.import-area .import-status {
+  font-size: 11px;
 }
 
 /* ===== Calendar (session tab) ===== */
@@ -759,6 +832,11 @@ details.memo summary {
 
 .btnlike span {
   pointer-events: none;
+}
+
+/* ===== Weekly summary ===== */
+.weekly-summary {
+  font-size: 12px;
 }
 
 /* ===== Debug panel ===== */
