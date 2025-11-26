@@ -1,7 +1,7 @@
 {
   "name": "Train Punch",
   "short_name": "Train Punch",
-  "start_url": "./train.html",
+  "start_url": "./session.html",
   "display": "standalone",
   "background_color": "#050608",
   "theme_color": "#111111",
