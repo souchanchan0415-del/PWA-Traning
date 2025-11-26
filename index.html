@@ -31,7 +31,7 @@
 
       <p style="font-size:0.8rem; color:#7a7d89; margin-top:8px;">
         ※ホーム画面に追加して使う場合は、<br>
-        Train Punch を開いた画面（train.html）で追加するとスムーズです。
+        Train Punch を開いた画面（session.html）で追加するとスムーズです。
       </p>
     </section>
   </main>
@@ -41,7 +41,7 @@
   </footer>
 
   <script>
-    // ここでも SW を登録してOK（train.html と同じ）
+    // ここでも SW を登録してOK（session.html と同じ）
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(console.error);
