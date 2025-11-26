@@ -1,8 +1,8 @@
-const CACHE_NAME = 'train-punch-cache-v4';
+const CACHE_NAME = 'train-punch-cache-v5';
 const ASSETS = [
   './',
   './index.html',
-  './train.html',
+  './session.html',
   './style.css',
   './app.js',
   './manifest.webmanifest'
@@ -38,8 +38,8 @@ self.addEventListener('fetch', event => {
         cached ||
         fetch(req).catch(() => {
           if (req.mode === 'navigate') {
-            // オフライン時はとりあえず train.html を返すのもアリ
-            return caches.match('./train.html') || caches.match('./index.html');
+            // オフライン時はとりあえず session.html を返す
+            return caches.match('./session.html') || caches.match('./index.html');
           }
         })
       );
