@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Train Punch | トレーニング記録</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111111">
+  <link rel="stylesheet" href="./styles.css"><!-- ← styles.css 前提 -->
+  <link rel="manifest" href="./manifest.webmanifest">
+</head>
+<body>
+  <header class="header">
+    <h1>Train Punch</h1>
+    <p class="header-sub">トレーニング記録アプリ / ローカル保存版 v0.1</p>
+    <p style="margin-top:6px;font-size:0.75rem;">
+      <a href="./index.html" style="color:#4f8cff;text-decoration:none;">← ホームに戻る</a>
+    </p>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2 class="card-title">記録入力</h2>
+      <form id="logForm" class="form">
+        <div class="field">
+          <label for="date">日付</label>
+          <input type="date" id="date" required>
+        </div>
+
+        <div class="field">
+          <label for="exercise">種目</label>
+          <input type="text" id="exercise" placeholder="ベンチプレス" required>
+        </div>
+
+        <div class="field-group">
+          <div class="field">
+            <label for="weight">重量(kg)</label>
+            <input type="number" id="weight" step="0.5" inputmode="decimal" required>
+          </div>
+          <div class="field">
+            <label for="reps">回数</label>
+            <input type="number" id="reps" inputmode="numeric" required>
+          </div>
+          <div class="field">
+            <label for="rpe">RPE</label>
+            <input type="number" id="rpe" step="0.5" inputmode="decimal" placeholder="7.5">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="memo">メモ</label>
+          <textarea id="memo" rows="2" placeholder="セットの感覚など自由に"></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary">保存する</button>
+        <p id="message" class="message"></p>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="card-header-row">
+        <h2 class="card-title">記録一覧</h2>
+        <button id="clearAll" class="btn-danger small">全部削除</button>
+      </div>
+      <div id="emptyState" class="empty">まだ記録がありません</div>
+      <div class="table-wrapper">
+        <table class="log-table" id="logTable">
+          <thead>
+            <tr>
+              <th>日付</th>
+              <th>種目</th>
+              <th>重量</th>
+              <th>回数</th>
+              <th>RPE</th>
+              <th>メモ</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="logBody">
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <small>Train Punch のデータは、この端末のブラウザ(localStorage)に保存されます。</small>
+  </footer>
+
+  <script src="./app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>
