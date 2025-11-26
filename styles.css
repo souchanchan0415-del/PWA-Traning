@@ -1,23 +1,21 @@
 /* Train Punch UI — heavy gym × diesel punk
-   index.html v1.1.1 用フルテーマCSS
+   styles.css v1.1.1
 */
 
-/* ===== Reset ===== */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
 
-/* ===== CSS Variables ===== */
 :root {
   --bg: #05070f;
   --bg-elevated: #101624;
   --bg-elevated-alt: #121927;
   --bg-soft: #0b101a;
-  --primary: #f97316;      /* パンチのオレンジ */
+  --primary: #f97316;
   --primary-soft: rgba(249,115,22,.15);
-  --accent: #0fb6a9;       /* TPロゴのティール寄り */
+  --accent: #0fb6a9;
   --accent-soft: rgba(15,182,169,.18);
   --text: #e5e7eb;
   --muted: #9ca3af;
@@ -30,6 +28,7 @@
 }
 
 /* ===== Base ===== */
+
 html,
 body {
   margin: 0;
@@ -45,11 +44,13 @@ body {
 html {
   scroll-behavior: smooth;
 }
+
 body.scrolling {
   scroll-behavior: auto;
 }
 
 /* ===== Layout ===== */
+
 .container {
   width: 100%;
   max-width: 980px;
@@ -57,169 +58,123 @@ body.scrolling {
   padding: 88px 14px 86px;
 }
 
-/* index.html だけは余白を詰める */
 body.index-page .container {
-  padding-top: 40px;
+  /* ヒーローヘッダーのすぐ下から始まるように */
+  padding-top: 14px;
 }
 
-/* ===== App bar / Logo / Tabs (共通) ===== */
+/* ===== Hero Appbar (index 専用) ===== */
 
 .appbar {
   position: sticky;
   top: 0;
   z-index: 40;
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  align-items: center;
   padding: 10px 16px 8px;
-  background:
-    linear-gradient(
-      120deg,
-      rgba(15,23,42,.96),
-      rgba(30,64,175,.96),
-      rgba(127,29,29,.98)
-    );
+  background: rgba(2,6,23,.95);
   box-shadow:
     0 1px 0 rgba(148,163,184,.35),
     0 18px 38px rgba(0,0,0,.72);
-  border-bottom: 1px solid rgba(248,250,252,.14);
+  border-bottom: 1px solid rgba(15,23,42,.9);
 }
 
-/* プライバシー・特商法ページなどの .logo */
-.logo {
-  margin: 0;
+/* index のヒーローでは見た目をガラッと変える */
+.index-page .appbar.appbar--hero {
+  position: relative;
   padding: 0;
-  font-size: 22px;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  font-weight: 900;
-  color: #f9fafb;
-  text-shadow:
-    0 0 14px rgba(248,113,113,.7),
-    0 0 4px rgba(15,23,42,.9);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.logo::before {
-  content: "TP";
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  background: radial-gradient(circle at 30% 20%, #fed7aa 0, #ea580c 40%, #7c2d12 100%);
-  color: #0b1120;
-  font-size: 14px;
-  box-shadow:
-    0 0 0 2px rgba(15,23,42,.95),
-    0 10px 20px rgba(0,0,0,.7);
-}
-
-/* ====== index.html 専用 ヒーローヘッダー ====== */
-
-/* index では sticky ではなく、下の hero カードだけを表示 */
-body.index-page .appbar {
-  position: static;
   background: transparent;
   box-shadow: none;
   border-bottom: none;
-  padding: 16px 0 0;
 }
 
-.appbar--hero {
-  justify-content: center;
-}
-
-.appbar--hero .hero-inner {
-  width: 100%;
+.index-page .hero-inner {
   max-width: 980px;
   margin: 0 auto;
-  padding: 14px 16px 20px;
-  border-radius: 24px;
+  padding: 14px 14px 12px;
+  border-radius: 0 0 28px 28px;
   background:
-    radial-gradient(circle at 0% 0%, rgba(248,250,252,.12) 0, transparent 55%),
-    linear-gradient(120deg, #1d4ed8, #6366f1, #ec4899, #b91c1c);
+    linear-gradient(120deg, #1d4ed8, #4f46e5, #b91c1c);
   box-shadow:
-    0 10px 30px rgba(0,0,0,.75),
-    0 0 0 1px rgba(15,23,42,.85);
+    0 14px 40px rgba(0,0,0,.9);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
 }
 
-/* 左側：TP アイコン＋縦2行ロゴ */
+/* 左側ブランド部分（TP 四角＋2行タイトル） */
+
 .hero-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .hero-logo-square {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 14px;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 30% 20%, #fed7aa 0, #f97316 40%, #7c2d12 100%);
-  color: #111827;
-  font-size: 18px;
   font-weight: 900;
+  font-size: 17px;
+  letter-spacing: .06em;
+  background: radial-gradient(circle at 20% 20%, #fed7aa 0, #f97316 45%, #7c2d12 100%);
+  color: #111827;
   box-shadow:
-    0 0 0 2px rgba(15,23,42,.95),
-    0 14px 30px rgba(0,0,0,.75);
+    0 0 0 2px rgba(15,23,42,.9),
+    0 10px 24px rgba(0,0,0,.9);
 }
 
 .hero-title-lines {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.08;
+  line-height: 1.1;
 }
 
 .hero-title-lines span {
-  font-size: 22px;
-  font-weight: 900;
-  letter-spacing: .24em;
-  text-transform: uppercase;
+  display: block;
+  font-weight: 800;
+  letter-spacing: .22em;
+  font-size: 15px;
   color: #f9fafb;
-  text-shadow:
-    0 0 10px rgba(15,23,42,.9),
-    0 0 28px rgba(15,23,42,1);
 }
 
-/* 右側：丸タブの入ったカプセル */
+.hero-title-lines span:last-child {
+  margin-top: 2px;
+}
+
+/* ===== Tabs (hero 版) ===== */
+
 .tabs {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px;
-  background: rgba(15,23,42,.75);
-  border-radius: 999px;
-  border: 1px solid rgba(148,163,184,.5);
-  box-shadow:
-    inset 0 0 0 1px rgba(15,23,42,.85),
-    0 10px 20px rgba(0,0,0,.7);
 }
 
-/* ヒーロー用のタブ（他ページではほぼ使わない） */
 .tabs-hero {
-  transform: translateY(6px); /* 少し下にずらして「乗っている」感じに */
+  margin-left: auto;
+  padding: 4px 6px;
+  background: radial-gradient(circle at top, rgba(15,23,42,.96), rgba(15,23,42,.98));
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,.75);
+  box-shadow:
+    0 10px 26px rgba(0,0,0,.9),
+    inset 0 0 0 1px rgba(15,23,42,.9);
 }
 
-.tabs button {
+.tabs-hero button {
   position: relative;
   border: none;
+  min-width: 64px;
+  height: 40px;
+  padding: 0 16px;
   border-radius: 999px;
-  padding: 6px 14px;
   background: transparent;
-  color: var(--muted);
+  color: rgba(229,231,235,.8);
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: .08em;
+  letter-spacing: .14em;
   text-transform: uppercase;
   cursor: pointer;
   transition:
@@ -229,36 +184,45 @@ body.index-page .appbar {
     transform .08s ease;
 }
 
-/* 丸いタブのサイズをスクショ寄りに大きく */
-.tabs-hero button {
-  min-width: 64px;
-  height: 48px;
-  padding-inline: 10px;
-  border-radius: 999px;
-}
-
-/* アクティブタブ＝オレンジ丸 */
-.tabs button.active {
+.tabs-hero button.active {
   background:
-    radial-gradient(circle at top, rgba(248,250,252,.16) 0, transparent 55%),
-    linear-gradient(120deg, #f97316, #f97316, #fb923c);
-  color: #0b1120;
+    radial-gradient(circle at 30% 20%, #fed7aa 0, #f97316 45%, #b91c1c 100%);
+  color: #111827;
   box-shadow:
-    0 0 0 1px rgba(15,23,42,.65),
-    0 12px 24px rgba(0,0,0,.85);
-  transform: translateY(-1px);
+    0 1px 0 rgba(248,250,252,.5),
+    0 10px 24px rgba(0,0,0,.95);
 }
 
-/* 非アクティブ（グレー丸） */
-.tabs button:not(.active) {
-  background: radial-gradient(circle at top, rgba(15,23,42,.8) 0, rgba(15,23,42,.98) 60%);
-  color: #d1d5db;
-  box-shadow:
-    0 0 0 1px rgba(15,23,42,.9),
-    0 8px 16px rgba(0,0,0,.7);
+.tabs-hero button:not(.active):hover {
+  background: rgba(15,23,42,.85);
+  color: #e5e7eb;
 }
-.tabs button:not(.active):hover {
-  background: rgba(30,64,175,.65);
+
+.tabs-hero button:active {
+  transform: translateY(1px);
+}
+
+/* 小さめ画面では縦並び */
+
+@media (max-width: 640px) {
+  .index-page .hero-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .tabs-hero {
+    align-self: center;
+    margin-top: 8px;
+  }
+}
+
+/* ほかのページ（privacy/support 等）の appbar では従来レイアウトを維持 */
+
+body:not(.index-page) .appbar .logo {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  font-weight: 800;
   color: #f9fafb;
 }
 
@@ -278,47 +242,12 @@ body.index-page .appbar {
   margin-bottom: 14px;
 }
 
-.card h3 {
-  margin: 0 0 10px;
+.card-header h2 {
+  margin: 0 0 8px;
   font-size: 15px;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: #fef3c7;
-}
-
-/* dataStatus card */
-.settings-info {
-  background:
-    linear-gradient(120deg, rgba(15,23,42,.9), rgba(30,64,175,.75));
-  border-color: rgba(129,140,248,.8);
-  box-shadow:
-    0 18px 34px rgba(15,23,42,.95),
-    0 0 0 1px rgba(15,23,42,.8);
-}
-
-.settings-info-title {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .18em;
-  color: rgba(226,232,240,.86);
-}
-
-.settings-info-body {
-  font-size: 13px;
-  color: #e5e7eb;
 }
 
 /* ===== Typography ===== */
-
-h4.subtle {
-  margin: 12px 0 6px;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: .13em;
-  color: var(--muted);
-}
 
 .small {
   font-size: 11px;
@@ -327,6 +256,14 @@ h4.subtle {
 
 .muted {
   color: var(--muted);
+}
+
+.subheading {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  margin: 10px 0 6px;
 }
 
 /* ===== Form controls ===== */
@@ -343,19 +280,32 @@ input[type="date"] {
   color-scheme: dark;
 }
 
-.row {
-  display: flex;
-  flex-wrap: wrap;
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
   gap: 8px;
-  align-items: center;
-  margin: 6px 0;
 }
 
-.row.end {
-  justify-content: flex-end;
+.form-grid .field:nth-child(1) {
+  grid-column: 1 / -1;
 }
 
-/* Text inputs */
+@media (min-width: 640px) {
+  .form-grid {
+    grid-template-columns: repeat(3, minmax(0,1fr));
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field span {
+  font-size: 11px;
+  color: var(--muted);
+}
 
 input,
 select,
@@ -363,7 +313,8 @@ textarea {
   width: 100%;
   border-radius: 12px;
   border: 1px solid rgba(148,163,184,.55);
-  background: radial-gradient(circle at top, rgba(248,250,252,.04) 0, transparent 55%),
+  background:
+    radial-gradient(circle at top, rgba(248,250,252,.04) 0, transparent 55%),
     var(--bg-soft);
   color: var(--text);
   padding: 8px 10px;
@@ -389,8 +340,6 @@ textarea:focus {
   background: #020617;
 }
 
-/* Select */
-
 select {
   padding-right: 32px;
   appearance: none;
@@ -401,21 +350,9 @@ select {
   background-repeat: no-repeat;
 }
 
-/* Textarea */
-
 textarea {
   resize: vertical;
   min-height: 60px;
-}
-
-/* Check & labels */
-
-label.check {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  font-size: 13px;
 }
 
 /* ===== Buttons ===== */
@@ -449,14 +386,10 @@ button:hover {
 
 button:active {
   transform: translateY(1px) scale(.99);
-  box-shadow:
-    0 0 0 rgba(0,0,0,0.5);
+  box-shadow: 0 0 0 rgba(0,0,0,0.5);
 }
 
-/* Ghost button */
-
-button.ghost,
-.btnlike.ghost {
+button.ghost {
   background: rgba(15,23,42,.8);
   color: var(--muted);
   border: 1px solid rgba(148,163,184,.6);
@@ -465,8 +398,7 @@ button.ghost,
     0 8px 16px rgba(0,0,0,.6);
 }
 
-button.ghost:hover,
-.btnlike.ghost:hover {
+button.ghost:hover {
   color: #e5e7eb;
   border-color: rgba(249,115,22,.9);
   box-shadow:
@@ -474,59 +406,21 @@ button.ghost:hover,
     0 14px 24px rgba(0,0,0,.8);
 }
 
-/* Danger */
-
 button.danger {
   background: linear-gradient(135deg, #ef4444, #b91c1c);
   color: #fef2f2;
 }
 
-/* Sticky save bar */
+/* ===== Chip rows ===== */
 
-.sticky-save {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 35;
-  padding: 10px 16px 14px;
-  background:
-    linear-gradient(to top, rgba(15,23,42,.98), rgba(15,23,42,.9), transparent);
-  border-top: 1px solid rgba(148,163,184,.6);
-  display: flex;
-  justify-content: center;
-}
-
-.sticky-save button {
-  min-width: min(260px, 100%);
-}
-
-/* ===== Grid ===== */
-
-.grid {
-  display: grid;
-  gap: 8px;
-}
-
-.grid-3 {
-  grid-template-columns: repeat(3, minmax(0,1fr));
-}
-
-@media (max-width: 640px) {
-  .grid-3 {
-    grid-template-columns: repeat(2, minmax(0,1fr));
-  }
-}
-
-/* ===== Chips ===== */
-
-.chipset {
+.chip-row {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin: 6px 0;
 }
 
-.chipset .chip {
+.chip-row .chip {
   padding: 5px 11px;
   border-radius: var(--radius-pill);
   font-size: 12px;
@@ -542,7 +436,7 @@ button.danger {
     box-shadow .12s ease;
 }
 
-.chipset .chip.active {
+.chip-row .chip.active {
   background:
     radial-gradient(circle at top, rgba(248,250,252,.18) 0, transparent 55%),
     linear-gradient(135deg, var(--accent), #22c55e);
@@ -553,35 +447,7 @@ button.danger {
     0 12px 22px rgba(0,0,0,.85);
 }
 
-/* chipbar (部位フィルタ) */
-
-.chipbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 4px;
-}
-
-.chipbar button {
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  font-size: 11px;
-  text-transform: none;
-  letter-spacing: .03em;
-  background: rgba(15,23,42,.9);
-  color: var(--muted);
-  border: 1px solid rgba(75,85,99,.9);
-  box-shadow: none;
-}
-
-.chipbar button.is-active {
-  background:
-    linear-gradient(135deg, var(--primary), #fb923c);
-  border-color: rgba(253,186,116,.95);
-  color: #111827;
-}
-
-/* ===== Lists & badges ===== */
+/* ===== Lists ===== */
 
 .list {
   list-style: none;
@@ -599,10 +465,6 @@ button.danger {
   background: rgba(15,23,42,.82);
   border: 1px solid rgba(30,64,175,.7);
   margin-bottom: 6px;
-}
-
-.list li > div:first-child {
-  flex: 1;
 }
 
 .badge {
@@ -654,105 +516,34 @@ button.danger {
 .tab {
   display: none;
 }
+
 .tab.active {
   display: block;
 }
 
-/* ===== Import section ===== */
+/* ===== Calendar ===== */
 
-.import-section {
-  margin-top: 10px;
-  border-radius: 14px;
-  background: rgba(15,23,42,.9);
-  border: 1px dashed rgba(148,163,184,.75);
-  padding: 10px;
-}
-
-.import-drop {
-  position: relative;
-  border-radius: 10px;
-  padding: 10px;
-  background: rgba(15,23,42,.9);
-  text-align: center;
-  cursor: pointer;
-  transition:
-    background .15s ease,
-    border-color .15s ease,
-    box-shadow .15s ease;
-}
-
-.import-drop strong {
-  display: block;
-  font-size: 13px;
-  margin-bottom: 2px;
-}
-
-.import-hint {
-  font-size: 11px;
-  color: var(--muted);
-}
-
-.import-drop.is-dragover {
-  background: rgba(15,182,169,.1);
-  border-color: var(--accent);
-  box-shadow:
-    0 0 0 1px rgba(15,182,169,.7),
-    0 14px 30px rgba(0,0,0,.9);
-}
-
-.import-meta {
+.cal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 6px;
-  font-size: 11px;
-}
-
-.import-file-name {
-  color: var(--muted);
-}
-
-.import-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.import-status .dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--muted);
-}
-
-.import-status.ok .dot {
-  background: #22c55e;
-}
-
-.import-status.err .dot {
-  background: #f97373;
-}
-
-/* ===== Calendar (session tab) ===== */
-
-.cal-header {
   margin-bottom: 6px;
 }
 
-.cal-header button {
-  font-size: 12px;
-  padding: 5px 10px;
-}
-
-.cal-weekdays span {
+.cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  gap: 4px;
   font-size: 10px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
   color: var(--muted);
 }
 
 .cal-grid {
   margin-top: 6px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
 }
 
 .cal-cell {
@@ -764,6 +555,7 @@ button.danger {
   align-items: flex-end;
   justify-content: flex-start;
   padding: 3px 5px 3px;
+  min-height: 32px;
   cursor: pointer;
   transition:
     transform .07s ease,
@@ -806,81 +598,23 @@ button.danger {
   transform: translateY(-1px);
 }
 
-/* ===== Memo details ===== */
-
-details.memo {
-  margin-top: 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(75,85,99,.9);
-  background: rgba(15,23,42,.85);
-  padding: 4px 8px 8px;
-}
-
-details.memo summary {
-  cursor: pointer;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-/* ===== History ===== */
-
-#historyList .details {
-  margin-top: 6px;
-  font-size: 12px;
-}
-
-/* ===== Charts ===== */
-
-#chart,
-#trendChart {
-  width: 100%;
-  max-width: 100%;
-  display: block;
-}
-
-/* ===== Settings links ===== */
-
-.btnlike {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(148,163,184,.7);
-  background: rgba(15,23,42,.95);
-  text-decoration: none;
-  color: #e5e7eb;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.btnlike span {
-  pointer-events: none;
-}
-
-/* ===== Debug panel ===== */
-
-#tp-debug {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-}
-
 /* ===== Media ===== */
 
 @media (min-width: 1024px) {
   .container {
     padding-top: 96px;
   }
+
   body.index-page .container {
-    padding-top: 52px;
+    padding-top: 18px;
   }
+
   .card {
     padding: 16px 18px 18px;
   }
 }
 
-/* Light theme (デフォルトはダーク。ライト指定時だけ少し明るくする) */
-
+/* Light theme (ほぼダークだけど一応) */
 html[data-theme="light"],
 :root[data-theme="light"] {
   --bg: #f3f4f6;
