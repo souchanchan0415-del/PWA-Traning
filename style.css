@@ -1,0 +1,195 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  background: #050608;
+  color: #f5f5f5;
+}
+
+.header {
+  padding: 16px;
+  text-align: center;
+  background: #111318;
+  border-bottom: 1px solid #22252f;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.header-sub {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: #a0a3b1;
+}
+
+.container {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.card {
+  background: #111318;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.card-title {
+  margin: 0 0 12px;
+  font-size: 1.1rem;
+}
+
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.form .field {
+  margin-bottom: 10px;
+}
+
+.field-group {
+  display: flex;
+  gap: 8px;
+}
+
+.field-group .field {
+  flex: 1;
+}
+
+label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.85rem;
+  color: #c2c5d3;
+}
+
+input,
+textarea,
+button {
+  width: 100%;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #2a2e3b;
+  background: #181b24;
+  color: #f5f5f5;
+  font-size: 0.95rem;
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
+  border-color: #4f8cff;
+  box-shadow: 0 0 0 1px rgba(79, 140, 255, 0.4);
+}
+
+textarea {
+  resize: vertical;
+}
+
+.btn-primary,
+.btn-danger {
+  cursor: pointer;
+  border: none;
+  font-weight: 600;
+}
+
+.btn-primary {
+  background: #4f8cff;
+  border-color: #4f8cff;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-danger {
+  background: #ff4f6a;
+  border-color: #ff4f6a;
+}
+
+.btn-danger.small {
+  width: auto;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+}
+
+.message {
+  min-height: 1.2em;
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+  color: #a0f0a0;
+}
+
+.empty {
+  font-size: 0.85rem;
+  color: #a0a3b1;
+}
+
+.table-wrapper {
+  margin-top: 8px;
+  overflow-x: auto;
+}
+
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.log-table th,
+.log-table td {
+  border-bottom: 1px solid #22252f;
+  padding: 4px 6px;
+  vertical-align: top;
+}
+
+.log-table th {
+  text-align: left;
+  white-space: nowrap;
+  color: #c2c5d3;
+}
+
+.log-table td:last-child {
+  width: 40px;
+}
+
+.btn-row-delete {
+  padding: 2px 4px;
+  font-size: 0.7rem;
+  background: #ff4f6a;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.footer {
+  text-align: center;
+  padding: 8px 16px 16px;
+  font-size: 0.75rem;
+  color: #7a7d89;
+}
+
+/* 大きい画面用の微調整 */
+@media (min-width: 768px) {
+  .header h1 {
+    font-size: 1.8rem;
+  }
+  .container {
+    padding: 24px;
+  }
+  .card {
+    padding: 20px;
+  }
+}
