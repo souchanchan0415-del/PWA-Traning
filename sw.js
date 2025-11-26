@@ -1,11 +1,11 @@
-// Train Punch Service Worker — v1.1.4 (auto update)
+// Train Punch Service Worker — v1.1.1 (auto update)
 // - VERSION ごとにキャッシュ名を分離
 // - HTML: navigationPreload + ネット優先 → 同一ページキャッシュ → index.html
 // - JS/CSS/画像など: ネット優先 → 成功時にキャッシュ更新 → オフライン時はキャッシュ
 // - install で skipWaiting() して新 SW を即アクティブ化
 // - activate で旧キャッシュ掃除 + clients.claim()
 
-const VERSION = '1.1.4';
+const VERSION = '1.1.1';
 const CACHE   = `trainpunch-${VERSION}`;
 const ORIGIN  = self.location.origin;
 const Q       = `?v=${VERSION}`;
@@ -27,7 +27,7 @@ const ASSETS = [
   ...PAGES,
   `./styles.css${Q}`,
   `./app-data.js${Q}`,        // 種目データ＆ワンポイント
-  `./app-analytics.js${Q}`,   // ★ 追加：解析用ヘルパー
+  `./app-analytics.js${Q}`,   // 解析用ヘルパー
   `./app.js${Q}`,
   `./sw-register.js${Q}`,
   './manifest.webmanifest',
@@ -50,7 +50,7 @@ self.addEventListener('install', (event) => {
       )
     );
 
-    // ★ 新しい SW を即座に有効化（待機しない）
+    // 新しい SW を即座に有効化（待機しない）
     self.skipWaiting();
   })());
 });
@@ -72,7 +72,7 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
-// 必要時のみ即時有効化（sw-register.js からの明示メッセージにも対応は残す）
+// 必要時のみ即時有効化（sw-register.js からの明示メッセージ）
 self.addEventListener('message', (e) => {
   if (e?.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
