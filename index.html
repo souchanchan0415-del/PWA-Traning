@@ -20,17 +20,21 @@
   <link rel="preload" href="styles.css?v=1.1.1" as="style">
   <link rel="stylesheet" href="styles.css?v=1.1.1">
 </head>
-<body>
+<body class="index-page">
   <div id="app">
-    <!-- ===== ヒーローヘッダー＋丸タブ ===== -->
-    <header class="hero" role="banner">
+    <!-- ===== ヒーローヘッダー＋丸タブ（スクショ1イメージ） ===== -->
+    <header class="appbar appbar--hero" role="banner">
       <div class="hero-inner">
-        <div class="hero-logo">
-          <h1 class="logo">TRAIN PUNCH</h1>
+        <div class="hero-brand">
+          <div class="hero-logo-square">TP</div>
+          <div class="hero-title-lines">
+            <span>TRAIN</span>
+            <span>PUNCH</span>
+          </div>
         </div>
 
-        <!-- タブはそのまま（JS互換のため class="tabs" / data-tab は変更しない） -->
-        <nav class="tabs" role="tablist">
+        <!-- タブ：data-tab や text は従来通り -->
+        <nav class="tabs tabs-hero" role="tablist">
           <button type="button" data-tab="session"  class="active" aria-selected="true">セッション</button>
           <button type="button" data-tab="analytics" aria-selected="false">解析</button>
           <button type="button" data-tab="history"  aria-selected="false">履歴</button>
@@ -39,7 +43,7 @@
       </div>
     </header>
 
-    <!-- Toast（sw-register.js / app.js 共通） -->
+    <!-- Toast（app.js / sw-register.js 共通） -->
     <div id="toast" class="toast" aria-live="polite"></div>
 
     <main class="container">
