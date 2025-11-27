@@ -22,6 +22,7 @@
       </p>
 
       <a
+        id="open-session"
         href="./session.html"
         class="btn-primary"
         style="display:block; width:100%; margin-bottom:8px; text-align:center; text-decoration:none;"
@@ -41,12 +42,43 @@
   </footer>
 
   <script>
-    // ここでも SW を登録してOK（session.html と同じ）
+    // Service Worker 登録
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(console.error);
       });
     }
+
+    // 「Train Punch を開く」を押したときにキャッシュをリフレッシュしてから遷移
+    document.addEventListener('DOMContentLoaded', () => {
+      const openLink = document.getElementById('open-session');
+      if (!openLink) return;
+
+      openLink.addEventListener('click', async (event) => {
+        event.preventDefault(); // 通常の遷移を止める
+
+        try {
+          // 1. 既存のキャッシュを全部削除
+          if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map((key) => caches.delete(key)));
+          }
+
+          // 2. SW の更新を確認
+          if ('serviceWorker' in navigator) {
+            const reg = await navigator.serviceWorker.getRegistration();
+            if (reg) {
+              await reg.update();
+            }
+          }
+        } catch (err) {
+          console.error('cache refresh error:', err);
+        } finally {
+          // 3. 最終的には必ずワークアウト画面へ遷移
+          window.location.href = openLink.href;
+        }
+      });
+    });
   </script>
 </body>
 </html>
