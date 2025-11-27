@@ -208,6 +208,33 @@ textarea {
   font-weight: 600;
 }
 
+/* RPE ヘルプ用 */
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.help-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid #2a2e3b;
+  font-size: 0.75rem;
+  color: #c2c5d3;
+  background: #181b24;
+}
+
+.help-text {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: #a0a3b1;
+  line-height: 1.5;
+}
+
 /* 大きい画面用の微調整 */
 @media (min-width: 768px) {
   .header h1 {
