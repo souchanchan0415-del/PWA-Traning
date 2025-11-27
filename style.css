@@ -247,12 +247,13 @@ textarea {
   gap: 6px;
   margin-top: 6px;
   margin-bottom: 4px;
-  overflow-x: auto;              /* 横スクロール可能に */
+  overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 .bodypart-tab {
-  flex: 0 0 auto;                /* 折り返さない */
+  flex: 0 0 auto;      /* 折り返さない */
+  width: auto;         /* グローバルの width:100% を打ち消す */
   padding: 6px 12px;
   border-radius: 999px;
   border: 1px solid #2a2e3b;
