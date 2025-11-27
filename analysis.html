@@ -33,6 +33,18 @@
       </div>
     </section>
 
+    <!-- 直近7日分の部位別割合（円グラフ） -->
+    <section class="card">
+      <h2 class="card-title">1週間 部位別ボリューム割合</h2>
+      <p style="font-size:0.9rem; color:#c2c5d3;">
+        直近7日分の合計ボリューム（重量×回数×セット数）を、<br>
+        部位ごとの割合で表示します。
+      </p>
+      <div style="margin-top:12px; height:260px;">
+        <canvas id="bodyPartPieChart"></canvas>
+      </div>
+    </section>
+
     <!-- 直近7日分の平均RPE -->
     <section class="card">
       <h2 class="card-title">1日平均 RPE</h2>
@@ -102,12 +114,91 @@
 
     const logs = loadLogs();
     const last7Days = getLast7Days();
+    const last7DaySet = new Set(last7Days);
 
     // 表示用ラベル（YYYY-MM-DD → MM/DD）
     const shortLabels = last7Days.map(dateStr => {
       // "2025-11-27" → "11/27"
       return dateStr.substring(5).replace('-', '/');
     });
+
+    // ---- 種目 → 部位 マッピング -----------------------------------------
+
+    const EXERCISE_TO_PART = {
+      // 胸
+      'ベンチプレス': '胸',
+      '足上げベンチ': '胸',
+      'スミスマシンベンチプレス': '胸',
+      'インクラインダンベルプレス': '胸',
+      'インクラインマシンプレス': '胸',
+      'ディップス': '胸',
+      'ディップス(荷重)': '胸',
+      'ケーブルクロスオーバー': '胸',
+      'ペックフライ': '胸',
+      'チェストプレス': '胸',
+      'スミス インクラインプレス': '胸',
+      'スミス デクラインプレス': '胸',
+
+      // 背中
+      'デットリフト': '背中',
+      'ハーフデットリフト': '背中',
+      'デッドリフト': '背中',
+      'ハーフデッドリフト': '背中',
+      'チンニング': '背中',
+      '懸垂': '背中',
+      'ラットプルダウン': '背中',
+      'ラットプルダウン（ナロー）': '背中',
+      'ラットプルダウン（ちょーナロー）': '背中',
+      'ワイドラットプルダウン': '背中',
+      'スミスマシンベントオーバーロウ': '背中',
+      'ベントオーバーロウ': '背中',
+      'ローロウ': '背中',
+      'シーテッドロウ': '背中',
+      'Tバーロウ': '背中',
+      'Tバーロー': '背中',
+
+      // 肩
+      'ダンベルショルダープレス': '肩',
+      'スミスマシンショルダープレス': '肩',
+      'スミスショルダープレス': '肩',
+      'マシンショルダープレス': '肩',
+      'ケーブルフロントレイズ': '肩',
+      'サイドレイズ': '肩',
+      'ベンチサイドレイズ': '肩',
+      'ケーブルサイドレイズ': '肩',
+      'ケーブルリアレイズ': '肩',
+      'リアデルトイド': '肩',
+
+      // 脚
+      'スクワット': '脚',
+      'バーベルスクワット': '脚',
+      'レッグプレス': '脚',
+      'バックスクワット': '脚',
+      'レッグカール': '脚',
+      'レッグエクステンション': '脚',
+      'インナーサイ': '脚',
+      'ルーマニアンデットリフト': '脚',
+      'スティフレッグデッドリフト': '脚',
+
+      // 腕
+      'バーベルカール': '腕',
+      'インクラインダンベルカール': '腕',
+      'ハンマーカール': '腕',
+      'ダンベルプリチャーカール(右/左)': '腕',
+      'インクラインダンベルカール(右/左)': '腕',
+      'スミスマシンナロープレス': '腕',
+      'ナロープレス': '腕',
+      'スカルクラッシャー': '腕',
+      'フレンチプレス': '腕',
+      'ケーブルプレスダウン': '腕',
+      'スミスJMプレス': '腕',
+      '[三頭]ケーブルプレスダウン': '腕',
+
+      // その他
+      'その他': 'その他'
+    };
+
+    const BODY_PARTS = ['胸', '背中', '肩', '脚', '腕', 'その他'];
 
     // ---- 集計ロジック ---------------------------------------------------
 
@@ -130,6 +221,36 @@
       }
       return sum;
     });
+
+    // 部位別ボリューム（直近7日分合計）
+    const bodyPartVolume = {
+      '胸': 0,
+      '背中': 0,
+      '肩': 0,
+      '脚': 0,
+      '腕': 0,
+      'その他': 0
+    };
+
+    for (const log of logs) {
+      if (!last7DaySet.has(log.date)) continue;
+
+      const w = Number(log.weight);
+      const r = Number(log.reps);
+      const s = log.sets != null && log.sets !== ''
+        ? Number(log.sets)
+        : 1;
+
+      if (Number.isNaN(w) || Number.isNaN(r) || Number.isNaN(s)) continue;
+
+      const vol = w * r * s;
+      const part = EXERCISE_TO_PART[log.exercise] || 'その他';
+      if (!bodyPartVolume.hasOwnProperty(part)) {
+        bodyPartVolume['その他'] += vol;
+      } else {
+        bodyPartVolume[part] += vol;
+      }
+    }
 
     // 1日あたりの平均RPE
     const dailyAvgRpe = last7Days.map(dateStr => {
@@ -201,6 +322,44 @@
       });
     }
 
+    function createBodyPartPieChart() {
+      const ctx = document.getElementById('bodyPartPieChart');
+      if (!ctx) return;
+
+      const data = BODY_PARTS.map(part => bodyPartVolume[part] || 0);
+
+      new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: BODY_PARTS,
+          datasets: [
+            {
+              data,
+              backgroundColor: [
+                '#4f8cff', // 胸
+                '#50c878', // 背中
+                '#f4c542', // 肩
+                '#ff6b6b', // 脚
+                '#a56bff', // 腕
+                '#8892b0'  // その他
+              ]
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: '#f5f5f5'
+              }
+            }
+          }
+        }
+      });
+    }
+
     function createDailyRpeChart() {
       const ctx = document.getElementById('dailyRpeChart');
       if (!ctx) return;
@@ -260,6 +419,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       createWeeklyVolumeChart();
+      createBodyPartPieChart();
       createDailyRpeChart();
     });
   </script>
