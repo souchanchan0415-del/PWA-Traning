@@ -45,10 +45,15 @@
             <button type="button" class="bodypart-tab" data-part="other">その他</button>
           </div>
 
-          <!-- 種目リスト（部位タブを押すとここに出る） -->
-          <div id="exerciseList" class="exercise-list"></div>
+          <!-- 種目リスト（最初は非表示） -->
+          <div id="exerciseList" class="exercise-list" style="display:none;"></div>
 
-          <p class="selected-exercise-label">
+          <!-- 選択中の種目表示（最初は非表示） -->
+          <p
+            class="selected-exercise-label"
+            id="selectedExerciseWrapper"
+            style="display:none;"
+          >
             選択中の種目：<span id="selectedExerciseLabel">未選択</span>
           </p>
 
@@ -208,8 +213,17 @@
       const exerciseList = document.getElementById('exerciseList');
       const exerciseInput = document.getElementById('exercise');
       const selectedLabel = document.getElementById('selectedExerciseLabel');
+      const selectedWrapper = document.getElementById('selectedExerciseWrapper');
 
-      if (!bodypartTabs.length || !exerciseList || !exerciseInput || !selectedLabel) return;
+      if (!bodypartTabs.length || !exerciseList || !exerciseInput || !selectedLabel || !selectedWrapper) return;
+
+      function clearSelection() {
+        exerciseInput.value = '';
+        selectedLabel.textContent = '未選択';
+        exerciseList.innerHTML = '';
+        exerciseList.style.display = 'none';
+        selectedWrapper.style.display = 'none';
+      }
 
       function renderExercises(partKey) {
         exerciseList.innerHTML = '';
@@ -222,11 +236,10 @@
           btn.textContent = name;
 
           btn.addEventListener('click', () => {
-            // 選択状態の切り替え
+            // 種目の選択状態を更新
             exerciseList.querySelectorAll('.exercise-chip').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
 
-            // 実際に保存する値を更新
             exerciseInput.value = name;
             selectedLabel.textContent = name;
           });
@@ -234,26 +247,34 @@
           exerciseList.appendChild(btn);
         });
 
-        // 部位を切り替えたら一旦リセット
+        exerciseList.style.display = 'block';
+        selectedWrapper.style.display = 'block';
         exerciseInput.value = '';
         selectedLabel.textContent = '未選択';
       }
 
       bodypartTabs.forEach(tab => {
         tab.addEventListener('click', () => {
-          bodypartTabs.forEach(t => t.classList.remove('active'));
-          tab.classList.add('active');
           const partKey = tab.dataset.part;
+          const isActive = tab.classList.contains('active');
+
+          // いったん全タブの active を外す
+          bodypartTabs.forEach(t => t.classList.remove('active'));
+
+          if (isActive) {
+            // 同じタブをもう一度押したら折りたたむ
+            clearSelection();
+            return;
+          }
+
+          // 押したタブを active にして種目を表示
+          tab.classList.add('active');
           renderExercises(partKey);
         });
       });
 
-      // 初期表示（最初のタブを有効化）
-      const firstTab = bodypartTabs[0];
-      if (firstTab) {
-        firstTab.classList.add('active');
-        renderExercises(firstTab.dataset.part);
-      }
+      // 最初は部位タブだけ見せる（種目リストは非表示のまま）
+      clearSelection();
     });
   </script>
 
