@@ -64,23 +64,33 @@
         </div>
         <!-- ▲ 部位タブ＋種目一覧 ここまで ▲ -->
 
+        <!-- 重量・セット数・回数 -->
         <div class="field-group">
           <div class="field">
             <label for="weight">重量(kg)</label>
             <input type="number" id="weight" step="0.5" inputmode="decimal" required>
           </div>
           <div class="field">
+            <label for="sets">セット数</label>
+            <input type="number" id="sets" inputmode="numeric" min="1">
+          </div>
+          <div class="field">
             <label for="reps">回数</label>
             <input type="number" id="reps" inputmode="numeric" required>
           </div>
-          <div class="field">
+        </div>
+
+        <!-- RPE は一段下にまとめて配置 -->
+        <div class="field">
+          <div class="label-row">
             <label for="rpe">RPE</label>
-            <input type="number" id="rpe" step="0.5" inputmode="decimal" placeholder="7.5">
-            <p class="help-text">
-              0〜10でトレーニングの強度を表す指標です。<br>
-              0 = まったくきつくない / 10 = もう1回は無理なくらい限界。
-            </p>
+            <button type="button" class="help-chip" id="rpeHelpToggle">?</button>
           </div>
+          <input type="number" id="rpe" step="0.5" inputmode="decimal" placeholder="7.5">
+          <p class="help-text" id="rpeHelp">
+            0〜10でトレーニングの強度を表す指標です。<br>
+            0 = まったくきつくない / 10 = もう1回は無理なくらい限界。
+          </p>
         </div>
 
         <div class="field">
@@ -106,6 +116,7 @@
               <th>日付</th>
               <th>種目</th>
               <th>重量</th>
+              <th>セット</th>
               <th>回数</th>
               <th>RPE</th>
               <th>メモ</th>
@@ -125,7 +136,7 @@
 
   <script src="./app.js"></script>
 
-  <!-- 部位タブ＆種目リストの制御用スクリプト -->
+  <!-- 部位タブ＆種目リスト＋RPEヘルプの制御用スクリプト -->
   <script>
     // 部位ごとの種目一覧
     const EXERCISE_GROUPS = {
@@ -267,6 +278,15 @@
 
       // 初期状態は全部閉じる
       clearSelection();
+
+      // ---- RPE ヘルプの開閉 ----
+      const rpeHelpToggle = document.getElementById('rpeHelpToggle');
+      const rpeHelp = document.getElementById('rpeHelp');
+      if (rpeHelpToggle && rpeHelp) {
+        rpeHelpToggle.addEventListener('click', () => {
+          rpeHelp.classList.toggle('show');
+        });
+      }
     });
   </script>
 
