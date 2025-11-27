@@ -294,6 +294,11 @@ textarea {
   box-shadow: 0 0 0 1px rgba(79, 140, 255, 0.4);
 }
 
+/* ★ 追加：非表示用クラス */
+.exercise-chip.hidden {
+  display: none;
+}
+
 .selected-exercise-label {
   margin-top: 8px;
   font-size: 0.8rem;
