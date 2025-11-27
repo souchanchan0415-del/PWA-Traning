@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Train Punch | システム</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111111">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="manifest" href="./manifest.webmanifest">
+</head>
+<body>
+  <header class="header">
+    <h1>Train Punch</h1>
+    <p class="header-sub">トレーニング記録アプリ / ローカル保存版 v0.1</p>
+
+    <nav class="tab-nav">
+      <a href="./session.html" class="tab">ワークアウト</a>
+      <a href="./analysis.html" class="tab">パフォーマンス</a>
+      <a href="./history.html" class="tab">アーカイブ</a>
+      <a href="./settings.html" class="tab active">システム</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2 class="card-title">システム（準備中）</h2>
+      <p style="font-size:0.9rem; color:#c2c5d3;">
+        ここでは、ユーザー名やチーム名、種目プリセット、表示まわりの設定などを行えるようにしていく予定です。
+      </p>
+      <p style="font-size:0.85rem; color:#7a7d89; margin-top:8px;">
+        いまは特別な設定はありません。ワークアウトタブからそのまま使い始めてください。
+      </p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <small>Train Punch のデータは、この端末のブラウザ(localStorage)に保存されます。</small>
+  </footer>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>
