@@ -66,13 +66,11 @@
     }
 
     function loadLogs() {
-      // まずはよくありそうなキー名を試す
       const candidates = ['trainPunchLogs', 'train-punch-logs', 'TRAIN_PUNCH_LOGS'];
       for (const key of candidates) {
         const logs = tryParseArray(localStorage.getItem(key));
         if (logs) return logs;
       }
-      // 見つからなければ localStorage 全探索（既存データとの互換用）
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         const logs = tryParseArray(localStorage.getItem(key));
@@ -102,10 +100,16 @@
       return days; // 古い日付 → 今日 の順
     }
 
-    // ---- 集計ロジック ---------------------------------------------------
-
     const logs = loadLogs();
     const last7Days = getLast7Days();
+
+    // 表示用ラベル（YYYY-MM-DD → MM/DD）
+    const shortLabels = last7Days.map(dateStr => {
+      // "2025-11-27" → "11/27"
+      return dateStr.substring(5).replace('-', '/');
+    });
+
+    // ---- 集計ロジック ---------------------------------------------------
 
     // 1日あたりの合計ボリューム（重量×回数）
     const dailyVolume = last7Days.map(dateStr => {
@@ -122,7 +126,7 @@
       return sum;
     });
 
-    // 1日あたりの平均RPE（その日の全セットの平均）
+    // 1日あたりの平均RPE
     const dailyAvgRpe = last7Days.map(dateStr => {
       let total = 0;
       let count = 0;
@@ -135,7 +139,7 @@
           }
         }
       }
-      return count ? Number((total / count).toFixed(2)) : null; // 記録なしの日は null
+      return count ? Number((total / count).toFixed(2)) : null;
     });
 
     // ---- グラフ描画 -----------------------------------------------------
@@ -147,7 +151,7 @@
       new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: last7Days,
+          labels: shortLabels,
           datasets: [
             {
               label: '合計ボリューム (kg)',
@@ -199,7 +203,7 @@
       new Chart(ctx, {
         type: 'line',
         data: {
-          labels: last7Days,
+          labels: shortLabels,
           datasets: [
             {
               label: '平均RPE',
@@ -249,7 +253,6 @@
       });
     }
 
-    // DOM読み込み後に描画
     document.addEventListener('DOMContentLoaded', () => {
       createWeeklyVolumeChart();
       createDailyRpeChart();
@@ -257,7 +260,6 @@
   </script>
 
   <script>
-    // Service Worker 登録（他ページと同じ）
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(console.error);
