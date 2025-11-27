@@ -242,8 +242,17 @@
           btn.textContent = name;
 
           btn.addEventListener('click', () => {
-            exerciseList.querySelectorAll('.exercise-chip').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+            // クリックされた種目だけ残して他は非表示
+            exerciseList.querySelectorAll('.exercise-chip').forEach(b => {
+              if (b === btn) {
+                b.classList.add('active');
+                b.classList.remove('hidden');
+              } else {
+                b.classList.remove('active');
+                b.classList.add('hidden'); // 非選択の種目を隠す
+              }
+            });
+
             exerciseInput.value = name;
             selectedLabel.textContent = name;
           });
@@ -260,7 +269,7 @@
         tab.addEventListener('click', () => {
           const partKey = tab.dataset.part;
 
-          // 同じ部位をもう一度タップ → 閉じる
+          // 同じ部位をもう一度タップ → 閉じる＆リセット
           if (openPart === partKey) {
             openPart = null;
             bodypartTabs.forEach(t => t.classList.remove('active'));
@@ -268,7 +277,7 @@
             return;
           }
 
-          // 別の部位をタップ → そっちを開く
+          // 別の部位をタップ → そっちを開く（一覧を再生成して全種目表示）
           openPart = partKey;
           bodypartTabs.forEach(t => t.classList.remove('active'));
           tab.classList.add('active');
