@@ -226,6 +226,7 @@ textarea {
   font-size: 0.75rem;
   color: #c2c5d3;
   background: #181b24;
+  cursor: pointer;
 }
 
 .help-text {
@@ -233,6 +234,11 @@ textarea {
   font-size: 0.75rem;
   color: #a0a3b1;
   line-height: 1.5;
+  display: none;
+}
+
+.help-text.show {
+  display: block;
 }
 
 /* 大きい画面用の微調整 */
