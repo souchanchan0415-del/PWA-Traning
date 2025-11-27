@@ -48,13 +48,13 @@
           <div class="field">
             <div class="label-row">
               <label for="rpe">RPE</label>
-              <span class="help-chip">?</span>
+              <span class="help-chip" data-help="rpe">?</span>
             </div>
-            <input type="number" id="rpe" step="0.5" inputmode="decimal" placeholder="7.5">
-            <p class="help-text">
-              0〜10でトレーニングのきつさを表す指標です。<br>
-              0 = まったくきつくない / 10 = もう1回は無理なくらい限界。
+            <p class="help-text" data-help-target="rpe">
+              RPE（0〜10）はトレーニング中の<span style="white-space:nowrap;">主観的な運動強度</span>を表す指標です。<br>
+              0 = とても楽 / 10 = もう1回は無理なくらい限界。
             </p>
+            <input type="number" id="rpe" step="0.5" inputmode="decimal" placeholder="7.5">
           </div>
         </div>
 
@@ -105,6 +105,20 @@
         navigator.serviceWorker.register('./sw.js').catch(console.error);
       });
     }
+
+    // RPE の ? を押したら説明の表示/非表示を切り替え
+    document.addEventListener('click', (event) => {
+      const chip = event.target.closest('.help-chip');
+      if (!chip) return;
+
+      const key = chip.getAttribute('data-help');
+      if (!key) return;
+
+      const help = document.querySelector(`.help-text[data-help-target="${key}"]`);
+      if (!help) return;
+
+      help.classList.toggle('show');
+    });
   </script>
 </body>
 </html>
