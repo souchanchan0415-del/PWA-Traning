@@ -26,7 +26,7 @@
     <section class="card">
       <h2 class="card-title">週間ボリューム（kg）</h2>
       <p style="font-size:0.9rem; color:#c2c5d3;">
-        直近7日分の、1日あたり合計ボリューム（重量×回数）の推移です。
+        直近7日分の、1日あたり合計ボリューム（重量×回数×セット数）の推移です。
       </p>
       <div style="margin-top:12px; height:260px;">
         <canvas id="weeklyVolumeChart"></canvas>
@@ -111,15 +111,23 @@
 
     // ---- 集計ロジック ---------------------------------------------------
 
-    // 1日あたりの合計ボリューム（重量×回数）
+    // 1日あたりの合計ボリューム（重量×回数×セット数）
     const dailyVolume = last7Days.map(dateStr => {
       let sum = 0;
       for (const log of logs) {
         if (log.date === dateStr) {
           const w = Number(log.weight);
           const r = Number(log.reps);
+
+          // セット数がない古いログは 1 セット扱い
+          const sRaw =
+            log.sets === undefined || log.sets === null || log.sets === ''
+              ? 1
+              : Number(log.sets);
+          const s = Number.isNaN(sRaw) ? 1 : sRaw;
+
           if (!Number.isNaN(w) && !Number.isNaN(r)) {
-            sum += w * r;
+            sum += w * r * s;
           }
         }
       }
