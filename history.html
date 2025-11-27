@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Train Punch | アーカイブ</title>
+  <title>Train Punch | パフォーマンス</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111111">
   <link rel="stylesheet" href="./style.css">
@@ -15,21 +15,33 @@
 
     <nav class="tab-nav">
       <a href="./session.html" class="tab">ワークアウト</a>
-      <a href="./analysis.html" class="tab">パフォーマンス</a>
-      <a href="./history.html" class="tab active">アーカイブ</a>
+      <a href="./analysis.html" class="tab active">パフォーマンス</a>
+      <a href="./history.html" class="tab">アーカイブ</a>
       <a href="./settings.html" class="tab">システム</a>
     </nav>
   </header>
 
   <main class="container">
+    <!-- 直近7日分のボリューム -->
     <section class="card">
-      <h2 class="card-title">アーカイブ（準備中）</h2>
+      <h2 class="card-title">週間ボリューム（kg）</h2>
       <p style="font-size:0.9rem; color:#c2c5d3;">
-        ここでは、過去のワークアウトを日付や種目で絞り込んだり、セッションごとに振り返ったりできるようにしていきます。
+        直近7日分の、1日あたり合計ボリューム（重量×回数）の推移です。
       </p>
-      <p style="font-size:0.85rem; color:#7a7d89; margin-top:8px;">
-        現時点では、ワークアウトタブの「記録一覧」でざっくり確認してください。
+      <div style="margin-top:12px; height:260px;">
+        <canvas id="weeklyVolumeChart"></canvas>
+      </div>
+    </section>
+
+    <!-- 直近7日分の平均RPE -->
+    <section class="card">
+      <h2 class="card-title">1日平均 RPE</h2>
+      <p style="font-size:0.9rem; color:#c2c5d3;">
+        直近7日分の平均RPEの推移です。記録がある日のみ点が表示されます。
       </p>
+      <div style="margin-top:12px; height:260px;">
+        <canvas id="dailyRpeChart"></canvas>
+      </div>
     </section>
   </main>
 
@@ -37,7 +49,215 @@
     <small>Train Punch のデータは、この端末のブラウザ(localStorage)に保存されます。</small>
   </footer>
 
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <script>
+    // ---- ログ読み込み ---------------------------------------------------
+
+    function tryParseArray(raw) {
+      if (!raw) return null;
+      try {
+        const data = JSON.parse(raw);
+        return Array.isArray(data) ? data : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function loadLogs() {
+      // まずはよくありそうなキー名を試す
+      const candidates = ['trainPunchLogs', 'train-punch-logs', 'TRAIN_PUNCH_LOGS'];
+      for (const key of candidates) {
+        const logs = tryParseArray(localStorage.getItem(key));
+        if (logs) return logs;
+      }
+      // 見つからなければ localStorage 全探索（既存データとの互換用）
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const logs = tryParseArray(localStorage.getItem(key));
+        if (logs) return logs;
+      }
+      return [];
+    }
+
+    // ---- 日付ユーティリティ ---------------------------------------------
+
+    function formatDate(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function getLast7Days() {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        days.push(formatDate(d));
+      }
+      return days; // 古い日付 → 今日 の順
+    }
+
+    // ---- 集計ロジック ---------------------------------------------------
+
+    const logs = loadLogs();
+    const last7Days = getLast7Days();
+
+    // 1日あたりの合計ボリューム（重量×回数）
+    const dailyVolume = last7Days.map(dateStr => {
+      let sum = 0;
+      for (const log of logs) {
+        if (log.date === dateStr) {
+          const w = Number(log.weight);
+          const r = Number(log.reps);
+          if (!Number.isNaN(w) && !Number.isNaN(r)) {
+            sum += w * r;
+          }
+        }
+      }
+      return sum;
+    });
+
+    // 1日あたりの平均RPE（その日の全セットの平均）
+    const dailyAvgRpe = last7Days.map(dateStr => {
+      let total = 0;
+      let count = 0;
+      for (const log of logs) {
+        if (log.date === dateStr && log.rpe !== undefined && log.rpe !== null && log.rpe !== '') {
+          const rpe = Number(log.rpe);
+          if (!Number.isNaN(rpe)) {
+            total += rpe;
+            count++;
+          }
+        }
+      }
+      return count ? Number((total / count).toFixed(2)) : null; // 記録なしの日は null
+    });
+
+    // ---- グラフ描画 -----------------------------------------------------
+
+    function createWeeklyVolumeChart() {
+      const ctx = document.getElementById('weeklyVolumeChart');
+      if (!ctx) return;
+
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: last7Days,
+          datasets: [
+            {
+              label: '合計ボリューム (kg)',
+              data: dailyVolume
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              grid: {
+                display: true,
+                color: 'rgba(255, 255, 255, 0.05)'
+              },
+              ticks: {
+                color: '#c2c5d3',
+                maxRotation: 0,
+                autoSkip: false
+              }
+            },
+            y: {
+              beginAtZero: true,
+              grid: {
+                display: true,
+                color: 'rgba(255, 255, 255, 0.05)'
+              },
+              ticks: {
+                color: '#c2c5d3'
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: {
+                color: '#f5f5f5'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function createDailyRpeChart() {
+      const ctx = document.getElementById('dailyRpeChart');
+      if (!ctx) return;
+
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: last7Days,
+          datasets: [
+            {
+              label: '平均RPE',
+              data: dailyAvgRpe,
+              spanGaps: false,
+              pointRadius: 4,
+              pointHitRadius: 6,
+              tension: 0.25
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              grid: {
+                display: true,
+                color: 'rgba(255, 255, 255, 0.05)'
+              },
+              ticks: {
+                color: '#c2c5d3',
+                maxRotation: 0,
+                autoSkip: false
+              }
+            },
+            y: {
+              beginAtZero: true,
+              suggestedMax: 10,
+              grid: {
+                display: true,
+                color: 'rgba(255, 255, 255, 0.05)'
+              },
+              ticks: {
+                color: '#c2c5d3'
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: {
+                color: '#f5f5f5'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // DOM読み込み後に描画
+    document.addEventListener('DOMContentLoaded', () => {
+      createWeeklyVolumeChart();
+      createDailyRpeChart();
+    });
+  </script>
+
+  <script>
+    // Service Worker 登録（他ページと同じ）
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(console.error);
