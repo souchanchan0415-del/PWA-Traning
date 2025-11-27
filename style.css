@@ -241,65 +241,59 @@ textarea {
   display: block;
 }
 
-/* 部位タブ & 種目チップ */
-.exercise-selector {
-  margin-top: 4px;
-}
-
-.part-tabs {
+/* 部位タブ＆種目リスト */
+.bodypart-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-top: 6px;
+  margin-bottom: 4px;
 }
 
-.part-tab {
-  flex: 1 1 auto;
-  padding: 6px 4px;
+.bodypart-tab {
+  flex: 1 1 calc(33.3% - 4px);
+  padding: 8px;
   border-radius: 999px;
   border: 1px solid #2a2e3b;
   background: #181b24;
   color: #c2c5d3;
-  font-size: 0.8rem;
-  cursor: pointer;
+  font-size: 0.9rem;
+  text-align: center;
 }
 
-.part-tab.active {
+.bodypart-tab.active {
   background: #4f8cff;
   border-color: #4f8cff;
   color: #ffffff;
   font-weight: 600;
 }
 
-.exercise-groups {
-  display: block;
-}
-
-.exercise-group {
-  display: none;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.exercise-group.active {
-  display: flex;
+.exercise-list {
+  display: none;        /* ★最初は非表示★ */
+  margin-top: 4px;
 }
 
 .exercise-chip {
-  padding: 4px 8px;
-  border-radius: 999px;
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
   border: 1px solid #2a2e3b;
   background: #181b24;
-  color: #c2c5d3;
-  font-size: 0.8rem;
-  cursor: pointer;
-  white-space: nowrap;
+  color: #f5f5f5;
+  font-size: 0.9rem;
+  text-align: center;
+  margin-top: 4px;
 }
 
-.exercise-chip.selected {
-  background: #4f8cff;
+.exercise-chip.active {
   border-color: #4f8cff;
-  color: #ffffff;
+  box-shadow: 0 0 0 1px rgba(79, 140, 255, 0.4);
+}
+
+.selected-exercise-label {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #c2c5d3;
 }
 
 /* 大きい画面用の微調整 */
