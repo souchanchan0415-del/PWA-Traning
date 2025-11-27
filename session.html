@@ -13,7 +13,7 @@
     <h1>Train Punch</h1>
     <p class="header-sub">トレーニング記録アプリ / ローカル保存版 v0.1</p>
 
-    <!-- タブナビ -->
+    <!-- タブナビ（上部） -->
     <nav class="tab-nav">
       <a href="./session.html" class="tab active">ワークアウト</a>
       <a href="./analysis.html" class="tab">パフォーマンス</a>
@@ -31,10 +31,38 @@
           <input type="date" id="date" required>
         </div>
 
+        <!-- ▼ 部位タブ＋種目一覧 ▼ -->
         <div class="field">
-          <label for="exercise">種目</label>
-          <input type="text" id="exercise" placeholder="ベンチプレス" required>
+          <label>部位と種目</label>
+
+          <!-- 部位タブ（フォーム内） -->
+          <div class="bodypart-tabs">
+            <button type="button" class="bodypart-tab" data-part="chest">胸</button>
+            <button type="button" class="bodypart-tab" data-part="back">背中</button>
+            <button type="button" class="bodypart-tab" data-part="shoulder">肩</button>
+            <button type="button" class="bodypart-tab" data-part="leg">脚</button>
+            <button type="button" class="bodypart-tab" data-part="arm">腕</button>
+            <button type="button" class="bodypart-tab" data-part="other">その他</button>
+          </div>
+
+          <!-- 種目リスト（部位タブを押すとここに出る） -->
+          <div id="exerciseList" class="exercise-list"></div>
+
+          <p class="selected-exercise-label">
+            選択中の種目：<span id="selectedExerciseLabel">未選択</span>
+          </p>
+
+          <!-- 実際に保存に使う入力（画面上は非表示、必須） -->
+          <input
+            id="exercise"
+            name="exercise"
+            type="text"
+            required
+            style="position:absolute; left:-9999px; width:1px; height:1px; opacity:0;"
+            aria-hidden="true"
+          >
         </div>
+        <!-- ▲ 部位タブ＋種目一覧 ここまで ▲ -->
 
         <div class="field-group">
           <div class="field">
@@ -46,15 +74,12 @@
             <input type="number" id="reps" inputmode="numeric" required>
           </div>
           <div class="field">
-            <div class="label-row">
-              <label for="rpe">RPE</label>
-              <span class="help-chip" data-help="rpe">?</span>
-            </div>
-            <p class="help-text" data-help-target="rpe">
-              RPE（0〜10）はトレーニング中の<span style="white-space:nowrap;">主観的な運動強度</span>を表す指標です。<br>
-              0 = とても楽 / 10 = もう1回は無理なくらい限界。
-            </p>
+            <label for="rpe">RPE</label>
             <input type="number" id="rpe" step="0.5" inputmode="decimal" placeholder="7.5">
+            <p class="help-text">
+              0〜10でトレーニングの強度を表す指標です。<br>
+              0 = まったくきつくない / 10 = もう1回は無理なくらい限界。
+            </p>
           </div>
         </div>
 
@@ -99,26 +124,145 @@
   </footer>
 
   <script src="./app.js"></script>
+
+  <!-- 部位タブ＆種目リストの制御用スクリプト -->
+  <script>
+    // 部位ごとの種目一覧
+    const EXERCISE_GROUPS = {
+      chest: [
+        'ベンチプレス',
+        '足上げベンチ',
+        'スミスマシンベンチプレス',
+        'インクラインダンベルプレス',
+        'インクラインマシンプレス',
+        'ディップス',
+        'ディップス(荷重)',
+        'ケーブルクロスオーバー',
+        'ペックフライ',
+        'チェストプレス',
+        'スミス インクラインプレス',
+        'スミス デクラインプレス'
+      ],
+      back: [
+        'デットリフト',
+        'ハーフデットリフト',
+        'デッドリフト',
+        'ハーフデッドリフト',
+        'チンニング',
+        '懸垂',
+        'ラットプルダウン',
+        'ラットプルダウン（ナロー）',
+        'ラットプルダウン（ちょーナロー）',
+        'ワイドラットプルダウン',
+        'スミスマシンベントオーバーロウ',
+        'ベントオーバーロウ',
+        'ローロウ',
+        'シーテッドロウ',
+        'Tバーロウ',
+        'Tバーロー'
+      ],
+      shoulder: [
+        'ダンベルショルダープレス',
+        'スミスマシンショルダープレス',
+        'スミスショルダープレス',
+        'マシンショルダープレス',
+        'ケーブルフロントレイズ',
+        'サイドレイズ',
+        'ベンチサイドレイズ',
+        'ケーブルサイドレイズ',
+        'ケーブルリアレイズ',
+        'リアデルトイド'
+      ],
+      leg: [
+        'スクワット',
+        'バーベルスクワット',
+        'レッグプレス',
+        'バックスクワット',
+        'レッグカール',
+        'レッグエクステンション',
+        'インナーサイ',
+        'ルーマニアンデットリフト',
+        'スティフレッグデッドリフト'
+      ],
+      arm: [
+        'バーベルカール',
+        'インクラインダンベルカール',
+        'ハンマーカール',
+        'ダンベルプリチャーカール(右/左)',
+        'インクラインダンベルカール(右/左)',
+        'スミスマシンナロープレス',
+        'ナロープレス',
+        'スカルクラッシャー',
+        'フレンチプレス',
+        'ケーブルプレスダウン',
+        'スミスJMプレス',
+        '[三頭]ケーブルプレスダウン'
+      ],
+      other: [
+        'その他'
+      ]
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const bodypartTabs = document.querySelectorAll('.bodypart-tab');
+      const exerciseList = document.getElementById('exerciseList');
+      const exerciseInput = document.getElementById('exercise');
+      const selectedLabel = document.getElementById('selectedExerciseLabel');
+
+      if (!bodypartTabs.length || !exerciseList || !exerciseInput || !selectedLabel) return;
+
+      function renderExercises(partKey) {
+        exerciseList.innerHTML = '';
+        const list = EXERCISE_GROUPS[partKey] || [];
+
+        list.forEach(name => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'exercise-chip';
+          btn.textContent = name;
+
+          btn.addEventListener('click', () => {
+            // 選択状態の切り替え
+            exerciseList.querySelectorAll('.exercise-chip').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // 実際に保存する値を更新
+            exerciseInput.value = name;
+            selectedLabel.textContent = name;
+          });
+
+          exerciseList.appendChild(btn);
+        });
+
+        // 部位を切り替えたら一旦リセット
+        exerciseInput.value = '';
+        selectedLabel.textContent = '未選択';
+      }
+
+      bodypartTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          bodypartTabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          const partKey = tab.dataset.part;
+          renderExercises(partKey);
+        });
+      });
+
+      // 初期表示（最初のタブを有効化）
+      const firstTab = bodypartTabs[0];
+      if (firstTab) {
+        firstTab.classList.add('active');
+        renderExercises(firstTab.dataset.part);
+      }
+    });
+  </script>
+
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(console.error);
       });
     }
-
-    // RPE の ? を押したら説明の表示/非表示を切り替え
-    document.addEventListener('click', (event) => {
-      const chip = event.target.closest('.help-chip');
-      if (!chip) return;
-
-      const key = chip.getAttribute('data-help');
-      if (!key) return;
-
-      const help = document.querySelector(`.help-text[data-help-target="${key}"]`);
-      if (!help) return;
-
-      help.classList.toggle('show');
-    });
   </script>
 </body>
 </html>
