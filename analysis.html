@@ -37,7 +37,7 @@
     <section class="card">
       <h2 class="card-title">1日平均 RPE</h2>
       <p style="font-size:0.8rem; color:#a0a3b1; margin-top:0; margin-bottom:8px;">
-        日ごとの平均RPEの推移です。記録がある日のみ表示されます。
+        直近7日分の平均RPEの推移です。記録がある日は点が表示されます。
       </p>
       <div style="position:relative; height:240px;">
         <canvas id="dailyRpeChart"></canvas>
@@ -60,10 +60,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script>
-    // ===== ログ読み込み（localStorageのどのキーでも対応できるように探索） =====
+    // ===== ログ読み込み（localStorageを走査して、それっぽい配列を探す） =====
     function loadLogs() {
-      const results = [];
-
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         try {
@@ -72,16 +70,34 @@
           if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object') {
             const sample = parsed[0];
             if ('date' in sample && 'exercise' in sample && 'weight' in sample && 'reps' in sample) {
-              return parsed; // それっぽい配列を見つけたら採用
+              return parsed;
             }
           }
         } catch (e) {
-          // JSON じゃなければスルー
+          // JSONでなければ無視
         }
       }
-      return results;
+      return [];
     }
 
+    // 日付を "YYYY-MM-DD" 文字列に
+    function toDateOnlyString(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    // 週の月曜日の日付を求める
+    function getWeekStart(date) {
+      const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const day = d.getDay(); // 0=Sun..6=Sat
+      const diff = (day + 6) % 7; // 月曜までさかのぼる日数
+      d.setDate(d.getDate() - diff);
+      return d;
+    }
+
+    // 週間ボリューム（重量×回数の合計）
     function buildWeeklyVolume(logs) {
       const weekly = {}; // { weekKey: volume }
 
@@ -89,17 +105,13 @@
         if (!log.date) return;
         const w = Number(log.weight);
         const r = Number(log.reps);
-        if (!w || !r) return;
+        if (!isFinite(w) || !isFinite(r) || w <= 0 || r <= 0) return;
 
         const d = new Date(log.date);
         if (isNaN(d.getTime())) return;
 
-        // 週の月曜日をキーにする
-        const day = d.getDay(); // 0=Sun
-        const diff = (day + 6) % 7; // 月曜までさかのぼる日数
-        d.setDate(d.getDate() - diff);
-        const weekKey = d.toISOString().slice(0, 10); // "YYYY-MM-DD"
-
+        const weekStart = getWeekStart(d);
+        const weekKey = toDateOnlyString(weekStart);
         if (!weekly[weekKey]) weekly[weekKey] = 0;
         weekly[weekKey] += w * r;
       });
@@ -111,26 +123,41 @@
       };
     }
 
-    function buildDailyAvgRpe(logs) {
-      const daily = {}; // { date: {sum, count} }
+    // 直近7日分の平均RPE
+    function buildLast7DaysAvgRpe(logs) {
+      const map = {}; // { date: {sum, count} }
 
       logs.forEach(log => {
         if (!log.date) return;
         const rpe = Number(log.rpe);
-        if (!rpe) return;
-
-        if (!daily[log.date]) {
-          daily[log.date] = { sum: 0, count: 0 };
+        if (!isFinite(rpe)) return;
+        if (!map[log.date]) {
+          map[log.date] = { sum: 0, count: 0 };
         }
-        daily[log.date].sum += rpe;
-        daily[log.date].count += 1;
+        map[log.date].sum += rpe;
+        map[log.date].count += 1;
       });
 
-      const keys = Object.keys(daily).sort();
-      return {
-        labels: keys,
-        data: keys.map(k => daily[k].sum / daily[k].count)
-      };
+      const labels = [];
+      const data = [];
+      const today = new Date();
+
+      // 今日を含めた直近7日分（過去6日〜今日）
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const key = toDateOnlyString(d);
+        labels.push(key);
+
+        if (map[key]) {
+          const { sum, count } = map[key];
+          data.push(sum / count);
+        } else {
+          data.push(null); // 記録がない日は穴にする
+        }
+      }
+
+      return { labels, data };
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -143,17 +170,22 @@
       }
 
       const weekly = buildWeeklyVolume(logs);
-      const daily = buildDailyAvgRpe(logs);
+      const daily = buildLast7DaysAvgRpe(logs);
 
       if ((!weekly.labels.length || !weekly.data.length) &&
-          (!daily.labels.length || !daily.data.length)) {
+          daily.data.every(v => v === null)) {
         if (emptyCard) emptyCard.style.display = 'block';
         return;
       }
 
+      // ==== 週間ボリューム グラフ ====
       if (weekly.labels.length) {
         const ctx1 = document.getElementById('weeklyVolumeChart');
         if (ctx1) {
+          const maxVolume = Math.max(...weekly.data);
+          const roundedMax =
+            maxVolume > 0 ? Math.ceil(maxVolume / 100) * 100 : 100;
+
           new Chart(ctx1, {
             type: 'bar',
             data: {
@@ -164,11 +196,22 @@
               }]
             },
             options: {
+              responsive: true,
+              maintainAspectRatio: false,
               scales: {
-                x: { ticks: { color: '#c2c5d3' } },
+                x: {
+                  ticks: { color: '#c2c5d3' },
+                  grid: {
+                    color: 'rgba(255,255,255,0.05)'
+                  }
+                },
                 y: {
                   beginAtZero: true,
-                  ticks: { color: '#c2c5d3' }
+                  max: roundedMax,
+                  ticks: { color: '#c2c5d3' },
+                  grid: {
+                    color: 'rgba(255,255,255,0.08)'
+                  }
                 }
               },
               plugins: {
@@ -181,6 +224,7 @@
         }
       }
 
+      // ==== 1日平均RPE グラフ（直近7日） ====
       if (daily.labels.length) {
         const ctx2 = document.getElementById('dailyRpeChart');
         if (ctx2) {
@@ -191,16 +235,27 @@
               datasets: [{
                 label: '平均RPE',
                 data: daily.data,
+                spanGaps: false,
                 tension: 0.3
               }]
             },
             options: {
+              responsive: true,
+              maintainAspectRatio: false,
               scales: {
-                x: { ticks: { color: '#c2c5d3' } },
+                x: {
+                  ticks: { color: '#c2c5d3' },
+                  grid: {
+                    color: 'rgba(255,255,255,0.05)'
+                  }
+                },
                 y: {
                   beginAtZero: true,
                   suggestedMax: 10,
-                  ticks: { color: '#c2c5d3' }
+                  ticks: { color: '#c2c5d3' },
+                  grid: {
+                    color: 'rgba(255,255,255,0.08)'
+                  }
                 }
               },
               plugins: {
