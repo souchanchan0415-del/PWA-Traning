@@ -241,6 +241,67 @@ textarea {
   display: block;
 }
 
+/* 部位タブ & 種目チップ */
+.exercise-selector {
+  margin-top: 4px;
+}
+
+.part-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.part-tab {
+  flex: 1 1 auto;
+  padding: 6px 4px;
+  border-radius: 999px;
+  border: 1px solid #2a2e3b;
+  background: #181b24;
+  color: #c2c5d3;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.part-tab.active {
+  background: #4f8cff;
+  border-color: #4f8cff;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.exercise-groups {
+  display: block;
+}
+
+.exercise-group {
+  display: none;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.exercise-group.active {
+  display: flex;
+}
+
+.exercise-chip {
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid #2a2e3b;
+  background: #181b24;
+  color: #c2c5d3;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.exercise-chip.selected {
+  background: #4f8cff;
+  border-color: #4f8cff;
+  color: #ffffff;
+}
+
 /* 大きい画面用の微調整 */
 @media (min-width: 768px) {
   .header h1 {
