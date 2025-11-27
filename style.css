@@ -244,21 +244,23 @@ textarea {
 /* 部位タブ＆種目リスト */
 .bodypart-tabs {
   display: flex;
-  flex-wrap: wrap;
   gap: 6px;
   margin-top: 6px;
   margin-bottom: 4px;
+  overflow-x: auto;              /* 横スクロール可能に */
+  -webkit-overflow-scrolling: touch;
 }
 
 .bodypart-tab {
-  flex: 1 1 calc(33.3% - 4px);
-  padding: 8px;
+  flex: 0 0 auto;                /* 折り返さない */
+  padding: 6px 12px;
   border-radius: 999px;
   border: 1px solid #2a2e3b;
   background: #181b24;
   color: #c2c5d3;
   font-size: 0.9rem;
   text-align: center;
+  white-space: nowrap;
 }
 
 .bodypart-tab.active {
@@ -269,7 +271,7 @@ textarea {
 }
 
 .exercise-list {
-  display: none;        /* ★最初は非表示★ */
+  display: none;
   margin-top: 4px;
 }
 
