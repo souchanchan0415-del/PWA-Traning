@@ -23,6 +23,36 @@
   </header>
 
   <main class="container">
+    <!-- 使い方ガイド：初回だけ開きっぱなし / 2回目以降はデフォルト閉じ -->
+    <section class="card" id="usageGuideCard">
+      <div class="card-header-row" style="align-items:center;">
+        <h2 class="card-title" style="margin-right:auto;">使い方ガイド（はじめての方へ）</h2>
+        <button
+          type="button"
+          id="usageGuideToggleBtn"
+          style="
+            border:none;
+            background:transparent;
+            color:#c2c5d3;
+            font-size:1.2rem;
+            padding:4px 8px;
+            cursor:pointer;
+          "
+          aria-label="ガイドを開閉"
+        >−</button>
+      </div>
+
+      <div id="usageGuideBody">
+        <p style="font-size:0.9rem; color:#c2c5d3;">
+          ① まずは下の「記録入力」で1件ログを保存すると、<br>
+          　 パフォーマンス・アーカイブにも反映されます。<br>
+          ② よく使うオリジナル種目は、
+          <strong>システム &gt; 種目追加</strong> から登録すると、<br>
+          　部位タブのリストに追加されます。
+        </p>
+      </div>
+    </section>
+
     <section class="card">
       <h2 class="card-title">記録入力</h2>
       <form id="logForm" class="form">
@@ -146,7 +176,8 @@
 
       const name = getDisplayName();
       if (name) {
-        headerSub.textContent = `トレーニング記録アプリ / ${name}のログ / ローカル保存版 v0.1`;
+        headerSub.textContent =
+          `トレーニング記録アプリ / ${name}のログ / ローカル保存版 v0.1`;
       } else {
         headerSub.textContent = 'トレーニング記録アプリ / ローカル保存版 v0.1';
       }
@@ -158,8 +189,11 @@
 
   <script src="./app.js"></script>
 
-  <!-- 部位タブ＆種目リスト＋RPEヘルプの制御用スクリプト -->
+  <!-- 部位タブ＆種目リスト＋RPEヘルプ＋ガイド制御用スクリプト -->
   <script>
+    // 初回ガイド表示用キー
+    const GUIDE_SEEN_KEY = 'trainPunchUsageGuideSeen';
+
     // カスタム種目保存で使っているキー（settings.html と共通）
     const CUSTOM_EXERCISES_KEY = 'trainPunchCustomExercises';
 
@@ -268,7 +302,31 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      // まずカスタム種目をマージ
+      // --- ガイド初期状態 ---
+      const guideBody = document.getElementById('usageGuideBody');
+      const guideToggle = document.getElementById('usageGuideToggleBtn');
+      if (guideBody && guideToggle) {
+        const seen = localStorage.getItem(GUIDE_SEEN_KEY) === '1';
+
+        if (!seen) {
+          // 初回：開いたまま & フラグを立てる
+          guideBody.style.display = 'block';
+          guideToggle.textContent = '−';
+          localStorage.setItem(GUIDE_SEEN_KEY, '1');
+        } else {
+          // 2回目以降：デフォルトで閉じる
+          guideBody.style.display = 'none';
+          guideToggle.textContent = '＋';
+        }
+
+        guideToggle.addEventListener('click', () => {
+          const hidden = guideBody.style.display === 'none';
+          guideBody.style.display = hidden ? 'block' : 'none';
+          guideToggle.textContent = hidden ? '−' : '＋';
+        });
+      }
+
+      // --- 種目リスト ---
       mergeCustomExercisesIntoGroups();
 
       const bodypartTabs = document.querySelectorAll('.bodypart-tab');
@@ -305,7 +363,7 @@
                 b.classList.remove('hidden');
               } else {
                 b.classList.remove('active');
-                b.classList.add('hidden'); // 非選択の種目を隠す
+                b.classList.add('hidden');
               }
             });
 
@@ -333,7 +391,7 @@
             return;
           }
 
-          // 別の部位をタップ → そっちを開く（一覧を再生成して全種目表示）
+          // 別の部位をタップ → そっちを開く
           openPart = partKey;
           bodypartTabs.forEach(t => t.classList.remove('active'));
           tab.classList.add('active');
