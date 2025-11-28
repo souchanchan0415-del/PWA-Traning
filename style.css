@@ -305,6 +305,13 @@ textarea {
   color: #c2c5d3;
 }
 
+/* ★ 追加：集計期間用の小さめテキスト */
+.period-note {
+  font-size: 0.75rem;
+  color: #a0a3b1;
+  margin-top: 4px;
+}
+
 /* 大きい画面用の微調整 */
 @media (min-width: 768px) {
   .header h1 {
