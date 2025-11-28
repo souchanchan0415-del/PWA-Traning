@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="./style.css">
   <link rel="manifest" href="./manifest.webmanifest">
 
-  <!-- カレンダー用の簡易スタイル（このページ専用） -->
+  <!-- カレンダー＆履歴ボタン用スタイル（このページ専用） -->
   <style>
     .calendar-header {
       display: flex;
@@ -119,6 +119,26 @@
       border: 1px solid #f4c542;
       display: inline-block;
     }
+
+    /* ▼ 履歴テーブル内のアクションボタンをコンパクトにする ▼ */
+    .history-actions-cell {
+      white-space: nowrap;
+      text-align: right;
+    }
+    .history-action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 6px;
+      font-size: 0.7rem;
+      border-radius: 999px;
+      min-width: 0;
+      line-height: 1.2;
+    }
+    .history-action-btn + .history-action-btn {
+      margin-left: 4px;
+    }
+    /* ▲ 履歴アクションボタン ▲ */
   </style>
 </head>
 <body>
@@ -440,17 +460,17 @@
         `;
 
         const actionTd = tr.lastElementChild;
+        actionTd.classList.add('history-actions-cell');
 
         const editBtn = document.createElement('button');
         editBtn.type = 'button';
         editBtn.textContent = '編集';
-        editBtn.className = 'btn-secondary small';
-        editBtn.style.marginRight = '4px';
+        editBtn.className = 'btn-secondary small history-action-btn';
 
         const deleteBtn = document.createElement('button');
         deleteBtn.type = 'button';
         deleteBtn.textContent = '削除';
-        deleteBtn.className = 'btn-danger small';
+        deleteBtn.className = 'btn-danger small history-action-btn';
 
         editBtn.addEventListener('click', () => openEditForm(idx));
         deleteBtn.addEventListener('click', () => deleteLog(idx));
