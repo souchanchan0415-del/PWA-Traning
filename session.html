@@ -160,7 +160,21 @@
 
   <!-- 部位タブ＆種目リスト＋RPEヘルプの制御用スクリプト -->
   <script>
-    // 部位ごとの種目一覧
+    // カスタム種目保存で使っているキー（settings.html と共通）
+    const CUSTOM_EXERCISES_KEY = 'trainPunchCustomExercises';
+
+    function loadCustomExercises() {
+      const raw = localStorage.getItem(CUSTOM_EXERCISES_KEY);
+      if (!raw) return {};
+      try {
+        const obj = JSON.parse(raw);
+        return obj && typeof obj === 'object' ? obj : {};
+      } catch (_) {
+        return {};
+      }
+    }
+
+    // デフォルトの部位ごとの種目一覧
     const EXERCISE_GROUPS = {
       chest: [
         'ベンチプレス',
@@ -236,7 +250,27 @@
       ]
     };
 
+    // settings.html で登録したカスタム種目を既存グループにマージ
+    function mergeCustomExercisesIntoGroups() {
+      const map = loadCustomExercises();
+      Object.keys(map).forEach(partKey => {
+        const list = Array.isArray(map[partKey]) ? map[partKey] : [];
+        if (!EXERCISE_GROUPS[partKey]) {
+          EXERCISE_GROUPS[partKey] = [];
+        }
+        const baseList = EXERCISE_GROUPS[partKey];
+        list.forEach(name => {
+          if (!baseList.includes(name)) {
+            baseList.push(name);
+          }
+        });
+      });
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
+      // まずカスタム種目をマージ
+      mergeCustomExercisesIntoGroups();
+
       const bodypartTabs = document.querySelectorAll('.bodypart-tab');
       const exerciseList = document.getElementById('exerciseList');
       const exerciseInput = document.getElementById('exercise');
