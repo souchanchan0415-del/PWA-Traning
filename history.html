@@ -13,16 +13,19 @@
     .calendar-header {
       display: flex;
       align-items: center;
-      justify-content: center;     /* ← 中央寄せ */
+      justify-content: center;     /* 中央寄せ */
       margin-bottom: 8px;
       gap: 8px;
     }
     .calendar-month-label {
-      font-size: 0.9rem;           /* 少し小さめに */
+      font-size: 0.9rem;
       color: #f5f5f5;
       white-space: nowrap;         /* 折り返さない */
     }
     .calendar-nav-btn {
+      display: inline-flex;        /* コンテンツサイズに合わせる */
+      align-items: center;
+      justify-content: center;
       border-radius: 999px;
       border: 1px solid #2a2e3b;
       background: #181b24;
@@ -30,7 +33,9 @@
       padding: 2px 8px;            /* ボタンを小さく */
       font-size: 0.75rem;          /* 文字も小さく */
       cursor: pointer;
-      flex-shrink: 0;              /* つぶれ過ぎ防止 */
+      flex: 0 0 auto;              /* flex でも伸びないようにする */
+      width: auto;                 /* グローバルの width:100% を打ち消す */
+      min-width: 0;
       line-height: 1.2;
     }
     .calendar-nav-btn:active {
@@ -281,8 +286,8 @@
       return [];
     }
 
-    function saveLogs(logs) {
-      localStorage.setItem('trainPunchLogs', JSON.stringify(logs));
+    function saveLogs(nextLogs) {
+      localStorage.setItem('trainPunchLogs', JSON.stringify(nextLogs));
     }
 
     // ---- 日付ユーティリティ ---------------------------------------------
