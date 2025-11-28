@@ -22,7 +22,7 @@
   </header>
 
   <main class="container">
-    <!-- 直近7日分のボリューム（折りたたみ） -->
+    <!-- 直近7日分のボリューム（初期：開） -->
     <section class="card card-collapsible">
       <div class="card-header-row card-toggle">
         <h2 class="card-title">週間ボリューム（kg）</h2>
@@ -38,13 +38,13 @@
       </div>
     </section>
 
-    <!-- 直近7日分の部位別割合（円グラフ・折りたたみ） -->
+    <!-- 部位別割合（初期：閉） -->
     <section class="card card-collapsible">
       <div class="card-header-row card-toggle">
         <h2 class="card-title">1週間 部位別ボリューム割合</h2>
-        <span class="card-toggle-icon">−</span>
+        <span class="card-toggle-icon">＋</span>
       </div>
-      <div class="card-body">
+      <div class="card-body" style="display:none;">
         <p style="font-size:0.9rem; color:#c2c5d3;">
           直近7日分の合計ボリューム（重量×回数×セット数）を、<br>
           部位ごとの割合で表示します。
@@ -56,13 +56,13 @@
       </div>
     </section>
 
-    <!-- 直近7日分の平均RPE（折りたたみ） -->
+    <!-- 平均RPE（初期：閉） -->
     <section class="card card-collapsible">
       <div class="card-header-row card-toggle">
         <h2 class="card-title">1日平均 RPE</h2>
-        <span class="card-toggle-icon">−</span>
+        <span class="card-toggle-icon">＋</span>
       </div>
-      <div class="card-body">
+      <div class="card-body" style="display:none;">
         <p style="font-size:0.9rem; color:#c2c5d3;">
           直近7日分の平均RPEの推移です。記録がある日のみ点が表示されます。
         </p>
@@ -155,7 +155,6 @@
 
     // 表示用ラベル（YYYY-MM-DD → MM/DD）
     const shortLabels = last7Days.map(dateStr => {
-      // "2025-11-27" → "11/27"
       return dateStr.substring(5).replace('-', '/');
     });
 
@@ -239,17 +238,13 @@
 
     // ---- 集計ロジック ---------------------------------------------------
 
-    // 1日あたりの合計ボリューム（重量×回数×セット数）
     const dailyVolume = last7Days.map(dateStr => {
       let sum = 0;
       for (const log of logs) {
         if (log.date === dateStr) {
           const w = Number(log.weight);
           const r = Number(log.reps);
-          // セット数が無い古いログは 1 セット扱い
-          const s = log.sets != null && log.sets !== ''
-            ? Number(log.sets)
-            : 1;
+          const s = log.sets != null && log.sets !== '' ? Number(log.sets) : 1;
 
           if (!Number.isNaN(w) && !Number.isNaN(r) && !Number.isNaN(s)) {
             sum += w * r * s;
@@ -259,7 +254,6 @@
       return sum;
     });
 
-    // 部位別ボリューム（直近7日分合計）
     const bodyPartVolume = {
       '胸': 0,
       '背中': 0,
@@ -274,9 +268,7 @@
 
       const w = Number(log.weight);
       const r = Number(log.reps);
-      const s = log.sets != null && log.sets !== ''
-        ? Number(log.sets)
-        : 1;
+      const s = log.sets != null && log.sets !== '' ? Number(log.sets) : 1;
 
       if (Number.isNaN(w) || Number.isNaN(r) || Number.isNaN(s)) continue;
 
@@ -294,7 +286,6 @@
       0
     );
 
-    // 1日あたりの平均RPE
     const dailyAvgRpe = last7Days.map(dateStr => {
       let total = 0;
       let count = 0;
@@ -314,14 +305,11 @@
     });
 
     // ---- 円グラフ中央テキスト用プラグイン ------------------------------
-    // afterDatasetsDraw で中央テキストを描画し、
-    // ツールチップが出ているフレームでは描画しない。
     const centerTextPlugin = {
       id: 'centerText',
       afterDatasetsDraw(chart, args, pluginOptions) {
         const tooltip = chart.tooltip;
         if (tooltip && tooltip.opacity > 0) {
-          // ツールチップ表示中は中央テキストを描かない
           return;
         }
 
@@ -418,12 +406,12 @@
             {
               data,
               backgroundColor: [
-                '#4f8cff', // 胸
-                '#50c878', // 背中
-                '#f4c542', // 肩
-                '#ff6b6b', // 脚
-                '#a56bff', // 腕
-                '#8892b0'  // その他
+                '#4f8cff',
+                '#50c878',
+                '#f4c542',
+                '#ff6b6b',
+                '#a56bff',
+                '#8892b0'
               ]
             }
           ]
