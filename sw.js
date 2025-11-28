@@ -1,4 +1,4 @@
-const CACHE_NAME = 'train-punch-cache-v20';
+const CACHE_NAME = 'train-punch-cache-v21';
 const ASSETS = [
   './',
   './index.html',
