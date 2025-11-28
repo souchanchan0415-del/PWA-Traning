@@ -40,6 +40,7 @@
         直近7日分の合計ボリューム（重量×回数×セット数）を、<br>
         部位ごとの割合で表示します。
       </p>
+      <p class="period-note">集計期間：直近7日</p>
       <div style="margin-top:12px; height:260px;">
         <canvas id="bodyPartPieChart"></canvas>
       </div>
@@ -252,6 +253,11 @@
       }
     }
 
+    const totalBodyPartVolume = BODY_PARTS.reduce(
+      (sum, part) => sum + (bodyPartVolume[part] || 0),
+      0
+    );
+
     // 1日あたりの平均RPE
     const dailyAvgRpe = last7Days.map(dateStr => {
       let total = 0;
@@ -267,6 +273,33 @@
       }
       return count ? Number((total / count).toFixed(2)) : null;
     });
+
+    // ---- 円グラフ中央テキスト用プラグイン ------------------------------
+
+    const centerTextPlugin = {
+      id: 'centerText',
+      afterDraw(chart, args, pluginOptions) {
+        const total = pluginOptions.total;
+        if (!total || total <= 0) return;
+
+        const { ctx, chartArea: { left, right, top, bottom } } = chart;
+        const x = (left + right) / 2;
+        const y = (top + bottom) / 2;
+
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#f5f5f5';
+
+        ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, system-ui, sans-serif';
+        ctx.fillText('合計ボリューム', x, y - 10);
+
+        ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, system-ui, sans-serif';
+        ctx.fillText(`${total.toLocaleString()}kg`, x, y + 12);
+
+        ctx.restore();
+      }
+    };
 
     // ---- グラフ描画 -----------------------------------------------------
 
@@ -346,13 +379,30 @@
             }
           ]
         },
+        plugins: [centerTextPlugin],
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
+            centerText: {
+              total: totalBodyPartVolume
+            },
             legend: {
               labels: {
                 color: '#f5f5f5'
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.parsed || 0;
+                  const total = totalBodyPartVolume || 0;
+                  const percent = total > 0 ? (value / total) * 100 : 0;
+                  const valueStr = value.toLocaleString();
+                  const percentStr = percent.toFixed(1);
+                  return `${label}: ${valueStr}kg (${percentStr}%)`;
+                }
               }
             }
           }
