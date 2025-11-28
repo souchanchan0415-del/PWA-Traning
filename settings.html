@@ -22,20 +22,172 @@
   </header>
 
   <main class="container">
+    <!-- プロフィール設定 -->
     <section class="card">
-      <h2 class="card-title">システム（準備中）</h2>
+      <h2 class="card-title">プロフィール設定</h2>
       <p style="font-size:0.9rem; color:#c2c5d3;">
-        ここでは、ユーザー名やチーム名、種目プリセット、表示まわりの設定などを行えるようにしていく予定です。
+        ここでは、アプリ内で表示するあなたの名前を設定できます。<br>
+        今後のアップデートで、ヘッダーや各画面のメッセージなどに反映していく予定です。
       </p>
-      <p style="font-size:0.85rem; color:#7a7d89; margin-top:8px;">
-        いまは特別な設定はありません。ワークアウトタブからそのまま使い始めてください。
+
+      <form id="profileForm" class="form" style="margin-top:12px;">
+        <div class="field">
+          <label for="userNameInput">表示名</label>
+          <input
+            type="text"
+            id="userNameInput"
+            placeholder="例）おさむ"
+            autocomplete="off"
+          >
+        </div>
+        <button type="submit" class="btn-primary">保存する</button>
+        <p id="profileMessage" class="message"></p>
+      </form>
+    </section>
+
+    <!-- データ管理 -->
+    <section class="card">
+      <h2 class="card-title">データ管理</h2>
+      <p style="font-size:0.9rem; color:#c2c5d3;">
+        ここでは、ワークアウトの記録データを確認したり、バックアップ用にJSON形式でコピーしたりできます。
       </p>
+
+      <p style="font-size:0.85rem; color:#c2c5d3; margin-top:10px;">
+        現在のログ件数：<strong id="logCount">0</strong> 件
+      </p>
+
+      <div style="margin-top:10px;">
+        <button id="showJsonBtn" type="button" class="btn-primary">ログJSONを表示</button>
+      </div>
+
+      <div id="jsonWrapper" style="margin-top:8px; display:none;">
+        <textarea
+          id="jsonOutput"
+          rows="8"
+          readonly
+          style="width:100%; font-size:0.8rem;"
+        ></textarea>
+        <p style="font-size:0.75rem; color:#a0a3b1; margin-top:4px;">
+          ※読み取り専用です。全選択してコピーし、別のメモアプリなどに保存しておくとバックアップになります。
+        </p>
+      </div>
+
+      <div style="margin-top:16px;">
+        <button id="clearAllLogs" type="button" class="btn-danger">
+          すべてのログを削除する
+        </button>
+        <p style="font-size:0.75rem; color:#a0a3b1; margin-top:4px;">
+          ※この操作は元に戻せません。ローカルに保存されているワークアウト記録がすべて消去されます。
+        </p>
+      </div>
     </section>
   </main>
 
   <footer class="footer">
     <small>Train Punch のデータは、この端末のブラウザ(localStorage)に保存されます。</small>
   </footer>
+
+  <script>
+    // ---- 共通: 配列パース＆ログ読み込み --------------------------
+
+    function tryParseArray(raw) {
+      if (!raw) return null;
+      try {
+        const data = JSON.parse(raw);
+        return Array.isArray(data) ? data : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function loadLogs() {
+      const candidates = ['trainPunchLogs', 'train-punch-logs', 'TRAIN_PUNCH_LOGS'];
+      for (const key of candidates) {
+        const logs = tryParseArray(localStorage.getItem(key));
+        if (logs) return { key, logs };
+      }
+      // 旧キーが分からない場合の保険
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const logs = tryParseArray(localStorage.getItem(key));
+        if (logs) return { key, logs };
+      }
+      return { key: 'trainPunchLogs', logs: [] };
+    }
+
+    // ---- 設定の保存／読み込み --------------------------------------
+
+    const SETTINGS_KEY = 'trainPunchSettings';
+
+    function loadSettings() {
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      if (!raw) return {};
+      try {
+        const obj = JSON.parse(raw);
+        return obj && typeof obj === 'object' ? obj : {};
+      } catch (_) {
+        return {};
+      }
+    }
+
+    function saveSettings(settings) {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // プロフィール設定 初期化
+      const profileForm = document.getElementById('profileForm');
+      const userNameInput = document.getElementById('userNameInput');
+      const profileMessage = document.getElementById('profileMessage');
+
+      const settings = loadSettings();
+      if (settings.userName) {
+        userNameInput.value = settings.userName;
+      }
+
+      profileForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = userNameInput.value.trim();
+
+        const current = loadSettings();
+        current.userName = name;
+        saveSettings(current);
+
+        profileMessage.textContent = '保存しました。';
+        setTimeout(() => {
+          profileMessage.textContent = '';
+        }, 2000);
+      });
+
+      // データ管理 初期化
+      const { key: logKey, logs } = loadLogs();
+      const logCountElem = document.getElementById('logCount');
+      const showJsonBtn = document.getElementById('showJsonBtn');
+      const jsonWrapper = document.getElementById('jsonWrapper');
+      const jsonOutput = document.getElementById('jsonOutput');
+      const clearAllLogsBtn = document.getElementById('clearAllLogs');
+
+      logCountElem.textContent = logs.length.toString();
+
+      showJsonBtn.addEventListener('click', () => {
+        // 毎回最新を読み直して表示
+        const latest = loadLogs().logs;
+        jsonOutput.value = JSON.stringify(latest, null, 2);
+        jsonWrapper.style.display = jsonWrapper.style.display === 'none' ? 'block' : 'none';
+      });
+
+      clearAllLogsBtn.addEventListener('click', () => {
+        if (!confirm('本当にすべてのログを削除しますか？この操作は元に戻せません。')) {
+          return;
+        }
+        localStorage.removeItem(logKey);
+        logCountElem.textContent = '0';
+        jsonOutput.value = '';
+        jsonWrapper.style.display = 'none';
+        alert('ログを削除しました。');
+      });
+    });
+  </script>
 
   <script>
     if ('serviceWorker' in navigator) {
