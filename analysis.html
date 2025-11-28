@@ -275,13 +275,14 @@
     });
 
     // ---- 円グラフ中央テキスト用プラグイン ------------------------------
-    // ツールチップ表示中は重ならないように非表示
+    // afterDatasetsDraw で中央テキストを描画し、
+    // ツールチップが出ているフレームでは描画しない。
     const centerTextPlugin = {
       id: 'centerText',
-      afterDraw(chart, args, pluginOptions) {
+      afterDatasetsDraw(chart, args, pluginOptions) {
         const tooltip = chart.tooltip;
         if (tooltip && tooltip.opacity > 0) {
-          // ツールチップが出ている間は描画しない
+          // ツールチップ表示中は中央テキストを描かない
           return;
         }
 
