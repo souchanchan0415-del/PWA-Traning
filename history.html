@@ -13,22 +13,25 @@
     .calendar-header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;     /* ← 中央寄せ */
       margin-bottom: 8px;
       gap: 8px;
     }
     .calendar-month-label {
-      font-size: 0.95rem;
+      font-size: 0.9rem;           /* 少し小さめに */
       color: #f5f5f5;
+      white-space: nowrap;         /* 折り返さない */
     }
     .calendar-nav-btn {
       border-radius: 999px;
       border: 1px solid #2a2e3b;
       background: #181b24;
       color: #f5f5f5;
-      padding: 4px 10px;
-      font-size: 0.85rem;
+      padding: 2px 8px;            /* ボタンを小さく */
+      font-size: 0.75rem;          /* 文字も小さく */
       cursor: pointer;
+      flex-shrink: 0;              /* つぶれ過ぎ防止 */
+      line-height: 1.2;
     }
     .calendar-nav-btn:active {
       transform: scale(0.97);
@@ -292,8 +295,6 @@
     }
 
     function formatDateLabel(dateStr) {
-      // "2025-11-28" → "2025年11月28日(金)" みたいなのも考えたけど、
-      // ひとまず "2025-11-28" のままで。
       return dateStr || '';
     }
 
@@ -501,7 +502,6 @@
       saveLogs(logs);
       rebuildLogsByDate();
 
-      // 選択中の日にログが無くなったらそのまま、カレンダーと一覧を再描画
       renderCalendar();
       renderDayLogs();
     }
@@ -521,7 +521,6 @@
             currentMonth = 11;
             currentYear--;
           }
-          // 月を移動したら、その月の1日を選択状態に
           selectedDate = formatDate(new Date(currentYear, currentMonth, 1));
           renderCalendar();
           renderDayLogs();
