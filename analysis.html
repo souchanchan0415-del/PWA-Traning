@@ -62,6 +62,28 @@
     <small>Train Punch のデータは、この端末のブラウザ(localStorage)に保存されます。</small>
   </footer>
 
+  <!-- ▼ 表示名 → ヘッダー反映用スクリプト ▼ -->
+  <script>
+    function getDisplayName() {
+      return localStorage.getItem('trainPunchDisplayName') || '';
+    }
+
+    function applyDisplayNameToHeader() {
+      const headerSub = document.querySelector('.header-sub');
+      if (!headerSub) return;
+
+      const name = getDisplayName();
+      if (name) {
+        headerSub.textContent = `トレーニング記録アプリ / ${name}のログ / ローカル保存版 v0.1`;
+      } else {
+        headerSub.textContent = 'トレーニング記録アプリ / ローカル保存版 v0.1';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', applyDisplayNameToHeader);
+  </script>
+  <!-- ▲ 表示名 → ヘッダー反映用スクリプト ▲ -->
+
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
