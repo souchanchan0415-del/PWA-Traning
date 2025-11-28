@@ -7,6 +7,111 @@
   <meta name="theme-color" content="#111111">
   <link rel="stylesheet" href="./style.css">
   <link rel="manifest" href="./manifest.webmanifest">
+
+  <!-- カレンダー用の簡易スタイル（このページ専用） -->
+  <style>
+    .calendar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+    .calendar-month-label {
+      font-size: 0.95rem;
+      color: #f5f5f5;
+    }
+    .calendar-nav-btn {
+      border-radius: 999px;
+      border: 1px solid #2a2e3b;
+      background: #181b24;
+      color: #f5f5f5;
+      padding: 4px 10px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .calendar-nav-btn:active {
+      transform: scale(0.97);
+    }
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .calendar-cell-header {
+      text-align: center;
+      font-size: 0.75rem;
+      color: #a0a3b1;
+      padding: 2px 0 4px;
+    }
+    .calendar-day {
+      position: relative;
+      min-height: 40px;
+      border-radius: 10px;
+      padding: 4px 6px;
+      font-size: 0.8rem;
+      color: #f5f5f5;
+      border: 1px solid transparent;
+      background: #12141c;
+      cursor: pointer;
+      text-align: left;
+    }
+    .calendar-day.empty {
+      cursor: default;
+      background: transparent;
+      border: none;
+    }
+    .calendar-day-number {
+      font-size: 0.85rem;
+    }
+    .calendar-day.has-logs {
+      border-color: #2a7fff;
+      background: #151929;
+    }
+    .calendar-day.has-logs::after {
+      content: "";
+      position: absolute;
+      right: 6px;
+      bottom: 4px;
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #4f8cff;
+    }
+    .calendar-day.today {
+      border-color: #f4c542;
+    }
+    .calendar-day.selected {
+      border-color: #4f8cff;
+      box-shadow: 0 0 0 1px rgba(79,140,255,0.4);
+    }
+    .calendar-legend {
+      font-size: 0.75rem;
+      color: #a0a3b1;
+      margin-top: 4px;
+    }
+    .calendar-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-right: 10px;
+    }
+    .calendar-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #4f8cff;
+      display: inline-block;
+    }
+    .calendar-today-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      border: 1px solid #f4c542;
+      display: inline-block;
+    }
+  </style>
 </head>
 <body>
   <header class="header">
@@ -22,85 +127,105 @@
   </header>
 
   <main class="container">
-    <!-- フィルター -->
-    <section class="card">
-      <h2 class="card-title">アーカイブ</h2>
-      <p style="font-size:0.9rem; color:#c2c5d3; margin-bottom:12px;">
-        過去のワークアウトを、日付や部位・種目名で絞り込んで一覧表示します。<br>
-        デフォルトでは、直近7日間の記録が表示されます。
-      </p>
-
-      <form id="archiveFilterForm" class="form">
-        <div class="field-group">
-          <div class="field">
-            <label for="filterDateFrom">日付（開始）</label>
-            <input type="date" id="filterDateFrom">
-          </div>
-          <div class="field">
-            <label for="filterDateTo">日付（終了）</label>
-            <input type="date" id="filterDateTo">
-          </div>
-        </div>
-
-        <div class="field-group">
-          <div class="field">
-            <label for="filterBodyPart">部位</label>
-            <select id="filterBodyPart">
-              <option value="all">すべて</option>
-              <option value="胸">胸</option>
-              <option value="背中">背中</option>
-              <option value="肩">肩</option>
-              <option value="脚">脚</option>
-              <option value="腕">腕</option>
-              <option value="その他">その他</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="filterKeyword">種目名キーワード</label>
-            <input
-              type="text"
-              id="filterKeyword"
-              placeholder="例）ベンチ、スクワット など"
-            >
-          </div>
-        </div>
-
-        <button type="button" id="applyFilter" class="btn-primary">
-          フィルターを適用
-        </button>
-        <p style="margin-top:6px; font-size:0.75rem; color:#a0a3b1;">
-          ※日付を空欄にすると、その条件は無視されます。
-        </p>
-      </form>
-    </section>
-
-    <!-- 結果一覧 -->
+    <!-- カレンダー -->
     <section class="card">
       <div class="card-header-row">
-        <h2 class="card-title">検索結果</h2>
-        <p id="resultSummary" style="margin:0; font-size:0.8rem; color:#c2c5d3;"></p>
+        <h2 class="card-title">アーカイブ（カレンダー）</h2>
       </div>
 
-      <div id="archiveEmpty" class="empty">条件に合う記録がありません</div>
+      <p style="font-size:0.9rem; color:#c2c5d3; margin-bottom:12px;">
+        月ごとのカレンダーから日付をタップすると、その日のワークアウトが下に表示されます。
+      </p>
+
+      <div class="calendar-header">
+        <button type="button" id="prevMonthBtn" class="calendar-nav-btn">◀︎</button>
+        <div class="calendar-month-label" id="monthLabel"></div>
+        <button type="button" id="nextMonthBtn" class="calendar-nav-btn">▶︎</button>
+      </div>
+
+      <div class="calendar-grid" id="calendarGrid">
+        <!-- JS で曜日と日付セルを生成 -->
+      </div>
+
+      <div class="calendar-legend">
+        <span><span class="calendar-dot"></span> ログあり</span>
+        <span><span class="calendar-today-indicator"></span> 今日</span>
+      </div>
+    </section>
+
+    <!-- 選択した日の記録 -->
+    <section class="card">
+      <div class="card-header-row">
+        <h2 class="card-title">選択した日の記録</h2>
+        <span id="selectedDateLabel" style="margin-left:auto; font-size:0.85rem; color:#c2c5d3;"></span>
+      </div>
+
+      <div id="dayEmpty" class="empty">この日の記録はありません</div>
 
       <div class="table-wrapper">
-        <table class="log-table" id="archiveTable">
+        <table class="log-table" id="dayLogTable">
           <thead>
             <tr>
-              <th>日付</th>
               <th>種目</th>
-              <th>部位</th>
               <th>重量</th>
               <th>セット</th>
               <th>回数</th>
               <th>RPE</th>
               <th>メモ</th>
+              <th></th>
             </tr>
           </thead>
-          <tbody id="archiveBody">
-          </tbody>
+          <tbody id="dayLogBody"></tbody>
         </table>
       </div>
+    </section>
+
+    <!-- 編集用カード -->
+    <section class="card" id="editCard" style="display:none;">
+      <h2 class="card-title">記録の編集</h2>
+      <form id="editForm" class="form">
+        <div class="field">
+          <label for="editDate">日付</label>
+          <input type="date" id="editDate" required>
+        </div>
+
+        <div class="field">
+          <label for="editExercise">種目名</label>
+          <input type="text" id="editExercise" required>
+        </div>
+
+        <div class="field-group">
+          <div class="field">
+            <label for="editWeight">重量(kg)</label>
+            <input type="number" id="editWeight" step="0.5" inputmode="decimal">
+          </div>
+          <div class="field">
+            <label for="editSets">セット数</label>
+            <input type="number" id="editSets" inputmode="numeric" min="1">
+          </div>
+          <div class="field">
+            <label for="editReps">回数</label>
+            <input type="number" id="editReps" inputmode="numeric">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="editRpe">RPE</label>
+          <input type="number" id="editRpe" step="0.5" inputmode="decimal">
+        </div>
+
+        <div class="field">
+          <label for="editMemo">メモ</label>
+          <textarea id="editMemo" rows="2"></textarea>
+        </div>
+
+        <div class="field-group">
+          <button type="submit" class="btn-primary" style="flex:1;">保存する</button>
+          <button type="button" id="cancelEditBtn" class="btn-secondary" style="flex:1; margin-left:8px;">
+            キャンセル
+          </button>
+        </div>
+      </form>
     </section>
   </main>
 
@@ -120,7 +245,8 @@
 
       const name = getDisplayName();
       if (name) {
-        headerSub.textContent = `トレーニング記録アプリ / ${name}のログ / ローカル保存版 v0.1`;
+        headerSub.textContent =
+          `トレーニング記録アプリ / ${name}のログ / ローカル保存版 v0.1`;
       } else {
         headerSub.textContent = 'トレーニング記録アプリ / ローカル保存版 v0.1';
       }
@@ -131,7 +257,7 @@
   <!-- ▲ 表示名 → ヘッダー反映用スクリプト ▲ -->
 
   <script>
-    // ---- ログ読み込み ---------------------------------------------------
+    // ---- ログ読み込み / 保存 --------------------------------------------
 
     function tryParseArray(raw) {
       if (!raw) return null;
@@ -149,12 +275,11 @@
         const logs = tryParseArray(localStorage.getItem(key));
         if (logs) return logs;
       }
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        const logs = tryParseArray(localStorage.getItem(key));
-        if (logs) return logs;
-      }
       return [];
+    }
+
+    function saveLogs(logs) {
+      localStorage.setItem('trainPunchLogs', JSON.stringify(logs));
     }
 
     // ---- 日付ユーティリティ ---------------------------------------------
@@ -166,193 +291,309 @@
       return `${y}-${m}-${d}`;
     }
 
-    // ---- 種目 → 部位 マッピング（analysis.html と同じ） -----------------
-
-    const EXERCISE_TO_PART = {
-      // 胸
-      'ベンチプレス': '胸',
-      '足上げベンチ': '胸',
-      'スミスマシンベンチプレス': '胸',
-      'インクラインダンベルプレス': '胸',
-      'インクラインマシンプレス': '胸',
-      'ディップス': '胸',
-      'ディップス(荷重)': '胸',
-      'ケーブルクロスオーバー': '胸',
-      'ペックフライ': '胸',
-      'チェストプレス': '胸',
-      'スミス インクラインプレス': '胸',
-      'スミス デクラインプレス': '胸',
-
-      // 背中
-      'デットリフト': '背中',
-      'ハーフデットリフト': '背中',
-      'デッドリフト': '背中',
-      'ハーフデッドリフト': '背中',
-      'チンニング': '背中',
-      '懸垂': '背中',
-      'ラットプルダウン': '背中',
-      'ラットプルダウン（ナロー）': '背中',
-      'ラットプルダウン（ちょーナロー）': '背中',
-      'ワイドラットプルダウン': '背中',
-      'スミスマシンベントオーバーロウ': '背中',
-      'ベントオーバーロウ': '背中',
-      'ローロウ': '背中',
-      'シーテッドロウ': '背中',
-      'Tバーロウ': '背中',
-      'Tバーロー': '背中',
-
-      // 肩
-      'ダンベルショルダープレス': '肩',
-      'スミスマシンショルダープレス': '肩',
-      'スミスショルダープレス': '肩',
-      'マシンショルダープレス': '肩',
-      'ケーブルフロントレイズ': '肩',
-      'サイドレイズ': '肩',
-      'ベンチサイドレイズ': '肩',
-      'ケーブルサイドレイズ': '肩',
-      'ケーブルリアレイズ': '肩',
-      'リアデルトイド': '肩',
-
-      // 脚
-      'スクワット': '脚',
-      'バーベルスクワット': '脚',
-      'レッグプレス': '脚',
-      'バックスクワット': '脚',
-      'レッグカール': '脚',
-      'レッグエクステンション': '脚',
-      'インナーサイ': '脚',
-      'ルーマニアンデットリフト': '脚',
-      'スティフレッグデッドリフト': '脚',
-
-      // 腕
-      'バーベルカール': '腕',
-      'インクラインダンベルカール': '腕',
-      'ハンマーカール': '腕',
-      'ダンベルプリチャーカール(右/左)': '腕',
-      'インクラインダンベルカール(右/左)': '腕',
-      'スミスマシンナロープレス': '腕',
-      'ナロープレス': '腕',
-      'スカルクラッシャー': '腕',
-      'フレンチプレス': '腕',
-      'ケーブルプレスダウン': '腕',
-      'スミスJMプレス': '腕',
-      '[三頭]ケーブルプレスダウン': '腕',
-
-      // その他
-      'その他': 'その他'
-    };
-
-    const BODY_PARTS = ['胸', '背中', '肩', '脚', '腕', 'その他'];
-
-    // ---- 描画処理 -------------------------------------------------------
-
-    const logs = loadLogs();
-
-    function applyFilterAndRender() {
-      const fromInput = document.getElementById('filterDateFrom');
-      const toInput = document.getElementById('filterDateTo');
-      const partSelect = document.getElementById('filterBodyPart');
-      const keywordInput = document.getElementById('filterKeyword');
-      const emptyEl = document.getElementById('archiveEmpty');
-      const tbody = document.getElementById('archiveBody');
-      const summary = document.getElementById('resultSummary');
-
-      if (!tbody) return;
-
-      const from = fromInput.value || null;
-      const to = toInput.value || null;
-      const partFilter = partSelect.value || 'all';
-      const keyword = (keywordInput.value || '').trim();
-
-      let filtered = logs.slice();
-
-      filtered = filtered.filter(log => {
-        // 日付フィルタ
-        if (from && log.date < from) return false;
-        if (to && log.date > to) return false;
-
-        // 部位フィルタ
-        if (partFilter !== 'all') {
-          const part = EXERCISE_TO_PART[log.exercise] || 'その他';
-          if (part !== partFilter) return false;
-        }
-
-        // 種目名キーワード（部分一致）
-        if (keyword) {
-          if (!log.exercise || !log.exercise.includes(keyword)) return false;
-        }
-
-        return true;
-      });
-
-      // 日付降順でソート
-      filtered.sort((a, b) => b.date.localeCompare(a.date));
-
-      // テーブル描画
-      tbody.innerHTML = '';
-
-      if (!filtered.length) {
-        emptyEl.style.display = 'block';
-      } else {
-        emptyEl.style.display = 'none';
-
-        for (const log of filtered) {
-          const tr = document.createElement('tr');
-
-          const part = EXERCISE_TO_PART[log.exercise] || 'その他';
-          const weightStr = log.weight != null && log.weight !== ''
-            ? `${log.weight}kg`
-            : '-';
-          const setsStr = log.sets != null && log.sets !== ''
-            ? `${log.sets}セット`
-            : '-';
-          const repsStr = log.reps != null && log.reps !== ''
-            ? `${log.reps}回`
-            : '-';
-          const rpeStr = log.rpe != null && log.rpe !== ''
-            ? String(log.rpe)
-            : '-';
-          const memoStr = log.memo || '';
-
-          tr.innerHTML = `
-            <td>${log.date || '-'}</td>
-            <td>${log.exercise || '-'}</td>
-            <td>${part}</td>
-            <td>${weightStr}</td>
-            <td>${setsStr}</td>
-            <td>${repsStr}</td>
-            <td>${rpeStr}</td>
-            <td>${memoStr}</td>
-          `;
-
-          tbody.appendChild(tr);
-        }
-      }
-
-      const fromLabel = from || '指定なし';
-      const toLabel = to || '指定なし';
-      summary.textContent = `${filtered.length}件（${fromLabel} 〜 ${toLabel}）`;
+    function formatDateLabel(dateStr) {
+      // "2025-11-28" → "2025年11月28日(金)" みたいなのも考えたけど、
+      // ひとまず "2025-11-28" のままで。
+      return dateStr || '';
     }
 
+    // ---- 状態変数 -------------------------------------------------------
+
+    let logs = loadLogs();            // 全ログ
+    let logsByDate = {};              // { 'YYYY-MM-DD': [index, index, ...] }
+    const today = new Date();
+    let currentYear = today.getFullYear();
+    let currentMonth = today.getMonth();  // 0-11
+    let selectedDate = formatDate(today); // 選択中の日付
+    let editingIndex = null;              // 編集中の logs[] のインデックス
+
+    function rebuildLogsByDate() {
+      logsByDate = {};
+      logs.forEach((log, index) => {
+        if (!log.date) return;
+        if (!logsByDate[log.date]) {
+          logsByDate[log.date] = [];
+        }
+        logsByDate[log.date].push(index);
+      });
+    }
+
+    // ---- カレンダー描画 -------------------------------------------------
+
+    const weekdayLabels = ['日', '月', '火', '水', '木', '金', '土'];
+
+    function renderCalendar() {
+      const monthLabel = document.getElementById('monthLabel');
+      const grid = document.getElementById('calendarGrid');
+      if (!monthLabel || !grid) return;
+
+      monthLabel.textContent = `${currentYear}年${currentMonth + 1}月`;
+
+      grid.innerHTML = '';
+
+      // 曜日ヘッダー
+      weekdayLabels.forEach(label => {
+        const div = document.createElement('div');
+        div.className = 'calendar-cell-header';
+        div.textContent = label;
+        grid.appendChild(div);
+      });
+
+      const firstDay = new Date(currentYear, currentMonth, 1);
+      const startWeekday = firstDay.getDay();
+      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+      // 1日までの空セル
+      for (let i = 0; i < startWeekday; i++) {
+        const div = document.createElement('div');
+        div.className = 'calendar-day empty';
+        grid.appendChild(div);
+      }
+
+      const todayStr = formatDate(today);
+
+      // 日付セル
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateObj = new Date(currentYear, currentMonth, day);
+        const dateStr = formatDate(dateObj);
+
+        const div = document.createElement('button');
+        div.type = 'button';
+        div.className = 'calendar-day';
+
+        const numberSpan = document.createElement('div');
+        numberSpan.className = 'calendar-day-number';
+        numberSpan.textContent = String(day);
+        div.appendChild(numberSpan);
+
+        if (logsByDate[dateStr] && logsByDate[dateStr].length > 0) {
+          div.classList.add('has-logs');
+        }
+        if (dateStr === todayStr) {
+          div.classList.add('today');
+        }
+        if (dateStr === selectedDate) {
+          div.classList.add('selected');
+        }
+
+        div.addEventListener('click', () => {
+          selectedDate = dateStr;
+          renderCalendar();
+          renderDayLogs();
+        });
+
+        grid.appendChild(div);
+      }
+    }
+
+    // ---- 選択した日のログ描画 --------------------------------------------
+
+    function renderDayLogs() {
+      const label = document.getElementById('selectedDateLabel');
+      const emptyEl = document.getElementById('dayEmpty');
+      const tbody = document.getElementById('dayLogBody');
+      const table = document.getElementById('dayLogTable');
+      if (!label || !emptyEl || !tbody || !table) return;
+
+      label.textContent = formatDateLabel(selectedDate);
+
+      tbody.innerHTML = '';
+
+      const indexList = logsByDate[selectedDate] || [];
+      if (!indexList.length) {
+        emptyEl.style.display = 'block';
+        table.style.display = 'none';
+        return;
+      }
+
+      emptyEl.style.display = 'none';
+      table.style.display = 'table';
+
+      indexList.forEach(idx => {
+        const log = logs[idx];
+        const tr = document.createElement('tr');
+
+        const weightStr =
+          log.weight != null && log.weight !== '' ? `${log.weight}kg` : '-';
+        const setsStr =
+          log.sets != null && log.sets !== '' ? `${log.sets}セット` : '-';
+        const repsStr =
+          log.reps != null && log.reps !== '' ? `${log.reps}回` : '-';
+        const rpeStr =
+          log.rpe != null && log.rpe !== '' ? String(log.rpe) : '-';
+        const memoStr = log.memo || '';
+
+        tr.innerHTML = `
+          <td>${log.exercise || '-'}</td>
+          <td>${weightStr}</td>
+          <td>${setsStr}</td>
+          <td>${repsStr}</td>
+          <td>${rpeStr}</td>
+          <td>${memoStr}</td>
+          <td></td>
+        `;
+
+        const actionTd = tr.lastElementChild;
+
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.textContent = '編集';
+        editBtn.className = 'btn-secondary small';
+        editBtn.style.marginRight = '4px';
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.textContent = '削除';
+        deleteBtn.className = 'btn-danger small';
+
+        editBtn.addEventListener('click', () => openEditForm(idx));
+        deleteBtn.addEventListener('click', () => deleteLog(idx));
+
+        actionTd.appendChild(editBtn);
+        actionTd.appendChild(deleteBtn);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ---- 編集処理 -------------------------------------------------------
+
+    function openEditForm(index) {
+      const log = logs[index];
+      if (!log) return;
+
+      editingIndex = index;
+
+      const card = document.getElementById('editCard');
+      const editDate = document.getElementById('editDate');
+      const editExercise = document.getElementById('editExercise');
+      const editWeight = document.getElementById('editWeight');
+      const editSets = document.getElementById('editSets');
+      const editReps = document.getElementById('editReps');
+      const editRpe = document.getElementById('editRpe');
+      const editMemo = document.getElementById('editMemo');
+
+      editDate.value = log.date || '';
+      editExercise.value = log.exercise || '';
+      editWeight.value = log.weight != null ? log.weight : '';
+      editSets.value = log.sets != null ? log.sets : '';
+      editReps.value = log.reps != null ? log.reps : '';
+      editRpe.value = log.rpe != null ? log.rpe : '';
+      editMemo.value = log.memo || '';
+
+      card.style.display = 'block';
+      window.scrollTo({ top: card.offsetTop - 60, behavior: 'smooth' });
+    }
+
+    function closeEditForm() {
+      const card = document.getElementById('editCard');
+      if (card) card.style.display = 'none';
+      editingIndex = null;
+    }
+
+    function deleteLog(index) {
+      const log = logs[index];
+      const dateLabel = log && log.date ? `（${log.date} / ${log.exercise || ''}）` : '';
+      const ok = confirm(`この記録${dateLabel}を削除しますか？`);
+      if (!ok) return;
+
+      logs.splice(index, 1);
+      saveLogs(logs);
+      rebuildLogsByDate();
+
+      // 選択中の日にログが無くなったらそのまま、カレンダーと一覧を再描画
+      renderCalendar();
+      renderDayLogs();
+    }
+
+    // ---- 初期化 ---------------------------------------------------------
+
     document.addEventListener('DOMContentLoaded', () => {
-      const fromInput = document.getElementById('filterDateFrom');
-      const toInput = document.getElementById('filterDateTo');
-      const applyBtn = document.getElementById('applyFilter');
+      rebuildLogsByDate();
 
-      // デフォルトは「直近7日間」
-      const today = new Date();
-      const toStr = formatDate(today);
-      const fromDate = new Date(today);
-      fromDate.setDate(fromDate.getDate() - 6);
-      const fromStr = formatDate(fromDate);
+      const prevBtn = document.getElementById('prevMonthBtn');
+      const nextBtn = document.getElementById('nextMonthBtn');
 
-      if (!fromInput.value) fromInput.value = fromStr;
-      if (!toInput.value) toInput.value = toStr;
+      if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+          currentMonth--;
+          if (currentMonth < 0) {
+            currentMonth = 11;
+            currentYear--;
+          }
+          // 月を移動したら、その月の1日を選択状態に
+          selectedDate = formatDate(new Date(currentYear, currentMonth, 1));
+          renderCalendar();
+          renderDayLogs();
+        });
+      }
 
-      applyBtn.addEventListener('click', applyFilterAndRender);
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+          currentMonth++;
+          if (currentMonth > 11) {
+            currentMonth = 0;
+            currentYear++;
+          }
+          selectedDate = formatDate(new Date(currentYear, currentMonth, 1));
+          renderCalendar();
+          renderDayLogs();
+        });
+      }
+
+      const editForm = document.getElementById('editForm');
+      const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+      if (editForm) {
+        editForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          if (editingIndex == null) return;
+
+          const editDate = document.getElementById('editDate');
+          const editExercise = document.getElementById('editExercise');
+          const editWeight = document.getElementById('editWeight');
+          const editSets = document.getElementById('editSets');
+          const editReps = document.getElementById('editReps');
+          const editRpe = document.getElementById('editRpe');
+          const editMemo = document.getElementById('editMemo');
+
+          const newDate = (editDate.value || '').trim();
+          const newExercise = (editExercise.value || '').trim();
+          if (!newDate || !newExercise) {
+            alert('日付と種目名は必須です。');
+            return;
+          }
+
+          const target = logs[editingIndex] || {};
+          target.date = newDate;
+          target.exercise = newExercise;
+          target.weight = editWeight.value !== '' ? Number(editWeight.value) : '';
+          target.sets = editSets.value !== '' ? Number(editSets.value) : '';
+          target.reps = editReps.value !== '' ? Number(editReps.value) : '';
+          target.rpe = editRpe.value !== '' ? Number(editRpe.value) : '';
+          target.memo = editMemo.value || '';
+
+          logs[editingIndex] = target;
+
+          saveLogs(logs);
+          rebuildLogsByDate();
+
+          selectedDate = newDate;
+          closeEditForm();
+          renderCalendar();
+          renderDayLogs();
+        });
+      }
+
+      if (cancelEditBtn) {
+        cancelEditBtn.addEventListener('click', () => {
+          closeEditForm();
+        });
+      }
 
       // 初回描画
-      applyFilterAndRender();
+      renderCalendar();
+      renderDayLogs();
     });
   </script>
 
