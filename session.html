@@ -133,7 +133,8 @@
       </form>
     </section>
 
-    <section class="card">
+    <!-- ▼ 記録一覧カード：UIからは消したいので非表示にしておく ▼ -->
+    <section class="card" id="logListCard" style="display:none;">
       <div class="card-header-row">
         <h2 class="card-title">記録一覧</h2>
         <button id="clearAll" class="btn-danger small">全部削除</button>
@@ -158,6 +159,7 @@
         </table>
       </div>
     </section>
+    <!-- ▲ 記録一覧カードここまで（DOMには残してある） ▲ -->
   </main>
 
   <footer class="footer">
