@@ -22,98 +22,111 @@
   </header>
 
   <main class="container">
-    <!-- プロフィール設定 -->
-    <section class="card">
-      <h2 class="card-title">プロフィール設定</h2>
-      <p style="font-size:0.9rem; color:#c2c5d3;">
-        ここでは、アプリ内で表示するあなたの名前を設定できます。<br>
-        今後のアップデートで、ヘッダーや各画面のメッセージなどに反映していく予定です。
-      </p>
+    <!-- プロフィール設定（折りたたみ：初期状態・開） -->
+    <section class="card card-collapsible">
+      <div class="card-header-row card-toggle">
+        <h2 class="card-title">プロフィール設定</h2>
+        <span class="card-toggle-icon">−</span>
+      </div>
+      <div class="card-body" id="profileCardBody">
+        <p style="font-size:0.9rem; color:#c2c5d3;">
+          ここでは、アプリ内で表示するあなたの名前を設定できます。<br>
+          ヘッダーの「◯◯のログ」に反映されます。
+        </p>
 
-      <form id="profileForm" class="form">
-        <div class="field">
-          <label for="displayName">表示名</label>
-          <input
-            type="text"
-            id="displayName"
-            placeholder="例）おさむ"
-          >
-        </div>
-        <button type="submit" class="btn-primary">保存する</button>
-        <p id="profileMessage" class="message"></p>
-      </form>
-    </section>
-
-    <!-- データ管理 -->
-    <section class="card">
-      <h2 class="card-title">データ管理</h2>
-      <p style="font-size:0.9rem; color:#c2c5d3;">
-        ここでは、ワークアウトの記録データを確認したり、<br>
-        バックアップ用にJSON形式でコピーしたりできます。
-      </p>
-
-      <p style="margin-top:8px; font-size:0.9rem; color:#c2c5d3;">
-        現在のログ件数：<span id="logCount">0</span>件
-      </p>
-
-      <!-- JSON表示トグル -->
-      <button type="button" id="toggleJsonBtn" class="btn-primary">
-        ログJSONを表示
-      </button>
-
-      <!-- JSONコピー -->
-      <button type="button" id="copyJsonBtn" class="btn-primary" style="margin-top:8px;">
-        JSONをコピー
-      </button>
-
-      <p style="margin-top:6px; font-size:0.75rem; color:#a0a3b1;">
-        ※コピー＆インポート用です。<br>
-        ・バックアップ：「JSONをコピー」ボタンでクリップボードに保存できます。<br>
-        ・復元：下の欄にJSONを貼り付けて「JSONから復元する」を押すと、ログを上書きします。
-      </p>
-
-      <!-- JSON表示エリア（読み取り専用） -->
-      <textarea
-        id="jsonOutput"
-        rows="10"
-        readonly
-        style="margin-top:8px; display:none;"
-        placeholder="ここにログJSONが表示されます"
-      ></textarea>
-
-      <!-- JSONインポート用 -->
-      <textarea
-        id="jsonInput"
-        rows="6"
-        style="margin-top:12px;"
-        placeholder="ここにJSONを貼り付けて「JSONから復元する」を押すと、現在のログをこのJSONで上書きします。"
-      ></textarea>
-
-      <button type="button" id="importFromJsonBtn" class="btn-primary" style="margin-top:8px;">
-        JSONから復元する
-      </button>
-
-      <button type="button" id="deleteAllLogsBtn" class="btn-danger" style="margin-top:12px;">
-        すべてのログを削除する
-      </button>
-      <p style="margin-top:6px; font-size:0.75rem; color:#a0a3b1;">
-        ※この操作は元に戻せません。ローカルに保存されているワークアウト記録がすべて消去されます。
-      </p>
-    </section>
-
-    <!-- 種目プリセット（部位を選んで種目を追加） -->
-    <section class="card">
-      <h2 class="card-title">種目プリセット</h2>
-      <p style="font-size:0.9rem; color:#c2c5d3;">
-        ここでは、よく使う種目を部位ごとに追加できます。<br>
-        追加した種目は、ワークアウト画面の部位タブに反映させていく予定です。
-      </p>
-
-      <form id="customExerciseForm" class="form" onsubmit="return false;">
-        <div class="field-group">
+        <form id="profileForm" class="form">
           <div class="field">
-            <label for="customExercisePart">部位</label>
-            <select id="customExercisePart">
+            <label for="displayName">表示名</label>
+            <input
+              type="text"
+              id="displayName"
+              placeholder="例）おさむ"
+            >
+          </div>
+          <button type="submit" class="btn-primary">保存する</button>
+          <p id="profileMessage" class="message"></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- データ管理（折りたたみ：初期状態・閉） -->
+    <section class="card card-collapsible">
+      <div class="card-header-row card-toggle">
+        <h2 class="card-title">データ管理</h2>
+        <span class="card-toggle-icon">＋</span>
+      </div>
+      <div class="card-body" id="dataCardBody" style="display:none;">
+        <p style="font-size:0.9rem; color:#c2c5d3;">
+          ここでは、ワークアウトの記録データを確認したり、<br>
+          バックアップ用にJSON形式でコピーしたりできます。
+        </p>
+
+        <p style="margin-top:8px; font-size:0.9rem; color:#c2c5d3;">
+          現在のログ件数：<span id="logCount">0</span>件
+        </p>
+
+        <!-- JSON表示トグル -->
+        <button type="button" id="toggleJsonBtn" class="btn-primary">
+          ログJSONを表示
+        </button>
+
+        <!-- JSONコピー -->
+        <button type="button" id="copyJsonBtn" class="btn-primary" style="margin-top:8px;">
+          JSONをコピー
+        </button>
+
+        <p style="margin-top:6px; font-size:0.75rem; color:#a0a3b1;">
+          ※コピー＆インポート用です。<br>
+          ・バックアップ：「JSONをコピー」ボタンでクリップボードに保存できます。<br>
+          ・復元：下の欄にJSONを貼り付けて「JSONから復元する」を押すと、ログを上書きします。
+        </p>
+
+        <!-- JSON表示エリア（読み取り専用） -->
+        <textarea
+          id="jsonOutput"
+          rows="10"
+          readonly
+          style="margin-top:8px; display:none;"
+          placeholder="ここにログJSONが表示されます"
+        ></textarea>
+
+        <!-- JSONインポート用 -->
+        <textarea
+          id="jsonInput"
+          rows="6"
+          style="margin-top:12px;"
+          placeholder="ここにJSONを貼り付けて「JSONから復元する」を押すと、現在のログをこのJSONで上書きします。"
+        ></textarea>
+
+        <button type="button" id="importFromJsonBtn" class="btn-primary" style="margin-top:8px;">
+          JSONから復元する
+        </button>
+
+        <button type="button" id="deleteAllLogsBtn" class="btn-danger" style="margin-top:12px;">
+          すべてのログを削除する
+        </button>
+        <p style="margin-top:6px; font-size:0.75rem; color:#a0a3b1;">
+          ※この操作は元に戻せません。ローカルに保存されているワークアウト記録がすべて消去されます。
+        </p>
+      </div>
+    </section>
+
+    <!-- 種目追加（旧：種目プリセット）（折りたたみ：初期状態・閉） -->
+    <section class="card card-collapsible">
+      <div class="card-header-row card-toggle">
+        <h2 class="card-title">種目追加</h2>
+        <span class="card-toggle-icon">＋</span>
+      </div>
+      <div class="card-body" id="exerciseCardBody" style="display:none;">
+        <p style="font-size:0.9rem; color:#c2c5d3;">
+          よく使うオリジナル種目を登録しておくと、<br>
+          ワークアウト画面の部位タブから選べるようになります。
+        </p>
+
+        <form id="exercisePresetForm" class="form" style="margin-top:8px;">
+          <div class="field">
+            <label for="exercisePartSelect">部位</label>
+            <select id="exercisePartSelect">
               <option value="chest">胸</option>
               <option value="back">背中</option>
               <option value="shoulder">肩</option>
@@ -122,45 +135,31 @@
               <option value="other">その他</option>
             </select>
           </div>
+
           <div class="field">
-            <label for="customExerciseName">種目名</label>
+            <label for="exerciseNameInput">種目名</label>
             <input
               type="text"
-              id="customExerciseName"
+              id="exerciseNameInput"
               placeholder="例）ダンベルフライ"
             >
           </div>
+
+          <button type="button" id="addExercisePresetBtn" class="btn-primary">
+            種目を追加する
+          </button>
+          <p id="exercisePresetMessage" class="message"></p>
+        </form>
+
+        <div style="margin-top:16px;">
+          <h3 style="font-size:0.95rem; margin:0 0 6px;">登録済みの種目</h3>
+          <p style="font-size:0.8rem; color:#a0a3b1; margin:0 0 6px;">
+            種目名の右側の「×」で個別に削除できます。
+          </p>
+          <div id="customExerciseList" class="empty">
+            まだカスタム種目は登録されていません。
+          </div>
         </div>
-
-        <button type="button" id="addCustomExerciseBtn" class="btn-primary">
-          種目を追加する
-        </button>
-        <p id="customExerciseMessage" class="message"></p>
-      </form>
-
-      <div style="margin-top:12px;">
-        <h3 style="margin:0 0 6px; font-size:0.95rem;">登録済みのカスタム種目</h3>
-        <div id="customExerciseEmpty" class="empty">
-          まだカスタム種目は登録されていません
-        </div>
-
-        <div class="table-wrapper">
-          <table class="log-table">
-            <thead>
-              <tr>
-                <th>部位</th>
-                <th>種目名</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="customExerciseTableBody"></tbody>
-          </table>
-        </div>
-
-        <p style="margin-top:6px; font-size:0.75rem; color:#a0a3b1;">
-          ※ここで削除しても、既に記録済みのワークアウトデータは消えません。<br>
-          （新規入力時の候補から外れるだけです）
-        </p>
       </div>
     </section>
   </main>
@@ -187,8 +186,6 @@
         headerSub.textContent = 'トレーニング記録アプリ / ローカル保存版 v0.1';
       }
     }
-
-    document.addEventListener('DOMContentLoaded', applyDisplayNameToHeader);
   </script>
   <!-- ▲ 表示名 → ヘッダー反映用スクリプト ▲ -->
 
@@ -217,16 +214,8 @@
       localStorage.setItem('trainPunchLogs', JSON.stringify(logs));
     }
 
-    // ---- カスタム種目保存用 ----------------------------------------------
+    // ---- カスタム種目（session.html と共通のキー） ----------------------
     const CUSTOM_EXERCISES_KEY = 'trainPunchCustomExercises';
-    const PART_LABELS = {
-      chest: '胸',
-      back: '背中',
-      shoulder: '肩',
-      leg: '脚',
-      arm: '腕',
-      other: 'その他'
-    };
 
     function loadCustomExercises() {
       const raw = localStorage.getItem(CUSTOM_EXERCISES_KEY);
@@ -243,130 +232,140 @@
       localStorage.setItem(CUSTOM_EXERCISES_KEY, JSON.stringify(map));
     }
 
-    function renderCustomExerciseTable() {
-      const tbody = document.getElementById('customExerciseTableBody');
-      const emptyEl = document.getElementById('customExerciseEmpty');
-      if (!tbody) return;
+    const PART_LABELS = {
+      chest: '胸',
+      back: '背中',
+      shoulder: '肩',
+      leg: '脚',
+      arm: '腕',
+      other: 'その他'
+    };
+
+    function renderCustomExerciseList() {
+      const container = document.getElementById('customExerciseList');
+      if (!container) return;
 
       const map = loadCustomExercises();
-      const rows = [];
+      const partKeys = Object.keys(map).filter(
+        key => Array.isArray(map[key]) && map[key].length > 0
+      );
 
-      Object.keys(map).forEach(partKey => {
-        const list = Array.isArray(map[partKey]) ? map[partKey] : [];
-        list.forEach(name => {
-          rows.push({ partKey, name });
-        });
-      });
+      container.innerHTML = '';
 
-      tbody.innerHTML = '';
-
-      if (!rows.length) {
-        if (emptyEl) emptyEl.style.display = 'block';
+      if (!partKeys.length) {
+        container.classList.add('empty');
+        container.textContent = 'まだカスタム種目は登録されていません。';
         return;
       }
-      if (emptyEl) emptyEl.style.display = 'none';
 
-      rows.forEach(row => {
-        const tr = document.createElement('tr');
-        const partLabel = PART_LABELS[row.partKey] || 'その他';
+      container.classList.remove('empty');
 
-        tr.innerHTML = `
-          <td>${partLabel}</td>
-          <td>${row.name}</td>
-          <td>
-            <button
-              type="button"
-              class="btn-danger small"
-              data-part="${row.partKey}"
-              data-name="${row.name}"
-            >
-              削除
-            </button>
-          </td>
-        `;
-        tbody.appendChild(tr);
+      partKeys.forEach(partKey => {
+        const exercises = map[partKey];
+
+        const groupDiv = document.createElement('div');
+        groupDiv.style.marginBottom = '8px';
+
+        const title = document.createElement('div');
+        title.style.fontSize = '0.85rem';
+        title.style.color = '#c2c5d3';
+        title.style.marginBottom = '4px';
+        title.textContent = PART_LABELS[partKey] || partKey;
+        groupDiv.appendChild(title);
+
+        exercises.forEach(name => {
+          const row = document.createElement('div');
+          row.style.display = 'flex';
+          row.style.alignItems = 'center';
+          row.style.justifyContent = 'space-between';
+          row.style.gap = '8px';
+          row.style.fontSize = '0.85rem';
+          row.style.padding = '4px 8px';
+          row.style.borderRadius = '6px';
+          row.style.border = '1px solid #2a2e3b';
+          row.style.background = '#181b24';
+          row.style.marginBottom = '4px';
+
+          const labelSpan = document.createElement('span');
+          labelSpan.textContent = name;
+
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.textContent = '×';
+          delBtn.className = 'btn-danger small';
+          delBtn.style.padding = '2px 6px';
+          delBtn.style.fontSize = '0.75rem';
+
+          delBtn.addEventListener('click', () => {
+            const ok = confirm(`「${name}」を削除しますか？`);
+            if (!ok) return;
+
+            const current = loadCustomExercises();
+            if (Array.isArray(current[partKey])) {
+              current[partKey] = current[partKey].filter(n => n !== name);
+              if (current[partKey].length === 0) {
+                delete current[partKey];
+              }
+              saveCustomExercises(current);
+              renderCustomExerciseList();
+            }
+          });
+
+          row.appendChild(labelSpan);
+          row.appendChild(delBtn);
+          groupDiv.appendChild(row);
+        });
+
+        container.appendChild(groupDiv);
       });
+    }
 
-      // 削除ボタン
-      tbody.querySelectorAll('button[data-part]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const partKey = btn.getAttribute('data-part');
-          const name = btn.getAttribute('data-name');
-          const map = loadCustomExercises();
-          if (!map[partKey]) return;
-          map[partKey] = map[partKey].filter(n => n !== name);
-          if (!map[partKey].length) {
-            delete map[partKey];
+    // ---- カード折りたたみ制御 ------------------------------------------
+    function setupCardToggles() {
+      const toggles = document.querySelectorAll('.card-toggle');
+      toggles.forEach(toggle => {
+        toggle.addEventListener('click', () => {
+          const card = toggle.closest('.card');
+          if (!card) return;
+          const body = card.querySelector('.card-body');
+          const icon = toggle.querySelector('.card-toggle-icon');
+          if (!body) return;
+
+          const isHidden = body.style.display === 'none';
+          body.style.display = isHidden ? 'block' : 'none';
+          if (icon) {
+            icon.textContent = isHidden ? '−' : '＋';
           }
-          saveCustomExercises(map);
-          renderCustomExerciseTable();
         });
       });
     }
 
-    function initCustomExerciseForm() {
-      const partSelect = document.getElementById('customExercisePart');
-      const nameInput = document.getElementById('customExerciseName');
-      const addBtn = document.getElementById('addCustomExerciseBtn');
-      const msgEl = document.getElementById('customExerciseMessage');
-
-      if (!partSelect || !nameInput || !addBtn) return;
-
-      function setMessage(text, ok = true) {
-        if (!msgEl) return;
-        msgEl.textContent = text;
-        msgEl.style.color = ok ? '#a0f0a0' : '#ffb3b3';
-      }
-
-      addBtn.addEventListener('click', () => {
-        const partKey = partSelect.value;
-        const name = (nameInput.value || '').trim();
-
-        if (!name) {
-          setMessage('種目名を入力してください。', false);
-          return;
-        }
-
-        const map = loadCustomExercises();
-        const list = Array.isArray(map[partKey]) ? map[partKey] : [];
-
-        if (list.includes(name)) {
-          setMessage('同じ種目が既に登録されています。', false);
-          return;
-        }
-
-        list.push(name);
-        map[partKey] = list;
-        saveCustomExercises(map);
-
-        nameInput.value = '';
-        setMessage('種目を追加しました。', true);
-        renderCustomExerciseTable();
-      });
-
-      // 初期描画
-      renderCustomExerciseTable();
-    }
-
+    // ---- 初期化 ---------------------------------------------------------
     document.addEventListener('DOMContentLoaded', () => {
+      // ヘッダー表示名
+      applyDisplayNameToHeader();
+
       // ===== プロフィール設定 =====
       const profileForm = document.getElementById('profileForm');
       const displayNameInput = document.getElementById('displayName');
       const profileMessage = document.getElementById('profileMessage');
 
-      // 初期値反映
-      displayNameInput.value = getDisplayName();
+      if (displayNameInput) {
+        displayNameInput.value = getDisplayName();
+      }
 
-      profileForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const name = (displayNameInput.value || '').trim();
-        localStorage.setItem('trainPunchDisplayName', name);
-        applyDisplayNameToHeader();
-        profileMessage.textContent = '表示名を保存しました。';
-        setTimeout(() => {
-          profileMessage.textContent = '';
-        }, 2000);
-      });
+      if (profileForm) {
+        profileForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const name = (displayNameInput.value || '').trim();
+          localStorage.setItem('trainPunchDisplayName', name);
+          applyDisplayNameToHeader();
+          profileMessage.textContent = '表示名を保存しました。';
+          setTimeout(() => {
+            profileMessage.textContent = '';
+          }, 2000);
+        });
+      }
 
       // ===== データ管理 =====
       const logCountEl = document.getElementById('logCount');
@@ -380,10 +379,14 @@
       let logs = loadLogs();
 
       function updateLogCount() {
-        logCountEl.textContent = logs.length;
+        if (logCountEl) {
+          logCountEl.textContent = logs.length;
+        }
       }
 
       function refreshJsonOutput(show) {
+        if (!jsonOutput || !toggleJsonBtn) return;
+
         if (show) {
           jsonOutput.style.display = 'block';
           jsonOutput.value = JSON.stringify(logs, null, 2);
@@ -397,99 +400,147 @@
       updateLogCount();
       refreshJsonOutput(false);
 
-      // JSON表示トグル
-      toggleJsonBtn.addEventListener('click', () => {
-        const willShow = jsonOutput.style.display === 'none' || jsonOutput.style.display === '';
-        if (willShow) {
-          // 最新ログを再取得して表示
-          logs = loadLogs();
-        }
-        refreshJsonOutput(willShow);
-      });
-
-      // JSONコピー
-      copyJsonBtn.addEventListener('click', async () => {
-        logs = loadLogs();
-        const text = JSON.stringify(logs, null, 2);
-
-        if (!text || text === '[]') {
-          alert('コピーできるログがありません。');
-          return;
-        }
-
-        try {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(text);
-          } else {
-            const temp = document.createElement('textarea');
-            temp.value = text;
-            temp.style.position = 'fixed';
-            temp.style.top = '-9999px';
-            document.body.appendChild(temp);
-            temp.focus();
-            temp.select();
-            document.execCommand('copy');
-            document.body.removeChild(temp);
+      if (toggleJsonBtn) {
+        toggleJsonBtn.addEventListener('click', () => {
+          const willShow =
+            jsonOutput.style.display === 'none' || jsonOutput.style.display === '';
+          if (willShow) {
+            logs = loadLogs();
           }
-          alert('ログJSONをコピーしました。');
-        } catch (err) {
-          console.error(err);
-          alert('コピーに失敗しました。表示されたJSONを手動で選択してコピーしてください。');
-        }
-      });
+          refreshJsonOutput(willShow);
+        });
+      }
 
-      // JSONから復元
-      importFromJsonBtn.addEventListener('click', () => {
-        const raw = jsonInput.value.trim();
-        if (!raw) {
-          alert('JSONが入力されていません。');
-          return;
-        }
+      if (copyJsonBtn) {
+        copyJsonBtn.addEventListener('click', async () => {
+          logs = loadLogs();
+          const text = JSON.stringify(logs, null, 2);
 
-        let parsed;
-        try {
-          parsed = JSON.parse(raw);
-        } catch (e) {
-          alert('JSONの形式として読み取れませんでした。内容を確認してください。');
-          return;
-        }
+          if (!text || text === '[]') {
+            alert('コピーできるログがありません。');
+            return;
+          }
 
-        if (!Array.isArray(parsed)) {
-          alert('配列(JSONの先頭が [ で始まる形) のデータを貼り付けてください。');
-          return;
-        }
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              await navigator.clipboard.writeText(text);
+            } else {
+              const temp = document.createElement('textarea');
+              temp.value = text;
+              temp.style.position = 'fixed';
+              temp.style.top = '-9999px';
+              document.body.appendChild(temp);
+              temp.focus();
+              temp.select();
+              document.execCommand('copy');
+              document.body.removeChild(temp);
+            }
+            alert('ログJSONをコピーしました。');
+          } catch (err) {
+            console.error(err);
+            alert('コピーに失敗しました。表示されたJSONを手動で選択してコピーしてください。');
+          }
+        });
+      }
 
-        const ok = confirm(
-          '現在のログを、貼り付けたJSONの内容で上書きします。よろしいですか？'
-        );
-        if (!ok) return;
+      if (importFromJsonBtn) {
+        importFromJsonBtn.addEventListener('click', () => {
+          const raw = (jsonInput.value || '').trim();
+          if (!raw) {
+            alert('JSONが入力されていません。');
+            return;
+          }
 
-        logs = parsed;
-        saveLogs(logs);
-        updateLogCount();
-        if (jsonOutput.style.display !== 'none') {
-          jsonOutput.value = JSON.stringify(logs, null, 2);
-        }
-        alert('JSONから復元しました。');
-      });
+          let parsed;
+          try {
+            parsed = JSON.parse(raw);
+          } catch (e) {
+            alert('JSONの形式として読み取れませんでした。内容を確認してください。');
+            return;
+          }
 
-      // すべて削除
-      deleteAllLogsBtn.addEventListener('click', () => {
-        const ok = confirm(
-          '本当にすべてのログを削除しますか？この操作は元に戻せません。'
-        );
-        if (!ok) return;
+          if (!Array.isArray(parsed)) {
+            alert('配列(JSONの先頭が [ で始まる形) のデータを貼り付けてください。');
+            return;
+          }
 
-        logs = [];
-        saveLogs(logs);
-        updateLogCount();
-        jsonOutput.value = '';
-        jsonInput.value = '';
-        alert('すべてのログを削除しました。');
-      });
+          const ok = confirm(
+            '現在のログを、貼り付けたJSONの内容で上書きします。よろしいですか？'
+          );
+          if (!ok) return;
 
-      // ===== カスタム種目 =====
-      initCustomExerciseForm();
+          logs = parsed;
+          saveLogs(logs);
+          updateLogCount();
+          if (jsonOutput.style.display !== 'none') {
+            jsonOutput.value = JSON.stringify(logs, null, 2);
+          }
+          alert('JSONから復元しました。');
+        });
+      }
+
+      if (deleteAllLogsBtn) {
+        deleteAllLogsBtn.addEventListener('click', () => {
+          const ok = confirm(
+            '本当にすべてのログを削除しますか？この操作は元に戻せません。'
+          );
+          if (!ok) return;
+
+          logs = [];
+          saveLogs(logs);
+          updateLogCount();
+          if (jsonOutput) jsonOutput.value = '';
+          if (jsonInput) jsonInput.value = '';
+          alert('すべてのログを削除しました。');
+        });
+      }
+
+      // ===== 種目追加 =====
+      const exercisePartSelect = document.getElementById('exercisePartSelect');
+      const exerciseNameInput = document.getElementById('exerciseNameInput');
+      const addExercisePresetBtn = document.getElementById('addExercisePresetBtn');
+      const exercisePresetMessage = document.getElementById('exercisePresetMessage');
+
+      function showExerciseMessage(text) {
+        if (!exercisePresetMessage) return;
+        exercisePresetMessage.textContent = text;
+        setTimeout(() => {
+          exercisePresetMessage.textContent = '';
+        }, 2000);
+      }
+
+      if (addExercisePresetBtn) {
+        addExercisePresetBtn.addEventListener('click', () => {
+          const partKey = exercisePartSelect.value;
+          const name = (exerciseNameInput.value || '').trim();
+
+          if (!name) {
+            showExerciseMessage('種目名を入力してください。');
+            return;
+          }
+
+          const map = loadCustomExercises();
+          if (!Array.isArray(map[partKey])) {
+            map[partKey] = [];
+          }
+          if (map[partKey].includes(name)) {
+            showExerciseMessage('同じ名前の種目がすでに登録されています。');
+            return;
+          }
+
+          map[partKey].push(name);
+          saveCustomExercises(map);
+          exerciseNameInput.value = '';
+          renderCustomExerciseList();
+          showExerciseMessage('種目を追加しました。');
+        });
+      }
+
+      // 初期描画
+      renderCustomExerciseList();
+
+      // カード折りたたみセットアップ
+      setupCardToggles();
     });
   </script>
 
