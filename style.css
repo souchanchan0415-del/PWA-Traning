@@ -77,7 +77,8 @@ label {
 
 input,
 textarea,
-button {
+button,
+select {
   width: 100%;
   padding: 8px;
   border-radius: 6px;
@@ -88,7 +89,8 @@ button {
 }
 
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   outline: none;
   border-color: #4f8cff;
   box-shadow: 0 0 0 1px rgba(79, 140, 255, 0.4);
