@@ -30,51 +30,73 @@
         今後のアップデートで、ヘッダーや各画面のメッセージなどに反映していく予定です。
       </p>
 
-      <div class="field" style="margin-top:10px;">
-        <label for="displayName">表示名</label>
-        <input id="displayName" type="text" placeholder="例）おさむ">
-      </div>
-
-      <button id="saveDisplayNameBtn" class="btn-primary" style="margin-top:8px;">
-        保存する
-      </button>
-      <p id="displayNameMessage" class="message"></p>
+      <form id="profileForm" class="form">
+        <div class="field">
+          <label for="displayName">表示名</label>
+          <input
+            type="text"
+            id="displayName"
+            placeholder="例）おさむ"
+          >
+        </div>
+        <button type="submit" class="btn-primary">保存する</button>
+        <p id="profileMessage" class="message"></p>
+      </form>
     </section>
 
     <!-- データ管理 -->
     <section class="card">
       <h2 class="card-title">データ管理</h2>
       <p style="font-size:0.9rem; color:#c2c5d3;">
-        ここでは、ワークアウトの記録データを確認したり、バックアップ用にJSON形式でコピーしたりできます。
-      </p>
-      <p style="font-size:0.85rem; color:#c2c5d3; margin-top:8px;">
-        現在のログ件数：<span id="logCount">-</span>件
+        ここでは、ワークアウトの記録データを確認したり、<br>
+        バックアップ用にJSON形式でコピーしたりできます。
       </p>
 
-      <button id="toggleJsonBtn" class="btn-primary" style="margin-top:8px;">
+      <p style="margin-top:8px; font-size:0.9rem; color:#c2c5d3;">
+        現在のログ件数：<span id="logCount">0</span>件
+      </p>
+
+      <!-- JSON表示トグル -->
+      <button type="button" id="toggleJsonBtn" class="btn-primary">
         ログJSONを表示
       </button>
 
-      <textarea
-        id="logJsonTextarea"
-        rows="8"
-        style="margin-top:8px; display:none;"
-      ></textarea>
+      <!-- JSONコピー -->
+      <button type="button" id="copyJsonBtn" class="btn-primary" style="margin-top:8px;">
+        JSONをコピー
+      </button>
 
-      <p style="font-size:0.75rem; color:#7a7d89; margin-top:6px;">
+      <p style="margin-top:6px; font-size:0.75rem; color:#a0a3b1;">
         ※コピー＆インポート用です。<br>
-        &nbsp;&nbsp;・バックアップ：JSONを全選択して別のメモアプリなどに保存してください。<br>
-        &nbsp;&nbsp;・復元：ここにJSONを貼り付けて「JSONから復元する」を押すと、ログを上書きします。
+        ・バックアップ：「JSONをコピー」ボタンでクリップボードに保存できます。<br>
+        ・復元：下の欄にJSONを貼り付けて「JSONから復元する」を押すと、ログを上書きします。
       </p>
 
-      <button id="importJsonBtn" class="btn-primary" style="margin-top:8px;">
+      <!-- JSON表示エリア（読み取り専用） -->
+      <textarea
+        id="jsonOutput"
+        rows="10"
+        readonly
+        style="margin-top:8px; display:none;"
+        placeholder="ここにログJSONが表示されます"
+      ></textarea>
+
+      <!-- JSONインポート用 -->
+      <textarea
+        id="jsonInput"
+        rows="6"
+        style="margin-top:12px;"
+        placeholder="ここにJSONを貼り付けて「JSONから復元する」を押すと、現在のログをこのJSONで上書きします。"
+      ></textarea>
+
+      <button type="button" id="importFromJsonBtn" class="btn-primary" style="margin-top:8px;">
         JSONから復元する
       </button>
 
-      <button id="deleteAllLogsBtn" class="btn-danger" style="margin-top:12px;">
+      <button type="button" id="deleteAllLogsBtn" class="btn-danger" style="margin-top:12px;">
         すべてのログを削除する
       </button>
-      <p style="font-size:0.75rem; color:#7a7d89; margin-top:6px;">
+      <p style="margin-top:6px; font-size:0.75rem; color:#a0a3b1;">
         ※この操作は元に戻せません。ローカルに保存されているワークアウト記録がすべて消去されます。
       </p>
     </section>
@@ -84,12 +106,31 @@
     <small>Train Punch のデータは、この端末のブラウザ(localStorage)に保存されます。</small>
   </footer>
 
+  <!-- ▼ 表示名 → ヘッダー反映用スクリプト ▼ -->
   <script>
-    const DISPLAY_NAME_KEY = 'trainPunchDisplayName';
-    const LOG_CANDIDATE_KEYS = ['trainPunchLogs', 'train-punch-logs', 'TRAIN_PUNCH_LOGS'];
-    const CANON_LOG_KEY = 'trainPunchLogs';
+    function getDisplayName() {
+      return localStorage.getItem('trainPunchDisplayName') || '';
+    }
 
-    // ---- 共通：配列としてパース -----------------------------------------
+    function applyDisplayNameToHeader() {
+      const headerSub = document.querySelector('.header-sub');
+      if (!headerSub) return;
+
+      const name = getDisplayName();
+      if (name) {
+        headerSub.textContent =
+          `トレーニング記録アプリ / ${name}のログ / ローカル保存版 v0.1`;
+      } else {
+        headerSub.textContent = 'トレーニング記録アプリ / ローカル保存版 v0.1';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', applyDisplayNameToHeader);
+  </script>
+  <!-- ▲ 表示名 → ヘッダー反映用スクリプト ▲ -->
+
+  <script>
+    // ---- 共通：ログ読み込み ---------------------------------------------
     function tryParseArray(raw) {
       if (!raw) return null;
       try {
@@ -100,163 +141,165 @@
       }
     }
 
-    // ---- ログ読み込み（他ページと同じロジック） -----------------------
     function loadLogs() {
-      // まず候補キーを優先して探す
-      for (const key of LOG_CANDIDATE_KEYS) {
-        const logs = tryParseArray(localStorage.getItem(key));
-        if (logs) return logs;
-      }
-      // それでも見つからなければ localStorage 全体をざっと見る
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
+      const candidates = ['trainPunchLogs', 'train-punch-logs', 'TRAIN_PUNCH_LOGS'];
+      for (const key of candidates) {
         const logs = tryParseArray(localStorage.getItem(key));
         if (logs) return logs;
       }
       return [];
     }
 
-    // ---- ヘッダーに表示名を反映 -----------------------------------------
-    function applyDisplayNameToHeader() {
-      const headerSub = document.querySelector('.header-sub');
-      if (!headerSub) return;
-
-      const name = (localStorage.getItem(DISPLAY_NAME_KEY) || '').trim();
-      if (name) {
-        // 例: 「トレーニング記録アプリ / おさむのログ / ローカル保存版 v0.1」
-        headerSub.textContent = `トレーニング記録アプリ / ${name}のログ / ローカル保存版 v0.1`;
-      } else {
-        // 名前が空ならデフォルト表記に戻す
-        headerSub.textContent = 'トレーニング記録アプリ / ローカル保存版 v0.1';
-      }
+    function saveLogs(logs) {
+      localStorage.setItem('trainPunchLogs', JSON.stringify(logs));
     }
 
-    // ---- DOM 準備完了 ---------------------------------------------------
     document.addEventListener('DOMContentLoaded', () => {
+      // ===== プロフィール設定 =====
+      const profileForm = document.getElementById('profileForm');
       const displayNameInput = document.getElementById('displayName');
-      const saveDisplayNameBtn = document.getElementById('saveDisplayNameBtn');
-      const displayNameMessage = document.getElementById('displayNameMessage');
+      const profileMessage = document.getElementById('profileMessage');
 
-      const logCountSpan = document.getElementById('logCount');
+      // 初期値反映
+      displayNameInput.value = getDisplayName();
+
+      profileForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = (displayNameInput.value || '').trim();
+        localStorage.setItem('trainPunchDisplayName', name);
+        applyDisplayNameToHeader();
+        profileMessage.textContent = '表示名を保存しました。';
+        setTimeout(() => {
+          profileMessage.textContent = '';
+        }, 2000);
+      });
+
+      // ===== データ管理 =====
+      const logCountEl = document.getElementById('logCount');
       const toggleJsonBtn = document.getElementById('toggleJsonBtn');
-      const logJsonTextarea = document.getElementById('logJsonTextarea');
-      const importJsonBtn = document.getElementById('importJsonBtn');
+      const copyJsonBtn = document.getElementById('copyJsonBtn');
+      const jsonOutput = document.getElementById('jsonOutput');
+      const jsonInput = document.getElementById('jsonInput');
+      const importFromJsonBtn = document.getElementById('importFromJsonBtn');
       const deleteAllLogsBtn = document.getElementById('deleteAllLogsBtn');
 
-      // ---- 表示名の初期表示＋ヘッダー反映 ------------------------------
-      const storedName = localStorage.getItem(DISPLAY_NAME_KEY) || '';
-      if (displayNameInput) {
-        displayNameInput.value = storedName;
-      }
-      applyDisplayNameToHeader();
+      let logs = loadLogs();
 
-      if (saveDisplayNameBtn && displayNameInput) {
-        saveDisplayNameBtn.addEventListener('click', () => {
-          const name = displayNameInput.value.trim();
-          localStorage.setItem(DISPLAY_NAME_KEY, name);
-
-          if (displayNameMessage) {
-            displayNameMessage.textContent = '表示名を保存しました。';
-            setTimeout(() => {
-              displayNameMessage.textContent = '';
-            }, 2000);
-          }
-
-          // 保存したらすぐヘッダーにも反映
-          applyDisplayNameToHeader();
-        });
+      function updateLogCount() {
+        logCountEl.textContent = logs.length;
       }
 
-      // ---- ログ件数の表示 ----------------------------------------------
-      function refreshLogCount() {
-        const logs = loadLogs();
-        if (logCountSpan) {
-          logCountSpan.textContent = logs.length;
+      function refreshJsonOutput(show) {
+        if (show) {
+          jsonOutput.style.display = 'block';
+          jsonOutput.value = JSON.stringify(logs, null, 2);
+          toggleJsonBtn.textContent = 'ログJSONを隠す';
+        } else {
+          jsonOutput.style.display = 'none';
+          toggleJsonBtn.textContent = 'ログJSONを表示';
         }
       }
-      refreshLogCount();
 
-      // ---- JSON 表示 / 非表示トグル -----------------------------------
-      if (toggleJsonBtn && logJsonTextarea) {
-        toggleJsonBtn.addEventListener('click', () => {
-          const logs = loadLogs();
-          logJsonTextarea.value = JSON.stringify(logs, null, 2);
+      updateLogCount();
+      refreshJsonOutput(false);
 
-          const isHidden = logJsonTextarea.style.display === 'none' || logJsonTextarea.style.display === '';
-          logJsonTextarea.style.display = isHidden ? 'block' : 'none';
-          toggleJsonBtn.textContent = isHidden ? 'ログJSONを隠す' : 'ログJSONを表示';
-        });
-      }
+      // JSON表示トグル
+      toggleJsonBtn.addEventListener('click', () => {
+        const willShow = jsonOutput.style.display === 'none' || jsonOutput.style.display === '';
+        if (willShow) {
+          // 最新ログを再取得して表示
+          logs = loadLogs();
+        }
+        refreshJsonOutput(willShow);
+      });
 
-      // ---- JSON インポート（復元） ------------------------------------
-      if (importJsonBtn && logJsonTextarea) {
-        importJsonBtn.addEventListener('click', () => {
-          const text = logJsonTextarea.value.trim();
-          if (!text) {
-            alert('復元したいログJSONをテキストエリアに貼り付けてください。');
-            return;
+      // JSONコピー
+      copyJsonBtn.addEventListener('click', async () => {
+        // 常に最新をコピーしたいので、その都度読み込み
+        logs = loadLogs();
+        const text = JSON.stringify(logs, null, 2);
+
+        if (!text || text === '[]') {
+          alert('コピーできるログがありません。');
+          return;
+        }
+
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            // 古いブラウザ向けフォールバック
+            const temp = document.createElement('textarea');
+            temp.value = text;
+            temp.style.position = 'fixed';
+            temp.style.top = '-9999px';
+            document.body.appendChild(temp);
+            temp.focus();
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
           }
+          alert('ログJSONをコピーしました。');
+        } catch (err) {
+          console.error(err);
+          alert('コピーに失敗しました。表示されたJSONを手動で選択してコピーしてください。');
+        }
+      });
 
-          let parsed;
-          try {
-            parsed = JSON.parse(text);
-          } catch (e) {
-            alert('JSONの形式が正しくありません。貼り付けた内容を確認してください。');
-            return;
-          }
+      // JSONから復元
+      importFromJsonBtn.addEventListener('click', () => {
+        const raw = jsonInput.value.trim();
+        if (!raw) {
+          alert('JSONが入力されていません。');
+          return;
+        }
 
-          if (!Array.isArray(parsed)) {
-            alert('配列形式のJSON（先頭が [ で始まるデータ）を貼り付けてください。');
-            return;
-          }
+        let parsed;
+        try {
+          parsed = JSON.parse(raw);
+        } catch (e) {
+          alert('JSONの形式として読み取れませんでした。内容を確認してください。');
+          return;
+        }
 
-          const currentLogs = loadLogs();
-          const ok = confirm(
-            `現在のログ ${currentLogs.length}件 を、貼り付けたJSON ${parsed.length}件 に置き換えます。\n` +
-            'この操作は元に戻せません。よろしいですか？'
-          );
-          if (!ok) return;
+        if (!Array.isArray(parsed)) {
+          alert('配列(JSONの先頭が [ で始まる形) のデータを貼り付けてください。');
+          return;
+        }
 
-          // 正式なキーに保存（他の候補キーがあってもひとまず無視）
-          localStorage.setItem(CANON_LOG_KEY, JSON.stringify(parsed));
+        const ok = confirm(
+          '現在のログを、貼り付けたJSONの内容で上書きします。よろしいですか？'
+        );
+        if (!ok) return;
 
-          alert('JSONからログを復元しました。');
-          refreshLogCount();
-        });
-      }
+        logs = parsed;
+        saveLogs(logs);
+        updateLogCount();
+        // 表示中なら中身も更新
+        if (jsonOutput.style.display !== 'none') {
+          jsonOutput.value = JSON.stringify(logs, null, 2);
+        }
+        alert('JSONから復元しました。');
+      });
 
-      // ---- 全削除 ------------------------------------------------------
-      if (deleteAllLogsBtn) {
-        deleteAllLogsBtn.addEventListener('click', () => {
-          const logs = loadLogs();
-          if (!logs.length) {
-            alert('削除するログがありません。');
-            return;
-          }
+      // すべて削除
+      deleteAllLogsBtn.addEventListener('click', () => {
+        const ok = confirm(
+          '本当にすべてのログを削除しますか？この操作は元に戻せません。'
+        );
+        if (!ok) return;
 
-          const ok = confirm(
-            `保存されているログ ${logs.length}件 をすべて削除します。\n` +
-            'この操作は元に戻せません。本当に削除しますか？'
-          );
-          if (!ok) return;
-
-          // 候補キーを全部消しておく
-          for (const key of LOG_CANDIDATE_KEYS) {
-            localStorage.removeItem(key);
-          }
-
-          alert('すべてのログを削除しました。');
-          if (logJsonTextarea) {
-            logJsonTextarea.value = '';
-          }
-          refreshLogCount();
-        });
-      }
+        logs = [];
+        saveLogs(logs);
+        updateLogCount();
+        jsonOutput.value = '';
+        jsonInput.value = '';
+        alert('すべてのログを削除しました。');
+      });
     });
   </script>
 
   <script>
-    // Service Worker 登録
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(console.error);
