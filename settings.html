@@ -100,6 +100,69 @@
         ※この操作は元に戻せません。ローカルに保存されているワークアウト記録がすべて消去されます。
       </p>
     </section>
+
+    <!-- 種目プリセット（部位を選んで種目を追加） -->
+    <section class="card">
+      <h2 class="card-title">種目プリセット</h2>
+      <p style="font-size:0.9rem; color:#c2c5d3;">
+        ここでは、よく使う種目を部位ごとに追加できます。<br>
+        追加した種目は、ワークアウト画面の部位タブに反映させていく予定です。
+      </p>
+
+      <form id="customExerciseForm" class="form" onsubmit="return false;">
+        <div class="field-group">
+          <div class="field">
+            <label for="customExercisePart">部位</label>
+            <select id="customExercisePart">
+              <option value="chest">胸</option>
+              <option value="back">背中</option>
+              <option value="shoulder">肩</option>
+              <option value="leg">脚</option>
+              <option value="arm">腕</option>
+              <option value="other">その他</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="customExerciseName">種目名</label>
+            <input
+              type="text"
+              id="customExerciseName"
+              placeholder="例）ダンベルフライ"
+            >
+          </div>
+        </div>
+
+        <button type="button" id="addCustomExerciseBtn" class="btn-primary">
+          種目を追加する
+        </button>
+        <p id="customExerciseMessage" class="message"></p>
+      </form>
+
+      <div style="margin-top:12px;">
+        <h3 style="margin:0 0 6px; font-size:0.95rem;">登録済みのカスタム種目</h3>
+        <div id="customExerciseEmpty" class="empty">
+          まだカスタム種目は登録されていません
+        </div>
+
+        <div class="table-wrapper">
+          <table class="log-table">
+            <thead>
+              <tr>
+                <th>部位</th>
+                <th>種目名</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="customExerciseTableBody"></tbody>
+          </table>
+        </div>
+
+        <p style="margin-top:6px; font-size:0.75rem; color:#a0a3b1;">
+          ※ここで削除しても、既に記録済みのワークアウトデータは消えません。<br>
+          （新規入力時の候補から外れるだけです）
+        </p>
+      </div>
+    </section>
   </main>
 
   <footer class="footer">
@@ -152,6 +215,137 @@
 
     function saveLogs(logs) {
       localStorage.setItem('trainPunchLogs', JSON.stringify(logs));
+    }
+
+    // ---- カスタム種目保存用 ----------------------------------------------
+    const CUSTOM_EXERCISES_KEY = 'trainPunchCustomExercises';
+    const PART_LABELS = {
+      chest: '胸',
+      back: '背中',
+      shoulder: '肩',
+      leg: '脚',
+      arm: '腕',
+      other: 'その他'
+    };
+
+    function loadCustomExercises() {
+      const raw = localStorage.getItem(CUSTOM_EXERCISES_KEY);
+      if (!raw) return {};
+      try {
+        const obj = JSON.parse(raw);
+        return obj && typeof obj === 'object' ? obj : {};
+      } catch (_) {
+        return {};
+      }
+    }
+
+    function saveCustomExercises(map) {
+      localStorage.setItem(CUSTOM_EXERCISES_KEY, JSON.stringify(map));
+    }
+
+    function renderCustomExerciseTable() {
+      const tbody = document.getElementById('customExerciseTableBody');
+      const emptyEl = document.getElementById('customExerciseEmpty');
+      if (!tbody) return;
+
+      const map = loadCustomExercises();
+      const rows = [];
+
+      Object.keys(map).forEach(partKey => {
+        const list = Array.isArray(map[partKey]) ? map[partKey] : [];
+        list.forEach(name => {
+          rows.push({ partKey, name });
+        });
+      });
+
+      tbody.innerHTML = '';
+
+      if (!rows.length) {
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+      }
+      if (emptyEl) emptyEl.style.display = 'none';
+
+      rows.forEach(row => {
+        const tr = document.createElement('tr');
+        const partLabel = PART_LABELS[row.partKey] || 'その他';
+
+        tr.innerHTML = `
+          <td>${partLabel}</td>
+          <td>${row.name}</td>
+          <td>
+            <button
+              type="button"
+              class="btn-danger small"
+              data-part="${row.partKey}"
+              data-name="${row.name}"
+            >
+              削除
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // 削除ボタン
+      tbody.querySelectorAll('button[data-part]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const partKey = btn.getAttribute('data-part');
+          const name = btn.getAttribute('data-name');
+          const map = loadCustomExercises();
+          if (!map[partKey]) return;
+          map[partKey] = map[partKey].filter(n => n !== name);
+          if (!map[partKey].length) {
+            delete map[partKey];
+          }
+          saveCustomExercises(map);
+          renderCustomExerciseTable();
+        });
+      });
+    }
+
+    function initCustomExerciseForm() {
+      const partSelect = document.getElementById('customExercisePart');
+      const nameInput = document.getElementById('customExerciseName');
+      const addBtn = document.getElementById('addCustomExerciseBtn');
+      const msgEl = document.getElementById('customExerciseMessage');
+
+      if (!partSelect || !nameInput || !addBtn) return;
+
+      function setMessage(text, ok = true) {
+        if (!msgEl) return;
+        msgEl.textContent = text;
+        msgEl.style.color = ok ? '#a0f0a0' : '#ffb3b3';
+      }
+
+      addBtn.addEventListener('click', () => {
+        const partKey = partSelect.value;
+        const name = (nameInput.value || '').trim();
+
+        if (!name) {
+          setMessage('種目名を入力してください。', false);
+          return;
+        }
+
+        const map = loadCustomExercises();
+        const list = Array.isArray(map[partKey]) ? map[partKey] : [];
+
+        if (list.includes(name)) {
+          setMessage('同じ種目が既に登録されています。', false);
+          return;
+        }
+
+        list.push(name);
+        map[partKey] = list;
+        saveCustomExercises(map);
+
+        nameInput.value = '';
+        setMessage('種目を追加しました。', true);
+        renderCustomExerciseTable();
+      });
+
+      // 初期描画
+      renderCustomExerciseTable();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -215,7 +409,6 @@
 
       // JSONコピー
       copyJsonBtn.addEventListener('click', async () => {
-        // 常に最新をコピーしたいので、その都度読み込み
         logs = loadLogs();
         const text = JSON.stringify(logs, null, 2);
 
@@ -228,7 +421,6 @@
           if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(text);
           } else {
-            // 古いブラウザ向けフォールバック
             const temp = document.createElement('textarea');
             temp.value = text;
             temp.style.position = 'fixed';
@@ -275,7 +467,6 @@
         logs = parsed;
         saveLogs(logs);
         updateLogCount();
-        // 表示中なら中身も更新
         if (jsonOutput.style.display !== 'none') {
           jsonOutput.value = JSON.stringify(logs, null, 2);
         }
@@ -296,6 +487,9 @@
         jsonInput.value = '';
         alert('すべてのログを削除しました。');
       });
+
+      // ===== カスタム種目 =====
+      initCustomExerciseForm();
     });
   </script>
 
