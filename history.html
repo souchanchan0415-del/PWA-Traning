@@ -22,20 +22,317 @@
   </header>
 
   <main class="container">
+    <!-- フィルター -->
     <section class="card">
-      <h2 class="card-title">アーカイブ（準備中）</h2>
-      <p style="font-size:0.9rem; color:#c2c5d3;">
-        ここでは、過去のワークアウトを日付や種目で絞り込んだり、セッションごとに振り返ったりできるようにしていきます。
+      <h2 class="card-title">アーカイブ</h2>
+      <p style="font-size:0.9rem; color:#c2c5d3; margin-bottom:12px;">
+        過去のワークアウトを、日付や部位・種目名で絞り込んで一覧表示します。<br>
+        デフォルトでは、直近7日間の記録が表示されます。
       </p>
-      <p style="font-size:0.85rem; color:#7a7d89; margin-top:8px;">
-        現時点では、ワークアウトタブの「記録一覧」でざっくり確認してください。
-      </p>
+
+      <form id="archiveFilterForm" class="form">
+        <div class="field-group">
+          <div class="field">
+            <label for="filterDateFrom">日付（開始）</label>
+            <input type="date" id="filterDateFrom">
+          </div>
+          <div class="field">
+            <label for="filterDateTo">日付（終了）</label>
+            <input type="date" id="filterDateTo">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="field">
+            <label for="filterBodyPart">部位</label>
+            <select id="filterBodyPart">
+              <option value="all">すべて</option>
+              <option value="胸">胸</option>
+              <option value="背中">背中</option>
+              <option value="肩">肩</option>
+              <option value="脚">脚</option>
+              <option value="腕">腕</option>
+              <option value="その他">その他</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="filterKeyword">種目名キーワード</label>
+            <input
+              type="text"
+              id="filterKeyword"
+              placeholder="例）ベンチ、スクワット など"
+            >
+          </div>
+        </div>
+
+        <button type="button" id="applyFilter" class="btn-primary">
+          フィルターを適用
+        </button>
+        <p style="margin-top:6px; font-size:0.75rem; color:#a0a3b1;">
+          ※日付を空欄にすると、その条件は無視されます。
+        </p>
+      </form>
+    </section>
+
+    <!-- 結果一覧 -->
+    <section class="card">
+      <div class="card-header-row">
+        <h2 class="card-title">検索結果</h2>
+        <p id="resultSummary" style="margin:0; font-size:0.8rem; color:#c2c5d3;"></p>
+      </div>
+
+      <div id="archiveEmpty" class="empty">条件に合う記録がありません</div>
+
+      <div class="table-wrapper">
+        <table class="log-table" id="archiveTable">
+          <thead>
+            <tr>
+              <th>日付</th>
+              <th>種目</th>
+              <th>部位</th>
+              <th>重量</th>
+              <th>セット</th>
+              <th>回数</th>
+              <th>RPE</th>
+              <th>メモ</th>
+            </tr>
+          </thead>
+          <tbody id="archiveBody">
+          </tbody>
+        </table>
+      </div>
     </section>
   </main>
 
   <footer class="footer">
     <small>Train Punch のデータは、この端末のブラウザ(localStorage)に保存されます。</small>
   </footer>
+
+  <script>
+    // ---- ログ読み込み ---------------------------------------------------
+
+    function tryParseArray(raw) {
+      if (!raw) return null;
+      try {
+        const data = JSON.parse(raw);
+        return Array.isArray(data) ? data : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function loadLogs() {
+      const candidates = ['trainPunchLogs', 'train-punch-logs', 'TRAIN_PUNCH_LOGS'];
+      for (const key of candidates) {
+        const logs = tryParseArray(localStorage.getItem(key));
+        if (logs) return logs;
+      }
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const logs = tryParseArray(localStorage.getItem(key));
+        if (logs) return logs;
+      }
+      return [];
+    }
+
+    // ---- 日付ユーティリティ ---------------------------------------------
+
+    function formatDate(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    // ---- 種目 → 部位 マッピング（analysis.html と同じ） -----------------
+
+    const EXERCISE_TO_PART = {
+      // 胸
+      'ベンチプレス': '胸',
+      '足上げベンチ': '胸',
+      'スミスマシンベンチプレス': '胸',
+      'インクラインダンベルプレス': '胸',
+      'インクラインマシンプレス': '胸',
+      'ディップス': '胸',
+      'ディップス(荷重)': '胸',
+      'ケーブルクロスオーバー': '胸',
+      'ペックフライ': '胸',
+      'チェストプレス': '胸',
+      'スミス インクラインプレス': '胸',
+      'スミス デクラインプレス': '胸',
+
+      // 背中
+      'デットリフト': '背中',
+      'ハーフデットリフト': '背中',
+      'デッドリフト': '背中',
+      'ハーフデッドリフト': '背中',
+      'チンニング': '背中',
+      '懸垂': '背中',
+      'ラットプルダウン': '背中',
+      'ラットプルダウン（ナロー）': '背中',
+      'ラットプルダウン（ちょーナロー）': '背中',
+      'ワイドラットプルダウン': '背中',
+      'スミスマシンベントオーバーロウ': '背中',
+      'ベントオーバーロウ': '背中',
+      'ローロウ': '背中',
+      'シーテッドロウ': '背中',
+      'Tバーロウ': '背中',
+      'Tバーロー': '背中',
+
+      // 肩
+      'ダンベルショルダープレス': '肩',
+      'スミスマシンショルダープレス': '肩',
+      'スミスショルダープレス': '肩',
+      'マシンショルダープレス': '肩',
+      'ケーブルフロントレイズ': '肩',
+      'サイドレイズ': '肩',
+      'ベンチサイドレイズ': '肩',
+      'ケーブルサイドレイズ': '肩',
+      'ケーブルリアレイズ': '肩',
+      'リアデルトイド': '肩',
+
+      // 脚
+      'スクワット': '脚',
+      'バーベルスクワット': '脚',
+      'レッグプレス': '脚',
+      'バックスクワット': '脚',
+      'レッグカール': '脚',
+      'レッグエクステンション': '脚',
+      'インナーサイ': '脚',
+      'ルーマニアンデットリフト': '脚',
+      'スティフレッグデッドリフト': '脚',
+
+      // 腕
+      'バーベルカール': '腕',
+      'インクラインダンベルカール': '腕',
+      'ハンマーカール': '腕',
+      'ダンベルプリチャーカール(右/左)': '腕',
+      'インクラインダンベルカール(右/左)': '腕',
+      'スミスマシンナロープレス': '腕',
+      'ナロープレス': '腕',
+      'スカルクラッシャー': '腕',
+      'フレンチプレス': '腕',
+      'ケーブルプレスダウン': '腕',
+      'スミスJMプレス': '腕',
+      '[三頭]ケーブルプレスダウン': '腕',
+
+      // その他
+      'その他': 'その他'
+    };
+
+    const BODY_PARTS = ['胸', '背中', '肩', '脚', '腕', 'その他'];
+
+    // ---- 描画処理 -------------------------------------------------------
+
+    const logs = loadLogs();
+
+    function applyFilterAndRender() {
+      const fromInput = document.getElementById('filterDateFrom');
+      const toInput = document.getElementById('filterDateTo');
+      const partSelect = document.getElementById('filterBodyPart');
+      const keywordInput = document.getElementById('filterKeyword');
+      const emptyEl = document.getElementById('archiveEmpty');
+      const tbody = document.getElementById('archiveBody');
+      const summary = document.getElementById('resultSummary');
+
+      if (!tbody) return;
+
+      const from = fromInput.value || null;
+      const to = toInput.value || null;
+      const partFilter = partSelect.value || 'all';
+      const keyword = (keywordInput.value || '').trim();
+
+      let filtered = logs.slice();
+
+      filtered = filtered.filter(log => {
+        // 日付フィルタ
+        if (from && log.date < from) return false;
+        if (to && log.date > to) return false;
+
+        // 部位フィルタ
+        if (partFilter !== 'all') {
+          const part = EXERCISE_TO_PART[log.exercise] || 'その他';
+          if (part !== partFilter) return false;
+        }
+
+        // 種目名キーワード（部分一致）
+        if (keyword) {
+          if (!log.exercise || !log.exercise.includes(keyword)) return false;
+        }
+
+        return true;
+      });
+
+      // 日付降順でソート
+      filtered.sort((a, b) => b.date.localeCompare(a.date));
+
+      // テーブル描画
+      tbody.innerHTML = '';
+
+      if (!filtered.length) {
+        emptyEl.style.display = 'block';
+      } else {
+        emptyEl.style.display = 'none';
+
+        for (const log of filtered) {
+          const tr = document.createElement('tr');
+
+          const part = EXERCISE_TO_PART[log.exercise] || 'その他';
+          const weightStr = log.weight != null && log.weight !== ''
+            ? `${log.weight}kg`
+            : '-';
+          const setsStr = log.sets != null && log.sets !== ''
+            ? `${log.sets}セット`
+            : '-';
+          const repsStr = log.reps != null && log.reps !== ''
+            ? `${log.reps}回`
+            : '-';
+          const rpeStr = log.rpe != null && log.rpe !== ''
+            ? String(log.rpe)
+            : '-';
+          const memoStr = log.memo || '';
+
+          tr.innerHTML = `
+            <td>${log.date || '-'}</td>
+            <td>${log.exercise || '-'}</td>
+            <td>${part}</td>
+            <td>${weightStr}</td>
+            <td>${setsStr}</td>
+            <td>${repsStr}</td>
+            <td>${rpeStr}</td>
+            <td>${memoStr}</td>
+          `;
+
+          tbody.appendChild(tr);
+        }
+      }
+
+      const fromLabel = from || '指定なし';
+      const toLabel = to || '指定なし';
+      summary.textContent = `${filtered.length}件（${fromLabel} 〜 ${toLabel}）`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const fromInput = document.getElementById('filterDateFrom');
+      const toInput = document.getElementById('filterDateTo');
+      const applyBtn = document.getElementById('applyFilter');
+
+      // デフォルトは「直近7日間」
+      const today = new Date();
+      const toStr = formatDate(today);
+      const fromDate = new Date(today);
+      fromDate.setDate(fromDate.getDate() - 6);
+      const fromStr = formatDate(fromDate);
+
+      if (!fromInput.value) fromInput.value = fromStr;
+      if (!toInput.value) toInput.value = toStr;
+
+      applyBtn.addEventListener('click', applyFilterAndRender);
+
+      // 初回描画
+      applyFilterAndRender();
+    });
+  </script>
 
   <script>
     if ('serviceWorker' in navigator) {
