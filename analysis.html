@@ -22,38 +22,53 @@
   </header>
 
   <main class="container">
-    <!-- 直近7日分のボリューム -->
-    <section class="card">
-      <h2 class="card-title">週間ボリューム（kg）</h2>
-      <p style="font-size:0.9rem; color:#c2c5d3;">
-        直近7日分の、1日あたり合計ボリューム（重量×回数×セット数）の推移です。
-      </p>
-      <div style="margin-top:12px; height:260px;">
-        <canvas id="weeklyVolumeChart"></canvas>
+    <!-- 直近7日分のボリューム（折りたたみ） -->
+    <section class="card card-collapsible">
+      <div class="card-header-row card-toggle">
+        <h2 class="card-title">週間ボリューム（kg）</h2>
+        <span class="card-toggle-icon">−</span>
+      </div>
+      <div class="card-body">
+        <p style="font-size:0.9rem; color:#c2c5d3;">
+          直近7日分の、1日あたり合計ボリューム（重量×回数×セット数）の推移です。
+        </p>
+        <div style="margin-top:12px; height:260px;">
+          <canvas id="weeklyVolumeChart"></canvas>
+        </div>
       </div>
     </section>
 
-    <!-- 直近7日分の部位別割合（円グラフ） -->
-    <section class="card">
-      <h2 class="card-title">1週間 部位別ボリューム割合</h2>
-      <p style="font-size:0.9rem; color:#c2c5d3;">
-        直近7日分の合計ボリューム（重量×回数×セット数）を、<br>
-        部位ごとの割合で表示します。
-      </p>
-      <p class="period-note">集計期間：直近7日</p>
-      <div style="margin-top:12px; height:260px;">
-        <canvas id="bodyPartPieChart"></canvas>
+    <!-- 直近7日分の部位別割合（円グラフ・折りたたみ） -->
+    <section class="card card-collapsible">
+      <div class="card-header-row card-toggle">
+        <h2 class="card-title">1週間 部位別ボリューム割合</h2>
+        <span class="card-toggle-icon">−</span>
+      </div>
+      <div class="card-body">
+        <p style="font-size:0.9rem; color:#c2c5d3;">
+          直近7日分の合計ボリューム（重量×回数×セット数）を、<br>
+          部位ごとの割合で表示します。
+        </p>
+        <p class="period-note">集計期間：直近7日</p>
+        <div style="margin-top:12px; height:260px;">
+          <canvas id="bodyPartPieChart"></canvas>
+        </div>
       </div>
     </section>
 
-    <!-- 直近7日分の平均RPE -->
-    <section class="card">
-      <h2 class="card-title">1日平均 RPE</h2>
-      <p style="font-size:0.9rem; color:#c2c5d3;">
-        直近7日分の平均RPEの推移です。記録がある日のみ点が表示されます。
-      </p>
-      <div style="margin-top:12px; height:260px;">
-        <canvas id="dailyRpeChart"></canvas>
+    <!-- 直近7日分の平均RPE（折りたたみ） -->
+    <section class="card card-collapsible">
+      <div class="card-header-row card-toggle">
+        <h2 class="card-title">1日平均 RPE</h2>
+        <span class="card-toggle-icon">−</span>
+      </div>
+      <div class="card-body">
+        <p style="font-size:0.9rem; color:#c2c5d3;">
+          直近7日分の平均RPEの推移です。記録がある日のみ点が表示されます。
+        </p>
+        <div style="margin-top:12px; height:260px;">
+          <canvas id="dailyRpeChart"></canvas>
+        </div>
       </div>
     </section>
   </main>
@@ -74,13 +89,12 @@
 
       const name = getDisplayName();
       if (name) {
-        headerSub.textContent = `トレーニング記録アプリ / ${name}のログ / ローカル保存版 v0.1`;
+        headerSub.textContent =
+          `トレーニング記録アプリ / ${name}のログ / ローカル保存版 v0.1`;
       } else {
         headerSub.textContent = 'トレーニング記録アプリ / ローカル保存版 v0.1';
       }
     }
-
-    document.addEventListener('DOMContentLoaded', applyDisplayNameToHeader);
   </script>
   <!-- ▲ 表示名 → ヘッダー反映用スクリプト ▲ -->
 
@@ -285,7 +299,10 @@
       let total = 0;
       let count = 0;
       for (const log of logs) {
-        if (log.date === dateStr && log.rpe !== undefined && log.rpe !== null && log.rpe !== '') {
+        if (log.date === dateStr &&
+            log.rpe !== undefined &&
+            log.rpe !== null &&
+            log.rpe !== '') {
           const rpe = Number(log.rpe);
           if (!Number.isNaN(rpe)) {
             total += rpe;
@@ -499,7 +516,30 @@
       });
     }
 
+    // ---- カード折りたたみ制御 ------------------------------------------
+    function setupCardToggles() {
+      const toggles = document.querySelectorAll('.card-toggle');
+      toggles.forEach(toggle => {
+        toggle.addEventListener('click', () => {
+          const card = toggle.closest('.card');
+          if (!card) return;
+          const body = card.querySelector('.card-body');
+          const icon = toggle.querySelector('.card-toggle-icon');
+          if (!body) return;
+
+          const isHidden = body.style.display === 'none';
+          body.style.display = isHidden ? 'block' : 'none';
+          if (icon) {
+            icon.textContent = isHidden ? '−' : '＋';
+          }
+        });
+      });
+    }
+
+    // ---- 初期化 ---------------------------------------------------------
     document.addEventListener('DOMContentLoaded', () => {
+      applyDisplayNameToHeader();
+      setupCardToggles();
       createWeeklyVolumeChart();
       createBodyPartPieChart();
       createDailyRpeChart();
