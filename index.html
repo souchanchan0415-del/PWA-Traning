@@ -7,6 +7,37 @@
   <meta name="theme-color" content="#111111">
   <link rel="stylesheet" href="./style.css">
   <link rel="manifest" href="./manifest.webmanifest">
+
+  <!-- ホーム専用のボタンスタイル -->
+  <style>
+    .home-menu-btn {
+      display: block;
+      width: 100%;
+      text-align: center;
+      text-decoration: none;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .home-menu-btn-main {
+      background: #4f80ff;
+      color: #ffffff;
+    }
+    .home-menu-btn-main:active {
+      transform: scale(0.98);
+      opacity: 0.9;
+    }
+    .home-menu-btn-sub {
+      background: #181b24;
+      color: #4f80ff;
+      border: 1px solid #2a2e3b;
+    }
+    .home-menu-btn-sub:active {
+      transform: scale(0.98);
+      opacity: 0.9;
+    }
+  </style>
 </head>
 <body>
   <header class="header">
@@ -21,22 +52,19 @@
         今は「トレーニング記録」と「ショップ」の2ページだけですが、ここから機能を増やしていけます。
       </p>
 
-      <!-- Train Punch 本体 -->
+      <!-- メインアプリへ -->
       <a
         id="open-session"
         href="./session.html"
-        class="btn-primary"
-        style="display:block; width:100%; margin-bottom:8px; text-align:center; text-decoration:none;"
+        class="home-menu-btn home-menu-btn-main"
       >
         Train Punch を開く
       </a>
 
-      <!-- ショップ（アプリ内の別ページ） -->
+      <!-- ショップへ -->
       <a
-        id="open-shop"
         href="./shop.html"
-        class="btn-secondary"
-        style="display:block; width:100%; margin-bottom:8px; text-align:center; text-decoration:none;"
+        class="home-menu-btn home-menu-btn-sub"
       >
         ショップを開く
       </a>
