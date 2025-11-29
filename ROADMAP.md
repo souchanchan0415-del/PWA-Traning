@@ -7,7 +7,7 @@
   - [✅] `session.html` のサブタイトルも同様に修正
 - [ ] `<title>` の見直し
   - [✅] `index.html` → `Train Punch | トレーニング記録アプリ`
-  - [ ] `session.html` → `Train Punch | ワークアウト記録`
+  - [✅] `session.html` → `Train Punch | ワークアウト記録`
   - [ ] `shop.html` → `Train Punch | ショップ`
   - [ ] `blog.html` → `Train Punch | ブログ`
 
