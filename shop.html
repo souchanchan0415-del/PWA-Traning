@@ -15,38 +15,13 @@
   </header>
 
   <main class="container">
+    <!-- 説明だけ残す -->
     <section class="card">
       <h2 class="card-title">ショップについて</h2>
       <p style="font-size:0.9rem; color:#c2c5d3;">
-        Train Punch に関連するグッズやデジタル教材を一覧でまとめるページです。<br>
-        まずはサンプル商品を入れてあります。実際に使うときは商品リストを書き換えてください。
+        Train Punch に関連するグッズやデジタル教材をまとめていく予定のページです。<br>
+        現在は準備中です。商品が用意できたら、このページに一覧を表示します。
       </p>
-    </section>
-
-    <section class="card">
-      <div class="card-header-row">
-        <h2 class="card-title">商品一覧</h2>
-        <span id="productCount" style="margin-left:auto; font-size:0.85rem; color:#c2c5d3;"></span>
-      </div>
-
-      <div id="productEmpty" class="empty" style="display:none;">
-        登録されている商品がありません。
-      </div>
-
-      <div class="table-wrapper">
-        <table class="log-table" id="productTable">
-          <thead>
-            <tr>
-              <th>商品名</th>
-              <th>カテゴリ</th>
-              <th>価格</th>
-              <th>説明</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="productBody"></tbody>
-        </table>
-      </div>
     </section>
   </main>
 
@@ -55,86 +30,12 @@
   </footer>
 
   <script>
-    const PRODUCTS = [
-      {
-        id: 'tp-sticker',
-        name: 'Train Punch ステッカー',
-        category: 'グッズ',
-        price: '¥300',
-        description: 'ノートやPCに貼れるシンプルロゴステッカー。',
-        url: ''
-      },
-      {
-        id: 'tp-template',
-        name: 'トレーニング記録テンプレート（PDF）',
-        category: 'デジタル教材',
-        price: '¥0〜¥500',
-        description: '紙で記録したい人向けの1週間分テンプレート。',
-        url: ''
-      }
-    ];
-
-    function renderProducts() {
-      const tbody = document.getElementById('productBody');
-      const table = document.getElementById('productTable');
-      const empty = document.getElementById('productEmpty');
-      const countLabel = document.getElementById('productCount');
-
-      if (!tbody || !table || !empty || !countLabel) return;
-
-      tbody.innerHTML = '';
-
-      if (!PRODUCTS.length) {
-        empty.style.display = 'block';
-        table.style.display = 'none';
-        countLabel.textContent = '';
-        return;
-      }
-
-      empty.style.display = 'none';
-      table.style.display = 'table';
-      countLabel.textContent = `${PRODUCTS.length}件`;
-
-      PRODUCTS.forEach((p) => {
-        const tr = document.createElement('tr');
-
-        const priceText = p.price || '-';
-        const categoryText = p.category || '-';
-        const descText = p.description || '';
-
-        tr.innerHTML = `
-          <td>${p.name || '-'}</td>
-          <td>${categoryText}</td>
-          <td>${priceText}</td>
-          <td>${descText}</td>
-          <td></td>
-        `;
-
-        const actionTd = tr.lastElementChild;
-
-        if (p.url) {
-          const linkBtn = document.createElement('a');
-          linkBtn.href = p.url;
-          linkBtn.target = '_blank';
-          linkBtn.rel = 'noopener noreferrer';
-          linkBtn.textContent = '詳細';
-          linkBtn.className = 'btn-secondary small';
-          actionTd.appendChild(linkBtn);
-        }
-
-        tbody.appendChild(tr);
+    // SW登録（他ページと同じ）
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(console.error);
       });
     }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      renderProducts();
-
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js').catch(console.error);
-        });
-      }
-    });
   </script>
 </body>
 </html>
