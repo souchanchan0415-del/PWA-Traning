@@ -7,17 +7,6 @@
   <meta name="theme-color" content="#111111">
   <link rel="stylesheet" href="./style.css">
   <link rel="manifest" href="./manifest.webmanifest">
-
-  <!-- ホーム専用：ボタンを全幅にするだけ -->
-  <style>
-    .home-menu-btn {
-      display: block;
-      width: 100%;
-      text-align: center;
-      text-decoration: none;
-      margin-bottom: 8px;
-    }
-  </style>
 </head>
 <body>
   <header class="header">
@@ -32,21 +21,24 @@
         今は「トレーニング記録」と「ショップ」の2ページだけですが、ここから機能を増やしていけます。
       </p>
 
-      <!-- メインアプリへ（既存の btn-primary を使用） -->
+      <!-- Train Punch を開く（青いメインボタン） -->
       <a
-  id="open-session"
-  href="./session.html"
-  class="btn-primary home-menu-btn"
->
-  Train Punch を開く
-</a>
+        id="open-session"
+        href="./session.html"
+        class="btn-primary"
+        style="display:block; width:100%; margin-bottom:8px; text-align:center; text-decoration:none;"
+      >
+        Train Punch を開く
+      </a>
 
-<a
-  href="./shop.html"
-  class="btn-primary home-menu-btn"
->
-  ショップを開く
-</a>
+      <!-- ショップを開く（同じ見た目のボタン） -->
+      <a
+        href="./shop.html"
+        class="btn-primary"
+        style="display:block; width:100%; margin-bottom:8px; text-align:center; text-decoration:none;"
+      >
+        ショップを開く
+      </a>
 
       <p style="font-size:0.8rem; color:#7a7d89; margin-top:8px;">
         ※ホーム画面に追加して使う場合は、<br>
