@@ -17,16 +17,16 @@
 
 ### A案: GitHub内 `posts.json` 方式（静的ブログ）
 
-- [ ] `posts.json` を作成（例：`/data/posts.json`）
+- [✅] `posts.json` を作成（例：`/data/posts.json`）
   - シンプルな配列：`[{ "id": 1, "slug": "first-post", "title": "...", "body": "...", "createdAt": "..."}]`
-- [ ] `blog.html` を「閲覧専用ページ」に作り直す
-  - [ ] JavaScript で `posts.json` を `fetch` → 一覧表示（タイトル＋日付＋抜粋）
-  - [ ] タイトルクリックで `post.html?slug=first-post` に飛ぶようにする
-- [ ] `post.html`（個別記事ページ）を作る
-  - [ ] `slug` で `posts.json` から1件取得 → 本文表示
-  - [ ] `<title>` と `<meta description>` を記事ごとに動的にセット
-- [ ] 記事の追加フローを決める
-  - [ ] 自分用メモ: 「iPhone の GitHub アプリで `posts.json` を編集 → コミット → 公開」という手順を書いておく
+- [✅] `blog.html` を「閲覧専用ページ」に作り直す
+  - [✅] JavaScript で `posts.json` を `fetch` → 一覧表示（タイトル＋日付＋抜粋）
+  - [✅] タイトルクリックで `post.html?slug=first-post` に飛ぶようにする
+- [✅] `post.html`（個別記事ページ）を作る
+  - [✅] `slug` で `posts.json` から1件取得 → 本文表示
+  - [✅] `<title>` と `<meta description>` を記事ごとに動的にセット
+- [✅] 記事の追加フローを決める
+  - [✅] 自分用メモ: 「iPhone の GitHub アプリで `posts.json` を編集 → コミット → 公開」という手順を書いておく
 
 ### B案: 外部ブログを使う（note など）
 
