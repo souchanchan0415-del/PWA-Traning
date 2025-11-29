@@ -1,114 +1,12 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>Train Punch | ホーム</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#111111">
-  <link rel="stylesheet" href="./style.css">
-  <link rel="manifest" href="./manifest.webmanifest">
-
-  <!-- ホーム専用スタイル：大きめボタンを全幅に -->
-  <style>
-    .home-menu-btn {
-      display: block;
-      width: 100%;
-      text-align: center;
-      text-decoration: none;
-      margin-bottom: 10px;
-      padding: 12px 16px;
-      border-radius: 999px;
-      font-size: 1rem;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Train Punch | トレーニング記録アプリ</title>
 </head>
 <body>
-  <header class="header">
-    <h1>Train Punch</h1>
-    <p class="header-sub">トレーニング記録を続けたい人のためのミニアプリ</p>
-  </header>
-
-  <main class="container">
-    <section class="card">
-      <h2 class="card-title">メニュー</h2>
-      <p style="font-size:0.9rem; color:#c2c5d3; margin-bottom:12px;">
-        今は「トレーニング記録」「ショップ」、そしてブログページへのリンクだけですが、ここから機能を増やしていけます。
-      </p>
-
-      <!-- メインアプリへ（キャッシュ更新してから遷移） -->
-      <a
-        id="open-session"
-        href="./session.html"
-        class="btn-primary home-menu-btn"
-      >
-        Train Punch を開く
-      </a>
-
-      <!-- ショップへ（内部ページ） -->
-      <a
-        href="./shop.html"
-        class="btn-primary home-menu-btn"
-      >
-        ショップを開く
-      </a>
-
-      <!-- ブログへ（内部ページ：blog.html） -->
-      <a
-        href="./blog.html"
-        class="btn-primary home-menu-btn"
-      >
-        ブログを開く
-      </a>
-
-      <p style="font-size:0.8rem; color:#7a7d89; margin-top:8px;">
-        ※ホーム画面に追加して使う場合は、<br>
-        Train Punch を開いた画面（session.html）で追加するとスムーズです。
-      </p>
-    </section>
-  </main>
-
-  <footer class="footer">
-    <small>© Train Punch</small>
-  </footer>
-
-  <script>
-    // Service Worker 登録
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(console.error);
-      });
-    }
-
-    // 「Train Punch を開く」を押したときにキャッシュをリフレッシュしてから遷移
-    document.addEventListener('DOMContentLoaded', () => {
-      const openLink = document.getElementById('open-session');
-      if (!openLink) return;
-
-      openLink.addEventListener('click', async (event) => {
-        event.preventDefault(); // 通常の遷移を止める
-
-        try {
-          // 1. 既存のキャッシュを全部削除
-          if ('caches' in window) {
-            const keys = await caches.keys();
-            await Promise.all(keys.map((key) => caches.delete(key)));
-          }
-
-          // 2. SW の更新を確認
-          if ('serviceWorker' in navigator) {
-            const reg = await navigator.serviceWorker.getRegistration();
-            if (reg) {
-              await reg.update();
-            }
-          }
-        } catch (err) {
-          console.error('cache refresh error:', err);
-        } finally {
-          // 3. 最終的には必ずワークアウト画面へ遷移
-          window.location.href = openLink.href;
-        }
-      });
-    });
-  </script>
+    <h1>Welcome to Train Punch</h1>
+    <p>Your training record application.</p>
 </body>
 </html>
