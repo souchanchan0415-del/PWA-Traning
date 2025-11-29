@@ -1,4 +1,6 @@
-const CACHE_NAME = 'train-punch-cache-v44';
+// Service Worker for Train Punch
+const CACHE_NAME = 'train-punch-cache-v45';
+
 const ASSETS = [
   './',
   './index.html',
@@ -6,9 +8,12 @@ const ASSETS = [
   './analysis.html',
   './history.html',
   './settings.html',
+  './shop.html',      // ★ 追加
+  './blog.html',      // ★ 追加
   './style.css',
   './app.js',
-  './manifest.webmanifest'
+  './manifest.webmanifest',
+  './posts.json'      // ★ 追加（ブログ記事データ）
 ];
 
 self.addEventListener('install', event => {
