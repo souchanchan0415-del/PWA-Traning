@@ -8,14 +8,11 @@
   <link rel="stylesheet" href="./style.css">
   <link rel="manifest" href="./manifest.webmanifest">
 
+  <!-- 必要になったらここに Google AdSense のコードを貼る -->
+  <!-- 例）<script async src="...adsbygoogle.js?..."></script> など -->
+
   <!-- ブログ専用の軽いスタイル -->
   <style>
-    .blog-form-note {
-      font-size: 0.8rem;
-      color: #a0a3b1;
-      margin-bottom: 8px;
-    }
-
     .blog-post-list {
       display: flex;
       flex-direction: column;
@@ -23,59 +20,48 @@
       margin-top: 8px;
     }
 
-    .blog-post {
+    .blog-post-card {
       padding: 10px 12px;
       border-radius: 8px;
       background: #181b24;
       border: 1px solid #2a2e3b;
     }
 
-    .blog-post-header {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 4px;
-    }
-
     .blog-post-title {
-      font-size: 0.95rem;
+      font-size: 1rem;
       font-weight: 600;
+      margin: 0 0 4px;
     }
 
     .blog-post-meta {
       font-size: 0.75rem;
       color: #a0a3b1;
-      white-space: nowrap;
+      margin-bottom: 4px;
+    }
+
+    .blog-post-summary {
+      font-size: 0.85rem;
+      color: #e0e0e0;
+      margin: 0;
     }
 
     .blog-post-body {
-      font-size: 0.85rem;
+      font-size: 0.9rem;
       color: #e0e0e0;
-      margin: 4px 0 6px;
-      white-space: pre-wrap; /* 改行維持 */
+      white-space: pre-wrap;
+      line-height: 1.7;
     }
 
-    .blog-post-actions {
-      display: flex;
-      gap: 6px;
-      justify-content: flex-end;
+    .blog-back-link {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 0.85rem;
+      color: #4f8cff;
+      text-decoration: none;
     }
 
-    .btn-secondary {
-      background: #2a2e3b;
-      border: 1px solid #2a2e3b;
-      color: #f5f5f5;
-      cursor: pointer;
-      font-weight: 500;
-    }
-
-    .btn-secondary.small,
-    .btn-danger.small {
-      width: auto;
-      padding: 4px 10px;
-      font-size: 0.75rem;
-      border-radius: 999px;
+    .blog-back-link:hover {
+      text-decoration: underline;
     }
 
     .blog-empty {
@@ -89,75 +75,22 @@
   <header class="header">
     <h1>Train Punch</h1>
     <p class="header-sub">Train Punch ブログ（β）</p>
-
-    <!-- あとで増やしたくなったらタブナビ入れてもOK
-    <nav class="tab-nav">
-      <a href="./index.html" class="tab">ホーム</a>
-      <a href="./session.html" class="tab">ワークアウト</a>
-      <a href="./shop.html" class="tab">ショップ</a>
-      <a href="./blog.html" class="tab active">ブログ</a>
-    </nav>
-    -->
   </header>
 
   <main class="container">
-    <!-- 記事作成フォーム -->
-    <section class="card">
-      <div class="card-header-row">
-        <h2 class="card-title">新しい記事を書く</h2>
-        <span id="editModeLabel" style="font-size:0.8rem; color:#f4c542; display:none;">
-          編集モード
-        </span>
+    <section class="card" id="blogListSection">
+      <h2 class="card-title">記事一覧</h2>
+      <div id="blogEmpty" class="blog-empty" style="display:none;">
+        まだ記事がありません。しばらくお待ちください。
       </div>
-
-      <p class="blog-form-note">
-        ここで書いた記事は、この端末のブラウザ（localStorage）にだけ保存されます。<br>
-        公開用のブログというより、「自分用メモ」「記事下書きノート」的なイメージです。
-      </p>
-
-      <form id="postForm" class="form">
-        <input type="hidden" id="postId">
-
-        <div class="field">
-          <label for="postTitle">タイトル</label>
-          <input type="text" id="postTitle" placeholder="例：11月のトレーニング振り返り" required>
-        </div>
-
-        <div class="field">
-          <label for="postBody">本文</label>
-          <textarea
-            id="postBody"
-            rows="6"
-            placeholder="今日のメモや、考えたこと、メニュー案などを自由に書いてください。"
-            required
-          ></textarea>
-        </div>
-
-        <div class="field-group">
-          <button type="submit" id="saveBtn" class="btn-primary" style="flex:1;">
-            保存する
-          </button>
-          <button type="button" id="cancelEditBtn" class="btn-secondary" style="flex:1; display:none;">
-            編集をやめる
-          </button>
-        </div>
-
-        <p id="formMessage" class="message"></p>
-      </form>
+      <div id="postList" class="blog-post-list"></div>
     </section>
 
-    <!-- 記事一覧 -->
-    <section class="card">
-      <div class="card-header-row">
-        <h2 class="card-title">記事一覧</h2>
-        <span id="postCountLabel" style="margin-left:auto; font-size:0.85rem; color:#c2c5d3;"></span>
-      </div>
-
-      <div id="blogEmpty" class="blog-empty" style="display:none;">
-        まだ記事がありません。上のフォームから最初の記事を書いてみましょう。
-      </div>
-
-      <div id="postList" class="blog-post-list"></div>
+    <section class="card" id="blogDetailSection" style="display:none;">
+      <h2 class="card-title" id="detailTitle"></h2>
+      <p class="blog-post-meta" id="detailMeta"></p>
+      <div class="blog-post-body" id="detailBody"></div>
+      <a href="./blog.html" class="blog-back-link">← 記事一覧に戻る</a>
     </section>
   </main>
 
@@ -166,247 +99,121 @@
   </footer>
 
   <script>
-    // ---- localStorage 読み書き -------------------------------------------------
+    const POSTS_JSON_URL = './posts.json';
 
-    function tryParseArray(raw) {
-      if (!raw) return null;
-      try {
-        const v = JSON.parse(raw);
-        return Array.isArray(v) ? v : null;
-      } catch (_) {
-        return null;
-      }
+    function getPostIdFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('id');
     }
 
-    function loadPosts() {
-      // 将来キー名を変えた時用に一応候補を用意
-      const candidates = ['trainPunchBlogPosts', 'TRAIN_PUNCH_BLOG_POSTS'];
-      for (const key of candidates) {
-        const data = tryParseArray(localStorage.getItem(key));
-        if (data) return data;
-      }
-      return [];
+    function formatDate(dateStr) {
+      // そのままでも良いけど、将来的に整形したくなった時用
+      return dateStr;
     }
 
-    function savePosts(posts) {
-      localStorage.setItem('trainPunchBlogPosts', JSON.stringify(posts));
-    }
-
-    // ---- 状態 -------------------------------------------------------------
-
-    let posts = loadPosts();
-    let editingId = null; // null なら新規、数字ならそのIDを編集
-
-    // ---- 描画 --------------------------------------------------------------
-
-    function formatDateTime(ts) {
-      const d = new Date(ts);
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      const hh = String(d.getHours()).padStart(2, '0');
-      const mm = String(d.getMinutes()).padStart(2, '0');
-      return `${y}-${m}-${day} ${hh}:${mm}`;
-    }
-
-    function renderPosts() {
+    function renderList(posts) {
       const listEl = document.getElementById('postList');
       const emptyEl = document.getElementById('blogEmpty');
-      const countLabel = document.getElementById('postCountLabel');
-      if (!listEl || !emptyEl || !countLabel) return;
+      const listSection = document.getElementById('blogListSection');
+      const detailSection = document.getElementById('blogDetailSection');
+
+      if (!listEl || !emptyEl || !listSection || !detailSection) return;
+
+      listSection.style.display = 'block';
+      detailSection.style.display = 'none';
 
       listEl.innerHTML = '';
 
       if (!posts.length) {
         emptyEl.style.display = 'block';
-        countLabel.textContent = '';
         return;
       }
 
       emptyEl.style.display = 'none';
-      countLabel.textContent = `${posts.length}件`;
 
-      // 新しい順に並べる
-      const sorted = [...posts].sort((a, b) => b.createdAt - a.createdAt);
+      // 日付の新しい順に並べ替え
+      const sorted = [...posts].sort((a, b) => {
+        if (a.date === b.date) return 0;
+        return a.date < b.date ? 1 : -1;
+      });
 
       sorted.forEach((post) => {
-        const article = document.createElement('article');
-        article.className = 'blog-post';
-        article.dataset.id = String(post.id);
+        const card = document.createElement('article');
+        card.className = 'blog-post-card';
 
-        const header = document.createElement('div');
-        header.className = 'blog-post-header';
+        const titleLink = document.createElement('a');
+        titleLink.href = `./blog.html?id=${encodeURIComponent(post.id)}`;
+        titleLink.className = 'blog-post-title';
+        titleLink.textContent = post.title || '(無題)';
 
-        const titleEl = document.createElement('div');
-        titleEl.className = 'blog-post-title';
-        titleEl.textContent = post.title || '(無題)';
+        const meta = document.createElement('p');
+        meta.className = 'blog-post-meta';
+        meta.textContent = post.date ? formatDate(post.date) : '';
 
-        const metaEl = document.createElement('div');
-        metaEl.className = 'blog-post-meta';
-        const created = formatDateTime(post.createdAt);
-        const updated = post.updatedAt && post.updatedAt !== post.createdAt
-          ? ` / 更新: ${formatDateTime(post.updatedAt)}`
-          : '';
-        metaEl.textContent = `作成: ${created}${updated}`;
+        const summary = document.createElement('p');
+        summary.className = 'blog-post-summary';
+        summary.textContent = post.summary || '';
 
-        header.appendChild(titleEl);
-        header.appendChild(metaEl);
+        card.appendChild(titleLink);
+        card.appendChild(meta);
+        card.appendChild(summary);
 
-        const bodyEl = document.createElement('div');
-        bodyEl.className = 'blog-post-body';
-        bodyEl.textContent = post.body || '';
-
-        const actions = document.createElement('div');
-        actions.className = 'blog-post-actions';
-
-        const editBtn = document.createElement('button');
-        editBtn.type = 'button';
-        editBtn.textContent = '編集';
-        editBtn.className = 'btn-secondary small';
-        editBtn.addEventListener('click', () => openEdit(post.id));
-
-        const delBtn = document.createElement('button');
-        delBtn.type = 'button';
-        delBtn.textContent = '削除';
-        delBtn.className = 'btn-danger small';
-        delBtn.addEventListener('click', () => deletePost(post.id));
-
-        actions.appendChild(editBtn);
-        actions.appendChild(delBtn);
-
-        article.appendChild(header);
-        article.appendChild(bodyEl);
-        article.appendChild(actions);
-
-        listEl.appendChild(article);
+        listEl.appendChild(card);
       });
     }
 
-    // ---- 編集系 ------------------------------------------------------------
+    function renderDetail(posts, id) {
+      const listSection = document.getElementById('blogListSection');
+      const detailSection = document.getElementById('blogDetailSection');
+      const titleEl = document.getElementById('detailTitle');
+      const metaEl = document.getElementById('detailMeta');
+      const bodyEl = document.getElementById('detailBody');
 
-    function resetForm() {
-      const postId = document.getElementById('postId');
-      const title = document.getElementById('postTitle');
-      const body = document.getElementById('postBody');
-      const msg = document.getElementById('formMessage');
-      const editLabel = document.getElementById('editModeLabel');
-      const cancelBtn = document.getElementById('cancelEditBtn');
-      const saveBtn = document.getElementById('saveBtn');
+      if (!listSection || !detailSection || !titleEl || !metaEl || !bodyEl) return;
 
-      editingId = null;
-      if (postId) postId.value = '';
-      if (title) title.value = '';
-      if (body) body.value = '';
-      if (msg) msg.textContent = '';
-      if (editLabel) editLabel.style.display = 'none';
-      if (cancelBtn) cancelBtn.style.display = 'none';
-      if (saveBtn) saveBtn.textContent = '保存する';
-    }
-
-    function openEdit(id) {
       const post = posts.find((p) => p.id === id);
-      if (!post) return;
 
-      editingId = id;
+      if (!post) {
+        // 見つからなければ一覧表示にフォールバック
+        renderList(posts);
+        return;
+      }
 
-      const postId = document.getElementById('postId');
-      const title = document.getElementById('postTitle');
-      const body = document.getElementById('postBody');
-      const msg = document.getElementById('formMessage');
-      const editLabel = document.getElementById('editModeLabel');
-      const cancelBtn = document.getElementById('cancelEditBtn');
-      const saveBtn = document.getElementById('saveBtn');
+      listSection.style.display = 'none';
+      detailSection.style.display = 'block';
 
-      if (postId) postId.value = String(post.id);
-      if (title) title.value = post.title || '';
-      if (body) body.value = post.body || '';
-      if (msg) msg.textContent = '';
-      if (editLabel) editLabel.style.display = 'inline';
-      if (cancelBtn) cancelBtn.style.display = 'inline-block';
-      if (saveBtn) saveBtn.textContent = '更新する';
+      titleEl.textContent = post.title || '(無題)';
+      metaEl.textContent = post.date ? formatDate(post.date) : '';
+      bodyEl.textContent = post.body || '';
 
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // ページタイトルも記事タイトルに
+      document.title = `${post.title || '記事'} | Train Punch ブログ`;
     }
 
-    function deletePost(id) {
-      const target = posts.find((p) => p.id === id);
-      const title = target && target.title ? `「${target.title}」` : '';
-      if (!confirm(`${title} を削除しますか？`)) return;
+    async function initBlog() {
+      try {
+        const res = await fetch(POSTS_JSON_URL, { cache: 'no-cache' });
+        if (!res.ok) throw new Error('failed to load posts.json');
+        const posts = await res.json();
 
-      posts = posts.filter((p) => p.id !== id);
-      savePosts(posts);
-      renderPosts();
-
-      // 編集中のものを消した場合はフォームもリセット
-      if (editingId === id) {
-        resetForm();
+        const postId = getPostIdFromUrl();
+        if (postId) {
+          renderDetail(posts, postId);
+        } else {
+          renderList(posts);
+        }
+      } catch (err) {
+        console.error(err);
+        const emptyEl = document.getElementById('blogEmpty');
+        if (emptyEl) {
+          emptyEl.style.display = 'block';
+          emptyEl.textContent = '記事データの読み込みに失敗しました。時間をおいて再度お試しください。';
+        }
       }
     }
-
-    // ---- 初期化 ------------------------------------------------------------
 
     document.addEventListener('DOMContentLoaded', () => {
-      const form = document.getElementById('postForm');
-      const cancelBtn = document.getElementById('cancelEditBtn');
-      const msg = document.getElementById('formMessage');
-
-      if (form) {
-        form.addEventListener('submit', (e) => {
-          e.preventDefault();
-
-          const titleEl = document.getElementById('postTitle');
-          const bodyEl = document.getElementById('postBody');
-
-          const title = (titleEl.value || '').trim();
-          const body = (bodyEl.value || '').trim();
-
-          if (!title || !body) {
-            msg.textContent = 'タイトルと本文は必須です。';
-            msg.style.color = '#ff9b9b';
-            return;
-          }
-
-          const now = Date.now();
-
-          if (editingId != null) {
-            // 既存記事の更新
-            const idx = posts.findIndex((p) => p.id === editingId);
-            if (idx >= 0) {
-              posts[idx] = {
-                ...posts[idx],
-                title,
-                body,
-                updatedAt: now
-              };
-            }
-            msg.textContent = '記事を更新しました。';
-          } else {
-            // 新規追加
-            const newPost = {
-              id: now,
-              title,
-              body,
-              createdAt: now,
-              updatedAt: now
-            };
-            posts.push(newPost);
-            msg.textContent = '記事を保存しました。';
-          }
-
-          msg.style.color = '#a0f0a0';
-          savePosts(posts);
-          renderPosts();
-          resetForm();
-        });
-      }
-
-      if (cancelBtn) {
-        cancelBtn.addEventListener('click', () => {
-          resetForm();
-        });
-      }
-
-      renderPosts();
+      initBlog();
 
       // SW登録（他ページと同じ）
       if ('serviceWorker' in navigator) {
