@@ -100,22 +100,32 @@ textarea {
   resize: vertical;
 }
 
+/* ==== ボタン共通 ===== */
 .btn-primary,
 .btn-danger {
   cursor: pointer;
   border: none;
   font-weight: 600;
+  display: inline-block;
 }
 
+/* メイン青ボタン */
 .btn-primary {
   background: #4f8cff;
   border-color: #4f8cff;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.btn-primary:visited {
+  color: #ffffff;
 }
 
 .btn-primary:hover {
   opacity: 0.9;
 }
 
+/* 危険系ボタン */
 .btn-danger {
   background: #ff4f6a;
   border-color: #ff4f6a;
@@ -296,7 +306,7 @@ textarea {
   box-shadow: 0 0 0 1px rgba(79, 140, 255, 0.4);
 }
 
-/* ★ 追加：非表示用クラス */
+/* 非表示用クラス */
 .exercise-chip.hidden {
   display: none;
 }
@@ -307,7 +317,7 @@ textarea {
   color: #c2c5d3;
 }
 
-/* ★ 追加：集計期間用の小さめテキスト */
+/* 集計期間用の小さめテキスト */
 .period-note {
   font-size: 0.75rem;
   color: #a0a3b1;
