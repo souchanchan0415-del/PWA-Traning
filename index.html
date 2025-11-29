@@ -8,34 +8,14 @@
   <link rel="stylesheet" href="./style.css">
   <link rel="manifest" href="./manifest.webmanifest">
 
-  <!-- ホーム専用のボタンスタイル -->
+  <!-- ホーム専用：ボタンを全幅にするだけ -->
   <style>
     .home-menu-btn {
       display: block;
       width: 100%;
       text-align: center;
       text-decoration: none;
-      border-radius: 8px;
-      padding: 10px 12px;
-      font-weight: 600;
       margin-bottom: 8px;
-    }
-    .home-menu-btn-main {
-      background: #4f80ff;
-      color: #ffffff;
-    }
-    .home-menu-btn-main:active {
-      transform: scale(0.98);
-      opacity: 0.9;
-    }
-    .home-menu-btn-sub {
-      background: #181b24;
-      color: #4f80ff;
-      border: 1px solid #2a2e3b;
-    }
-    .home-menu-btn-sub:active {
-      transform: scale(0.98);
-      opacity: 0.9;
     }
   </style>
 </head>
@@ -52,19 +32,19 @@
         今は「トレーニング記録」と「ショップ」の2ページだけですが、ここから機能を増やしていけます。
       </p>
 
-      <!-- メインアプリへ -->
+      <!-- メインアプリへ（既存の btn-primary を使用） -->
       <a
         id="open-session"
         href="./session.html"
-        class="home-menu-btn home-menu-btn-main"
+        class="btn-primary home-menu-btn"
       >
         Train Punch を開く
       </a>
 
-      <!-- ショップへ -->
+      <!-- ショップへ（既存の btn-secondary を使用） -->
       <a
         href="./shop.html"
-        class="home-menu-btn home-menu-btn-sub"
+        class="btn-secondary home-menu-btn"
       >
         ショップを開く
       </a>
