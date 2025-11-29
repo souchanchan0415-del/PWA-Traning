@@ -2,11 +2,11 @@
 
 ## Phase 0 : コンセプトの整理（すぐ終わる）
 
-- [✔︎] 想定ユーザーを「一般のトレーニー」に統一
-  - [✔︎] `index.html` の説明文を「部活」→「トレーニング記録をしたい人全般」に修正
-  - [✔︎] `session.html` のサブタイトルも同様に修正
+- [✅] 想定ユーザーを「一般のトレーニー」に統一
+  - [✅] `index.html` の説明文を「部活」→「トレーニング記録をしたい人全般」に修正
+  - [✅] `session.html` のサブタイトルも同様に修正
 - [ ] `<title>` の見直し
-  - [✔︎] `index.html` → `Train Punch | トレーニング記録アプリ`
+  - [✅] `index.html` → `Train Punch | トレーニング記録アプリ`
   - [ ] `session.html` → `Train Punch | ワークアウト記録`
   - [ ] `shop.html` → `Train Punch | ショップ`
   - [ ] `blog.html` → `Train Punch | ブログ`
