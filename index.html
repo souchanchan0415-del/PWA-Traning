@@ -7,6 +7,20 @@
   <meta name="theme-color" content="#111111">
   <link rel="stylesheet" href="./style.css">
   <link rel="manifest" href="./manifest.webmanifest">
+
+  <!-- ホーム専用：ボタンを全幅＆少し大きめに -->
+  <style>
+    .home-menu-btn {
+      display: block;
+      width: 100%;
+      text-align: center;
+      text-decoration: none;
+      margin-bottom: 10px;
+      padding: 12px 8px;      /* ← タップしやすいよう高さアップ */
+      border-radius: 999px;   /* ← pill 型に */
+      font-size: 1rem;        /* ← 文字も少しだけ大きく */
+    }
+  </style>
 </head>
 <body>
   <header class="header">
@@ -21,21 +35,19 @@
         今は「トレーニング記録」と「ショップ」の2ページだけですが、ここから機能を増やしていけます。
       </p>
 
-      <!-- Train Punch を開く（青いメインボタン） -->
+      <!-- メインアプリへ -->
       <a
         id="open-session"
         href="./session.html"
-        class="btn-primary"
-        style="display:block; width:100%; margin-bottom:8px; text-align:center; text-decoration:none;"
+        class="btn-primary home-menu-btn"
       >
         Train Punch を開く
       </a>
 
-      <!-- ショップを開く（同じ見た目のボタン） -->
+      <!-- ショップへ -->
       <a
         href="./shop.html"
-        class="btn-primary"
-        style="display:block; width:100%; margin-bottom:8px; text-align:center; text-decoration:none;"
+        class="btn-primary home-menu-btn"
       >
         ショップを開く
       </a>
