@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Train Punch | ブログ記事</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111111">
+  <meta name="description" content="Train Punch ブログ記事">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="manifest" href="./manifest.webmanifest">
+
+  <style>
+    .post-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin: 0 0 4px;
+    }
+
+    .post-meta {
+      font-size: 0.8rem;
+      color: #a0a3b1;
+      margin: 0 0 10px;
+    }
+
+    .post-body {
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: #e0e0e0;
+      white-space: pre-wrap; /* 改行をそのまま表示 */
+    }
+
+    .post-back-link {
+      display: inline-block;
+      margin-top: 12px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1>Train Punch</h1>
+    <p class="header-sub">Train Punch ブログ（β）</p>
+  </header>
+
+  <main class="container">
+    <section class="card" id="postCard">
+      <p id="postStatus" class="post-meta">記事を読み込んでいます…</p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <small>© Train Punch</small>
+  </footer>
+
+  <script>
+    function getSlugFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('slug');
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const slug = getSlugFromUrl();
+      const card = document.getElementById('postCard');
+      const statusEl = document.getElementById('postStatus');
+
+      if (!card || !statusEl) return;
+
+      if (!slug) {
+        statusEl.textContent = '記事が見つかりません（slug がありません）。';
+        return;
+      }
+
+      try {
+        // 1. 目次(index.json)からメタ情報を取得
+        const indexRes = await fetch('./posts/index.json');
+        if (!indexRes.ok) throw new Error('index.json HTTP ' + indexRes.status);
+
+        const list = await indexRes.json();
+        const meta = Array.isArray(list)
+          ? list.find(p => p.slug === slug)
+          : null;
+
+        if (!meta) {
+          statusEl.textContent = '記事が見つかりません（slug: ' + slug + '）。';
+          return;
+        }
+
+        // 2. メタ情報をもとにヘッダー部分を作る
+        card.innerHTML = ''; // いったん中身をクリア
+
+        const titleEl = document.createElement('h2');
+        titleEl.className = 'post-title';
+        titleEl.textContent = meta.title || '(無題)';
+
+        const metaEl = document.createElement('p');
+        metaEl.className = 'post-meta';
+        metaEl.textContent = meta.date || '';
+
+        const bodyEl = document.createElement('div');
+        bodyEl.id = 'postBody';
+        bodyEl.className = 'post-body';
+        bodyEl.textContent = '本文を読み込んでいます…';
+
+        const backLink = document.createElement('a');
+        backLink.href = './blog.html';
+        backLink.className = 'post-back-link';
+        backLink.textContent = '← 記事一覧に戻る';
+
+        card.appendChild(titleEl);
+        card.appendChild(metaEl);
+        card.appendChild(bodyEl);
+        card.appendChild(backLink);
+
+        // 3. 記事本文ファイルを取得（拡張子なしファイル想定）
+        const bodyRes = await fetch('./posts/' + encodeURIComponent(slug));
+        if (!bodyRes.ok) {
+          bodyEl.textContent = '本文の読み込みに失敗しました（HTTP ' + bodyRes.status + '）。';
+          return;
+        }
+
+        const text = await bodyRes.text();
+        bodyEl.textContent = text;
+
+        // 4. タイトルと meta description を記事用に上書き
+        document.title = 'Train Punch | ' + (meta.title || 'ブログ記事');
+        const descMeta = document.querySelector('meta[name="description"]');
+        if (descMeta && meta.summary) {
+          descMeta.setAttribute('content', meta.summary);
+        }
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = '記事の読み込みでエラーが発生しました。';
+      }
+    });
+  </script>
+</body>
+</html>
