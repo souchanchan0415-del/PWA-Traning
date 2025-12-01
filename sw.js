@@ -1,5 +1,5 @@
 // Service Worker for Train Punch
-const CACHE_NAME = 'train-punch-cache-v48';
+const CACHE_NAME = 'train-punch-cache-v49';
 
 const ASSETS = [
   './',
@@ -8,12 +8,14 @@ const ASSETS = [
   './analysis.html',
   './history.html',
   './settings.html',
-  './shop.html',      // ★ 追加
-  './blog.html',      // ★ 追加
+  './shop.html',
+  './blog.html',
+  './post.html',          // ★ 個別記事ページ
   './style.css',
   './app.js',
   './manifest.webmanifest',
-  './posts.json'      // ★ 追加（ブログ記事データ）
+  './posts/index.json'    // ★ ブログ目次データ
+  // 各記事の .txt は都度 fetch するので、今はキャッシュしない運用
 ];
 
 self.addEventListener('install', event => {
