@@ -10,14 +10,12 @@ const ASSETS = [
   './settings.html',
   './shop.html',
   './blog.html',
-  './post.html',
+  './about.html',     // ★ 追加
+  './privacy.html',   // ★ 追加
   './style.css',
   './app.js',
   './manifest.webmanifest',
-  './posts/index.json',
-  './posts/welcome.txt',
-  './posts/how-to-keep-training-log.txt'
-  // ★ 記事を増やしたら、オフラインで読みたい分だけここに追加していく
+  './posts.json'      // 旧方式のファイル。残しておいても害はないのでそのままでもOK
 ];
 
 self.addEventListener('install', event => {
@@ -50,7 +48,7 @@ self.addEventListener('fetch', event => {
         cached ||
         fetch(req).catch(() => {
           if (req.mode === 'navigate') {
-            // オフライン時はとりあえずワークアウト画面かトップへ
+            // オフライン時はとりあえず session.html を返す
             return caches.match('./session.html') || caches.match('./index.html');
           }
         })
