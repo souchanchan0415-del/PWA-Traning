@@ -10,12 +10,15 @@ const ASSETS = [
   './settings.html',
   './shop.html',
   './blog.html',
-  './post.html',          // ★ 個別記事ページ
+  './post.html',
   './style.css',
   './app.js',
   './manifest.webmanifest',
-  './posts/index.json'    // ★ ブログ目次データ
-  // 各記事の .txt は都度 fetch するので、今はキャッシュしない運用
+
+  // ▼ ブログ関連
+  './posts/index.json',
+  './posts/welcome.txt',
+  './posts/how-to-keep-training-log.txt'
 ];
 
 self.addEventListener('install', event => {
