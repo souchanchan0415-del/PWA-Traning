@@ -14,11 +14,10 @@ const ASSETS = [
   './style.css',
   './app.js',
   './manifest.webmanifest',
-
-  // ▼ ブログ関連
   './posts/index.json',
   './posts/welcome.txt',
   './posts/how-to-keep-training-log.txt'
+  // ★ 記事を増やしたら、オフラインで読みたい分だけここに追加していく
 ];
 
 self.addEventListener('install', event => {
@@ -51,7 +50,7 @@ self.addEventListener('fetch', event => {
         cached ||
         fetch(req).catch(() => {
           if (req.mode === 'navigate') {
-            // オフライン時はとりあえず session.html を返す
+            // オフライン時はとりあえずワークアウト画面かトップへ
             return caches.match('./session.html') || caches.match('./index.html');
           }
         })
