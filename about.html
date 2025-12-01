@@ -5,15 +5,13 @@
   <title>Train Punch | アプリの説明</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111111">
-  <meta name="description"
-        content="Train Punch は、スマホだけで使えるシンプルなトレーニング記録アプリです。ベンチプレスやスクワットなどのワークアウトを、日付・重量・回数・RPEと一緒にサクッとメモできます。">
   <link rel="stylesheet" href="./style.css">
   <link rel="manifest" href="./manifest.webmanifest">
 </head>
 <body>
   <header class="header">
     <h1>Train Punch</h1>
-    <p class="header-sub">トレーニング記録アプリの説明ページ</p>
+    <p class="header-sub">トレーニング記録アプリについて</p>
   </header>
 
   <main class="container">
@@ -21,97 +19,92 @@
     <section class="card">
       <h2 class="card-title">Train Punch とは？</h2>
       <p style="font-size:0.95rem; color:#e0e0e0; line-height:1.7;">
-        Train Punch は、<strong>「とりあえず記録を残したいトレーニー」</strong> 向けの
-        シンプルなワークアウト記録アプリです。<br>
-        会員登録やログインは不要で、スマートフォンのブラウザからすぐに使えます。
-      </p>
-      <p style="font-size:0.9rem; color:#c2c5d3; line-height:1.7;">
-        ベンチプレス・スクワット・デッドリフトなどの主要リフトはもちろん、<br>
-        自分の好きな種目を追加してカスタマイズすることもできます。
+        Train Punch は、<strong>「トレーニング記録を三日坊主にしたくない人」</strong>のための
+        シンプルなトレーニングログ（記録）アプリです。<br>
+        会員登録やログインは不要で、この端末のブラウザにだけ記録が保存されます。
       </p>
     </section>
 
     <!-- 対象ユーザー -->
     <section class="card">
-      <h2 class="card-title">こんな人に向いています</h2>
-      <ul style="font-size:0.9rem; color:#c2c5d3; padding-left:1.2rem;">
-        <li>ノートやメモアプリで記録しているけど、そろそろ整理したくなってきた人</li>
-        <li>1RM やボリュームをざっくり振り返りたい人</li>
-        <li>部活・ジム・自宅トレなど、環境を問わず記録を残したい人</li>
-        <li>ログインやクラウド連携より「サクッと入力できること」を重視したい人</li>
+      <h2 class="card-title">どんな人向け？</h2>
+      <ul class="list">
+        <li>ジム通いをはじめたばかりで、何をどれくらいやったか簡単に残したい人</li>
+        <li>ノートやExcelでは続かなかったけれど、スマホでサッと入力したい人</li>
+        <li>RPE（主観的運動強度）も含めて、自分のトレーニングの感覚を残しておきたい人</li>
+        <li>部活やチームではなく、個人でトレーニングしている一般のトレーニー</li>
       </ul>
     </section>
 
     <!-- 主な機能 -->
     <section class="card">
       <h2 class="card-title">主な機能</h2>
-      <ul style="font-size:0.9rem; color:#c2c5d3; padding-left:1.2rem;">
-        <li>日付・種目・重量・セット数・回数・RPE・メモの記録</li>
-        <li>部位タブから種目を素早く選択（胸／背中／肩／脚／腕／その他）</li>
-        <li>よく使うオリジナル種目を「システム &gt; 種目追加」から登録可能</li>
-        <li>過去ログの一覧表示・削除</li>
-        <li>パフォーマンス画面での簡易的な振り返り（開発中）</li>
+      <ul class="list">
+        <li>日付ごとのトレーニングログ保存（種目・重量・回数・セット数・RPE・メモ）</li>
+        <li>部位ごとの種目リスト（胸・背中・肩・脚・腕・その他）からタップで選択</li>
+        <li>よく使うオリジナル種目を登録して、リストに追加（システム設定から）</li>
+        <li>記録はブラウザの <code>localStorage</code> に保存され、同じ端末・同じブラウザからいつでも確認可能</li>
+        <li>オフラインでも動作する PWA 対応（ホーム画面に追加してアプリのように利用可能）</li>
       </ul>
     </section>
 
-    <!-- データの保存方法 -->
+    <!-- 今後追加したい機能 -->
     <section class="card">
-      <h2 class="card-title">データの保存について</h2>
-      <p style="font-size:0.9rem; color:#c2c5d3; line-height:1.7;">
-        Train Punch のトレーニング記録は、<strong>この端末のブラウザ内（localStorage）</strong> に保存されます。<br>
-        作成者が記録データの中身をサーバーで収集・保存することはありません。
-      </p>
-      <p style="font-size:0.9rem; color:#c2c5d3; line-height:1.7;">
-        そのため、<strong>端末やブラウザを変更した場合、記録は自動では引き継がれません。</strong><br>
-        データを消さないようご注意ください（「全部削除」ボタンの押し間違いにもご注意を）。
-      </p>
-    </section>
-
-    <!-- 今後追加したいもの -->
-    <section class="card">
-      <h2 class="card-title">今後追加したい機能</h2>
-      <ul style="font-size:0.9rem; color:#c2c5d3; padding-left:1.2rem;">
-        <li>ボリュームや 1RM 推定の自動集計（種目ごと・週ごと）</li>
-        <li>グラフ表示によるパフォーマンスの可視化</li>
-        <li>テンプレートメニュー（よく使うメニューの一括入力）</li>
-        <li>チュートリアル記事との連携（ブログとの連動）</li>
+      <h2 class="card-title">今後追加したい機能（予定）</h2>
+      <ul class="list">
+        <li>1週間・1か月ごとのボリューム集計やグラフ表示</li>
+        <li>RPE を使った疲労管理・強度管理の簡易指標</li>
+        <li>トレーニングメニューのテンプレート保存</li>
+        <li>ブログとの連携（記事からワークアウト画面への導線など）</li>
       </ul>
-      <p style="font-size:0.85rem; color:#7a7d89;">
-        ※開発状況はブログや X（旧Twitter）で少しずつ共有していく予定です。
+      <p class="help-text">
+        ※開発状況によって内容は変わる可能性があります。
       </p>
     </section>
 
-    <!-- 運営者情報・お問い合わせ -->
+    <!-- 運営者情報 -->
     <section class="card">
-      <h2 class="card-title">運営者について</h2>
-      <p style="font-size:0.9rem; color:#c2c5d3; line-height:1.7;">
-        開発・運営：<strong>おさむ</strong>（トレーニング好きの柔道整復師／トレーナー見習い）<br>
-        現場で使えるトレーニング管理ツールを、個人開発で少しずつ形にしています。
+      <h2 class="card-title">運営者情報</h2>
+      <p style="font-size:0.95rem; color:#e0e0e0; line-height:1.7;">
+        開発・運営：<strong>おさむ</strong><br>
+        資格：柔道整復師・鍼灸師／スポーツトレーナー（予定含む）<br>
+        趣味：筋トレ・スポーツ現場でのトレーニングサポート・ホラー小説執筆 など
       </p>
+    </section>
 
-      <h3 style="font-size:0.95rem; margin-top:12px;">お問い合わせ</h3>
-      <p style="font-size:0.9rem; color:#c2c5d3; line-height:1.7;">
-        不具合の報告やご要望があれば、以下のいずれかからご連絡ください。
+    <!-- お問い合わせ -->
+    <section class="card">
+      <h2 class="card-title">お問い合わせ</h2>
+      <p style="font-size:0.9rem; color:#e0e0e0; line-height:1.7;">
+        アプリに関するご意見・ご質問があれば、下記のいずれかからご連絡ください。
       </p>
-      <ul style="font-size:0.9rem; color:#c2c5d3; padding-left:1.2rem;">
-        <li>X（旧Twitter）：<a href="https://x.com/【あなたのID】" target="_blank" rel="noopener noreferrer">@【あなたのID】</a></li>
-        <!-- メールアドレスを載せる場合は下を使う -->
-        <!-- <li>メール：example@example.com</li> -->
+      <ul class="list">
+        <li>X（旧Twitter）：<a href="#" target="_blank" rel="noopener">＠your_account</a></li>
+        <!-- ↑ ここを自分の X アカウント URL にあとで差し替えてね -->
+        <!-- <li>メールアドレス：example@example.com</li>  ← 使うならここに追記 -->
       </ul>
-      <p style="font-size:0.8rem; color:#7a7d89;">
-        ※スパム対策のため、具体的な連絡先は必要に応じて編集してください。
+      <p class="help-text">
+        ※個別のトレーニング指導・医療相談にはお答えできない場合があります。
       </p>
-    </section>
-
-    <section class="card">
-      <a href="./index.html" class="tab" style="display:inline-block; text-decoration:none;">
-        ← ホームに戻る
-      </a>
     </section>
   </main>
 
   <footer class="footer">
-    <small>© Train Punch</small>
+    <small>
+      © Train Punch
+      <span style="margin-left:8px; font-size:0.8rem;">
+        <a href="./about.html">アプリの説明</a> /
+        <a href="./privacy.html">プライバシーポリシー</a>
+      </span>
+    </small>
   </footer>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(console.error);
+      });
+    }
+  </script>
 </body>
 </html>
