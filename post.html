@@ -98,7 +98,9 @@
         }
 
         const text = await bodyRes.text();
-        bodyEl.textContent = text;
+
+        // ★ここを textContent → innerHTML に変更
+        bodyEl.innerHTML = text;
       } catch (err) {
         console.error(err);
         titleEl.textContent = '読み込みエラー';
