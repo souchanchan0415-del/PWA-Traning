@@ -12,7 +12,10 @@ Train Punch の使い方ガイド
 
 まずはブラウザで Train Punch のホームにアクセスします。
 
-[スクショ：index.html のホーム画面]
+<figure class="blog-screenshot">
+  <img src="../IMG_1403.png" alt="index.html のホーム画面">
+  <figcaption>index.html のホーム画面</figcaption>
+</figure>
 
 ホームの「Train Punch を開く」というボタンをタップすると、
 ワークアウト画面（session.html）が開きます。
@@ -30,7 +33,10 @@ Train Punch の使い方ガイド
 ワークアウト画面の一番上には、
 「使い方ガイド（はじめての方へ）」というカードが表示されます。
 
-[スクショ：ワークアウトタブ上部の使い方ガイド]
+<figure class="blog-screenshot">
+  <img src="../IMG_1404.png" alt="ワークアウトタブ上部の使い方ガイド">
+  <figcaption>ワークアウトタブ上部の使い方ガイド</figcaption>
+</figure>
 
 ここでは、
 
@@ -48,7 +54,10 @@ Train Punch の使い方ガイド
 
 次に、その下にある「記録入力」カードを見てみましょう。
 
-[スクショ：記録入力フォーム全体]
+<figure class="blog-screenshot">
+  <img src="../IMG_1405.png" alt="記録入力フォーム全体">
+  <figcaption>記録入力フォーム全体</figcaption>
+</figure>
 
 入力する項目は次の5つです。
 
@@ -69,7 +78,10 @@ Train Punch の使い方ガイド
 
 「部位と種目」の欄には、「胸／背中／肩／脚／腕／その他」といったタブが並んでいます。
 
-[スクショ：部位タブと種目チップ]
+<figure class="blog-screenshot">
+  <img src="../IMG_1405.png" alt="部位タブと種目チップ">
+  <figcaption>部位タブと種目チップ</figcaption>
+</figure>
 
 使い方はシンプルで、
 
@@ -88,7 +100,10 @@ Train Punch の使い方ガイド
 
 種目を選んだら、次は数字の入力です。
 
-[スクショ：重量・セット数・回数・RPE 入力欄]
+<figure class="blog-screenshot">
+  <img src="../IMG_1405.png" alt="重量・セット数・回数・RPE 入力欄">
+  <figcaption>重量・セット数・回数・RPE 入力欄</figcaption>
+</figure>
 
 一例として、
 
@@ -110,7 +125,10 @@ RPE は「どれくらいきつかったか」を 0〜10 で表す指標です�
 
 1件保存できたら、上部の「パフォーマンス」タブをタップしてみてください。
 
-[スクショ：パフォーマンスタブの画面]
+<figure class="blog-screenshot">
+  <img src="../IMG_1406.png" alt="パフォーマンスタブの画面">
+  <figcaption>パフォーマンスタブの画面</figcaption>
+</figure>
 
 ここでは、種目ごとの記録やボリュームの推移などを
 後からまとめて確認できるようにしていく予定です（今後アップデート予定）。
@@ -118,7 +136,10 @@ RPE は「どれくらいきつかったか」を 0〜10 で表す指標です�
 また、「アーカイブ」タブでは、
 日付ごとのトレーニングログを一覧で振り返ることができます。
 
-[スクショ：アーカイブタブの画面]
+<figure class="blog-screenshot">
+  <img src="../IMG_1408.png" alt="アーカイブタブの画面">
+  <figcaption>アーカイブタブの画面</figcaption>
+</figure>
 
 まずは「ワークアウト ＞ 記録入力」でログを貯めておいて、
 あとから「パフォーマンス」や「アーカイブ」で眺める、という使い方を想定しています。
@@ -130,7 +151,10 @@ RPE は「どれくらいきつかったか」を 0〜10 で表す指標です�
 もしジム独自のマシン名や、自分だけの種目名を使いたい場合は、
 「システム」タブを開いて、「種目追加」の画面から登録できます。
 
-[スクショ：システムタブの種目追加画面]
+<figure class="blog-screenshot">
+  <img src="../IMG_1409.png" alt="システムタブの種目追加画面">
+  <figcaption>システムタブの種目追加画面</figcaption>
+</figure>
 
 部位（胸／背中／脚など）と種目名を入力して保存すると、
 ワークアウト画面の部位タブにその種目が追加されます。
