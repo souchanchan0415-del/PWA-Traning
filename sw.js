@@ -1,5 +1,5 @@
 // Service Worker for Train Punch
-const CACHE_NAME = 'train-punch-cache-v49';
+const CACHE_NAME = 'train-punch-cache-v50';
 
 const ASSETS = [
   './',
