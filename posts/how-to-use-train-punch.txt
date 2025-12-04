@@ -13,7 +13,7 @@ Train Punch の使い方ガイド
 まずはブラウザで Train Punch のホームにアクセスします。
 
 <figure class="blog-screenshot">
-  <img src="../IMG_1403.png" alt="index.html のホーム画面">
+  <img src="./IMG_1403.png" alt="index.html のホーム画面">
   <figcaption>index.html のホーム画面</figcaption>
 </figure>
 
@@ -34,7 +34,7 @@ Train Punch の使い方ガイド
 「使い方ガイド（はじめての方へ）」というカードが表示されます。
 
 <figure class="blog-screenshot">
-  <img src="../IMG_1404.png" alt="ワークアウトタブ上部の使い方ガイド">
+  <img src="./IMG_1404.png" alt="ワークアウトタブ上部の使い方ガイド">
   <figcaption>ワークアウトタブ上部の使い方ガイド</figcaption>
 </figure>
 
@@ -55,7 +55,7 @@ Train Punch の使い方ガイド
 次に、その下にある「記録入力」カードを見てみましょう。
 
 <figure class="blog-screenshot">
-  <img src="../IMG_1405.png" alt="記録入力フォーム全体">
+  <img src="./IMG_1405.png" alt="記録入力フォーム全体">
   <figcaption>記録入力フォーム全体</figcaption>
 </figure>
 
@@ -79,7 +79,7 @@ Train Punch の使い方ガイド
 「部位と種目」の欄には、「胸／背中／肩／脚／腕／その他」といったタブが並んでいます。
 
 <figure class="blog-screenshot">
-  <img src="../IMG_1405.png" alt="部位タブと種目チップ">
+  <img src="./IMG_1405.png" alt="部位タブと種目チップ">
   <figcaption>部位タブと種目チップ</figcaption>
 </figure>
 
@@ -101,7 +101,7 @@ Train Punch の使い方ガイド
 種目を選んだら、次は数字の入力です。
 
 <figure class="blog-screenshot">
-  <img src="../IMG_1405.png" alt="重量・セット数・回数・RPE 入力欄">
+  <img src="./IMG_1405.png" alt="重量・セット数・回数・RPE 入力欄">
   <figcaption>重量・セット数・回数・RPE 入力欄</figcaption>
 </figure>
 
@@ -126,7 +126,7 @@ RPE は「どれくらいきつかったか」を 0〜10 で表す指標です�
 1件保存できたら、上部の「パフォーマンス」タブをタップしてみてください。
 
 <figure class="blog-screenshot">
-  <img src="../IMG_1406.png" alt="パフォーマンスタブの画面">
+  <img src="./IMG_1406.png" alt="パフォーマンスタブの画面">
   <figcaption>パフォーマンスタブの画面</figcaption>
 </figure>
 
@@ -137,7 +137,7 @@ RPE は「どれくらいきつかったか」を 0〜10 で表す指標です�
 日付ごとのトレーニングログを一覧で振り返ることができます。
 
 <figure class="blog-screenshot">
-  <img src="../IMG_1408.png" alt="アーカイブタブの画面">
+  <img src="./IMG_1408.png" alt="アーカイブタブの画面">
   <figcaption>アーカイブタブの画面</figcaption>
 </figure>
 
@@ -152,7 +152,7 @@ RPE は「どれくらいきつかったか」を 0〜10 で表す指標です�
 「システム」タブを開いて、「種目追加」の画面から登録できます。
 
 <figure class="blog-screenshot">
-  <img src="../IMG_1409.png" alt="システムタブの種目追加画面">
+  <img src="./IMG_1409.png" alt="システムタブの種目追加画面">
   <figcaption>システムタブの種目追加画面</figcaption>
 </figure>
 
