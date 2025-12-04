@@ -336,3 +336,19 @@ textarea {
     padding: 20px;
   }
 }
+.blog-screenshot {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.blog-screenshot img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
+
+.blog-screenshot figcaption {
+  font-size: 0.8rem;
+  color: #c2c5d3;
+  margin-top: 0.4rem;
+}
