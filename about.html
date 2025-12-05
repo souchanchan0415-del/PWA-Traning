@@ -4,9 +4,67 @@
   <meta charset="UTF-8">
   <title>Train Punch | アプリの説明</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#111111">
+  <meta name="theme-color" content="#0b1016">
   <link rel="stylesheet" href="./style.css">
   <link rel="manifest" href="./manifest.webmanifest">
+
+  <!-- aboutページ用の軽い装飾 -->
+  <style>
+    .about-lead {
+      font-size: 0.95rem;
+      color: var(--tp-text);
+      line-height: 1.8;
+    }
+    .about-lead strong {
+      color: var(--tp-primary-hi);
+      font-weight: 700;
+    }
+    .about-badge-row {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .about-badge {
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--tp-border);
+      font-size: 0.75rem;
+      color: var(--tp-muted);
+      background: rgba(15, 23, 42, 0.95);
+    }
+    .list {
+      padding-left: 1.2rem;
+      margin: 0.4rem 0 0;
+      font-size: 0.9rem;
+      color: var(--tp-text);
+      line-height: 1.7;
+    }
+    .list li + li {
+      margin-top: 0.25rem;
+    }
+    code {
+      font-family: SFMono-Regular, ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.85em;
+      padding: 2px 4px;
+      border-radius: 4px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--tp-border);
+    }
+    .about-muted {
+      font-size: 0.8rem;
+      color: var(--tp-muted);
+      margin-top: 6px;
+      line-height: 1.6;
+    }
+    .about-contact a {
+      color: var(--tp-primary-hi);
+      text-decoration: none;
+    }
+    .about-contact a:hover {
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body>
   <header class="header">
@@ -18,11 +76,17 @@
     <!-- 概要 -->
     <section class="card">
       <h2 class="card-title">Train Punch とは？</h2>
-      <p style="font-size:0.95rem; color:#e0e0e0; line-height:1.7;">
-        Train Punch は、<strong>「トレーニング記録を三日坊主にしたくない人」</strong>のための
-        シンプルなトレーニングログ（記録）アプリです。<br>
+      <p class="about-lead">
+        Train Punch は、
+        <strong>「トレーニング記録を三日坊主にしたくない人」</strong>
+        のためのシンプルなトレーニングログ（記録）アプリです。<br>
         会員登録やログインは不要で、この端末のブラウザにだけ記録が保存されます。
       </p>
+      <div class="about-badge-row">
+        <span class="about-badge">ローカル保存</span>
+        <span class="about-badge">PWA 対応</span>
+        <span class="about-badge">オフラインOK</span>
+      </div>
     </section>
 
     <!-- 対象ユーザー -->
@@ -57,32 +121,32 @@
         <li>トレーニングメニューのテンプレート保存</li>
         <li>ブログとの連携（記事からワークアウト画面への導線など）</li>
       </ul>
-      <p class="help-text">
+      <p class="about-muted">
         ※開発状況によって内容は変わる可能性があります。
       </p>
     </section>
 
     <!-- 運営者情報 -->
-<section class="card">
-  <h2 class="card-title">運営者情報</h2>
-  <p style="font-size:0.9rem; color:#e0e3f0; line-height:1.7;">
-    開発・運営者：長町 宗一郎<br>
-    運営内容：運営内容：トレーニング記録アプリ「Train Punch」の開発・保守<br>
-トレーニング関連コンテンツ・ブログの運営
-  </p>
-</section>
+    <section class="card">
+      <h2 class="card-title">運営者情報</h2>
+      <p style="font-size:0.9rem; color:var(--tp-text); line-height:1.7;">
+        開発・運営者：長町 宗一郎<br>
+        運営内容：トレーニング記録アプリ「Train Punch」の開発・保守、<br>
+        トレーニング関連コンテンツ・ブログの運営
+      </p>
+    </section>
 
-<!-- お問い合わせ先 -->
-<section class="card">
-  <h2 class="card-title">お問い合わせ先</h2>
-  <p style="font-size:0.9rem; color:#e0e3f0; line-height:1.7;">
-    アプリやブログに関するお問い合わせは、下記メールアドレスまでお願いいたします。<br>
-    メールアドレス：
-    <a href="mailto:toreninguguanli53@gmail.com">
-      toreninguguanli53@gmail.com
-    </a>
-  </p>
-</section>
+    <!-- お問い合わせ先 -->
+    <section class="card about-contact">
+      <h2 class="card-title">お問い合わせ先</h2>
+      <p style="font-size:0.9rem; color:var(--tp-text); line-height:1.7;">
+        アプリやブログに関するお問い合わせは、下記メールアドレスまでお願いいたします。<br>
+        メールアドレス：
+        <a href="mailto:toreninguguanli53@gmail.com">
+          toreninguguanli53@gmail.com
+        </a>
+      </p>
+    </section>
   </main>
 
   <footer class="footer">
