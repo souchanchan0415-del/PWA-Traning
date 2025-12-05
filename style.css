@@ -7,10 +7,10 @@
 /* ===== カラーパレット ===== */
 :root {
   /* ベース */
-  --tp-bg:        #0b1016;
-  --tp-bg-alt:    #111822;
-  --tp-surface:   #182130;
-  --tp-border:    #2b3546;
+  --tp-bg:        #04060a;   /* さらに暗い土台（黒寄り） */
+  --tp-bg-alt:    #070e17;   /* ヘッダーなどの濃紺 */
+  --tp-surface:   #111827;   /* カードの鋼板 */
+  --tp-border:    #3b4a5f;   /* 少し明るい鋼色の縁 */
 
   /* 文字色 */
   --tp-text:      #e5e7eb;
@@ -22,7 +22,7 @@
   --tp-danger:    #e11d48;
 
   /* 影・角丸 */
-  --tp-shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.7);
+  --tp-shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.85);
   --tp-radius-card: 14px;
 }
 
@@ -37,8 +37,8 @@ body {
 body {
   font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   background:
-    radial-gradient(circle at top left, #3f2a22 0, transparent 55%),
-    radial-gradient(circle at bottom right, #111827 0, transparent 55%),
+    radial-gradient(circle at top left, #111827 0, transparent 55%),
+    radial-gradient(circle at bottom right, #020617 0, transparent 55%),
     var(--tp-bg);
   color: var(--tp-text);
   -webkit-font-smoothing: antialiased;
@@ -66,10 +66,10 @@ body {
 .header {
   padding: 16px;
   text-align: center;
-  background: radial-gradient(circle at top, rgba(248, 113, 113, 0.08), transparent 60%),
-              var(--tp-bg-alt);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.35);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  background:
+    linear-gradient(135deg, #040814, #020617);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.9);
 }
 
 .header h1 {
@@ -96,8 +96,8 @@ body {
 
 /* ===== カード ===== */
 .card {
-  background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.04), transparent 60%),
-              var(--tp-surface);
+  background:
+    linear-gradient(145deg, rgba(17, 24, 39, 0.96), rgba(15, 23, 42, 0.98));
   border-radius: var(--tp-radius-card);
   padding: 16px;
   margin-bottom: 16px;
