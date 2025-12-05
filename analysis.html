@@ -4,9 +4,23 @@
   <meta charset="UTF-8">
   <title>Train Punch | パフォーマンス</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#111111">
+  <meta name="theme-color" content="#0b1016">
   <link rel="stylesheet" href="./style.css">
   <link rel="manifest" href="./manifest.webmanifest">
+
+  <!-- パフォーマンス画面専用スタイル -->
+  <style>
+    .card-collapsible .card-header-row {
+      cursor: pointer;
+    }
+    .card-toggle-icon {
+      font-size: 1.2rem;
+      color: var(--tp-muted);
+    }
+    .card-body {
+      margin-top: 6px;
+    }
+  </style>
 </head>
 <body>
   <header class="header">
@@ -29,7 +43,7 @@
         <span class="card-toggle-icon">−</span>
       </div>
       <div class="card-body">
-        <p style="font-size:0.9rem; color:#c2c5d3;">
+        <p style="font-size:0.9rem; color:var(--tp-muted);">
           直近7日分の、1日あたり合計ボリューム（重量×回数×セット数）の推移です。
         </p>
         <div style="margin-top:12px; height:260px;">
@@ -45,7 +59,7 @@
         <span class="card-toggle-icon">＋</span>
       </div>
       <div class="card-body" style="display:none;">
-        <p style="font-size:0.9rem; color:#c2c5d3;">
+        <p style="font-size:0.9rem; color:var(--tp-muted);">
           直近7日分の合計ボリューム（重量×回数×セット数）を、<br>
           部位ごとの割合で表示します。
         </p>
@@ -63,7 +77,7 @@
         <span class="card-toggle-icon">＋</span>
       </div>
       <div class="card-body" style="display:none;">
-        <p style="font-size:0.9rem; color:#c2c5d3;">
+        <p style="font-size:0.9rem; color:var(--tp-muted);">
           直近7日分の平均RPEの推移です。記録がある日のみ点が表示されます。
         </p>
         <div style="margin-top:12px; height:260px;">
@@ -351,7 +365,10 @@
           datasets: [
             {
               label: '合計ボリューム (kg)',
-              data: dailyVolume
+              data: dailyVolume,
+              backgroundColor: 'rgba(245, 158, 11, 0.75)',
+              borderColor: '#f59e0b',
+              borderWidth: 1
             }
           ]
         },
@@ -406,12 +423,12 @@
             {
               data,
               backgroundColor: [
-                '#4f8cff',
-                '#50c878',
-                '#f4c542',
-                '#ff6b6b',
-                '#a56bff',
-                '#8892b0'
+                '#4b5563',  // 胸
+                '#6b7280',  // 背中
+                '#9ca3af',  // 肩
+                '#f97316',  // 脚
+                '#c56c24',  // 腕
+                '#ef4444'   // その他
               ]
             }
           ]
@@ -462,7 +479,9 @@
               spanGaps: false,
               pointRadius: 4,
               pointHitRadius: 6,
-              tension: 0.25
+              tension: 0.25,
+              borderColor: '#f97316',
+              pointBackgroundColor: '#fbbf24'
             }
           ]
         },
