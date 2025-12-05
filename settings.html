@@ -4,9 +4,23 @@
   <meta charset="UTF-8">
   <title>Train Punch | システム</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#111111">
+  <meta name="theme-color" content="#0b1016">
   <link rel="stylesheet" href="./style.css">
   <link rel="manifest" href="./manifest.webmanifest">
+
+  <!-- システム画面用スタイル -->
+  <style>
+    .card-collapsible .card-header-row {
+      cursor: pointer;
+    }
+    .card-toggle-icon {
+      font-size: 1.2rem;
+      color: var(--tp-muted);
+    }
+    .card-body {
+      margin-top: 6px;
+    }
+  </style>
 </head>
 <body>
   <header class="header">
@@ -29,7 +43,7 @@
         <span class="card-toggle-icon">−</span>
       </div>
       <div class="card-body" id="profileCardBody">
-        <p style="font-size:0.9rem; color:#c2c5d3;">
+        <p style="font-size:0.9rem; color:var(--tp-muted);">
           ここでは、アプリ内で表示するあなたの名前を設定できます。<br>
           ヘッダーの「◯◯のログ」に反映されます。
         </p>
@@ -56,12 +70,12 @@
         <span class="card-toggle-icon">＋</span>
       </div>
       <div class="card-body" id="dataCardBody" style="display:none;">
-        <p style="font-size:0.9rem; color:#c2c5d3;">
+        <p style="font-size:0.9rem; color:var(--tp-muted);">
           ここでは、ワークアウトの記録データを確認したり、<br>
           バックアップ用にJSON形式でコピーしたりできます。
         </p>
 
-        <p style="margin-top:8px; font-size:0.9rem; color:#c2c5d3;">
+        <p style="margin-top:8px; font-size:0.9rem; color:var(--tp-muted);">
           現在のログ件数：<span id="logCount">0</span>件
         </p>
 
@@ -75,7 +89,7 @@
           JSONをコピー
         </button>
 
-        <p style="margin-top:6px; font-size:0.75rem; color:#a0a3b1;">
+        <p style="margin-top:6px; font-size:0.75rem; color:var(--tp-muted);">
           ※コピー＆インポート用です。<br>
           ・バックアップ：「JSONをコピー」ボタンでクリップボードに保存できます。<br>
           ・復元：下の欄にJSONを貼り付けて「JSONから復元する」を押すと、ログを上書きします。
@@ -105,7 +119,7 @@
         <button type="button" id="deleteAllLogsBtn" class="btn-danger" style="margin-top:12px;">
           すべてのログを削除する
         </button>
-        <p style="margin-top:6px; font-size:0.75rem; color:#a0a3b1;">
+        <p style="margin-top:6px; font-size:0.75rem; color:var(--tp-muted);">
           ※この操作は元に戻せません。ローカルに保存されているワークアウト記録がすべて消去されます。
         </p>
       </div>
@@ -118,7 +132,7 @@
         <span class="card-toggle-icon">＋</span>
       </div>
       <div class="card-body" id="exerciseCardBody" style="display:none;">
-        <p style="font-size:0.9rem; color:#c2c5d3;">
+        <p style="font-size:0.9rem; color:var(--tp-muted);">
           よく使うオリジナル種目を登録しておくと、<br>
           ワークアウト画面の部位タブから選べるようになります。
         </p>
@@ -153,7 +167,7 @@
 
         <div style="margin-top:16px;">
           <h3 style="font-size:0.95rem; margin:0 0 6px;">登録済みの種目</h3>
-          <p style="font-size:0.8rem; color:#a0a3b1; margin:0 0 6px;">
+          <p style="font-size:0.8rem; color:var(--tp-muted); margin:0 0 6px;">
             種目名の右側の「×」で個別に削除できます。
           </p>
           <div id="customExerciseList" class="empty">
@@ -268,7 +282,7 @@
 
         const title = document.createElement('div');
         title.style.fontSize = '0.85rem';
-        title.style.color = '#c2c5d3';
+        title.style.color = 'var(--tp-text)';
         title.style.marginBottom = '4px';
         title.textContent = PART_LABELS[partKey] || partKey;
         groupDiv.appendChild(title);
@@ -282,8 +296,8 @@
           row.style.fontSize = '0.85rem';
           row.style.padding = '4px 8px';
           row.style.borderRadius = '6px';
-          row.style.border = '1px solid #2a2e3b';
-          row.style.background = '#181b24';
+          row.style.border = '1px solid var(--tp-border)';
+          row.style.background = 'rgba(15, 23, 42, 0.95)';
           row.style.marginBottom = '4px';
 
           const labelSpan = document.createElement('span');
