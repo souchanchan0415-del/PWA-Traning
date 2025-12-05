@@ -6,23 +6,23 @@
 
 /* ===== カラーパレット ===== */
 :root {
-  /* ベース */
-  --tp-bg:        #04060a;   /* さらに暗い土台（黒寄り） */
-  --tp-bg-alt:    #070e17;   /* ヘッダーなどの濃紺 */
-  --tp-surface:   #111827;   /* カードの鋼板 */
-  --tp-border:    #3b4a5f;   /* 少し明るい鋼色の縁 */
+  /* ベース（暗い工場の中） */
+  --tp-bg:        #050814;   /* ほぼ黒に近い紺 */
+  --tp-bg-alt:    #07111f;   /* ヘッダー・外枠 */
+  --tp-surface:   #101827;   /* カードの鋼板 */
+  --tp-border:    #46566d;   /* 少し明るい鋼色の縁 */
 
   /* 文字色 */
   --tp-text:      #e5e7eb;
   --tp-muted:     #9ca3af;
 
   /* アクセント（銅・グローブ） */
-  --tp-primary:   #c7792a;
-  --tp-primary-hi:#f59e0b;
-  --tp-danger:    #e11d48;
+  --tp-primary:    #c56c24;  /* 銅色 */
+  --tp-primary-hi: #f59e0b;  /* ハイライト */
+  --tp-danger:     #e11d48;  /* エラー・削除 */
 
   /* 影・角丸 */
-  --tp-shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.85);
+  --tp-shadow-soft: 0 14px 34px rgba(0, 0, 0, 0.9);
   --tp-radius-card: 14px;
 }
 
