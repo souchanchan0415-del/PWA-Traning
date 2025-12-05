@@ -4,9 +4,62 @@
   <meta charset="UTF-8">
   <title>Train Punch | ショップ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#111111">
+  <meta name="theme-color" content="#0b1016">
   <link rel="stylesheet" href="./style.css">
   <link rel="manifest" href="./manifest.webmanifest">
+
+  <!-- shopページ用の軽い装飾 -->
+  <style>
+    .shop-lead {
+      font-size: 0.9rem;
+      color: var(--tp-muted);
+      line-height: 1.7;
+    }
+    .shop-badge-row {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .shop-badge {
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--tp-border);
+      font-size: 0.75rem;
+      color: var(--tp-muted);
+      background: rgba(15, 23, 42, 0.95);
+    }
+    .shop-placeholder {
+      border-radius: 12px;
+      border: 1px dashed var(--tp-border);
+      padding: 14px 12px;
+      font-size: 0.85rem;
+      color: var(--tp-muted);
+      text-align: center;
+      margin-top: 8px;
+      background: rgba(15, 23, 42, 0.75);
+    }
+    .shop-section-title {
+      font-size: 0.95rem;
+      margin: 0 0 6px;
+    }
+    .shop-list {
+      padding-left: 1.2rem;
+      margin: 0.4rem 0 0;
+      font-size: 0.9rem;
+      color: var(--tp-text);
+      line-height: 1.7;
+    }
+    .shop-list li + li {
+      margin-top: 0.25rem;
+    }
+    .shop-note {
+      font-size: 0.8rem;
+      color: var(--tp-muted);
+      margin-top: 6px;
+      line-height: 1.6;
+    }
+  </style>
 </head>
 <body>
   <header class="header">
@@ -15,12 +68,39 @@
   </header>
 
   <main class="container">
-    <!-- 説明だけ残す -->
+    <!-- 概要 -->
     <section class="card">
       <h2 class="card-title">ショップについて</h2>
-      <p style="font-size:0.9rem; color:#c2c5d3;">
-        Train Punch に関連するグッズやデジタル教材をまとめていく予定のページです。<br>
-        現在は準備中です。商品が用意できたら、このページに一覧を表示します。
+      <p class="shop-lead">
+        このページでは、Train Punch に関連する
+        <strong style="color:var(--tp-primary-hi); font-weight:600;">グッズやデジタル教材</strong>
+        を少しずつ並べていく予定です。<br>
+        現在は準備中のため、まだ商品は表示されていません。
+      </p>
+
+      <div class="shop-badge-row">
+        <span class="shop-badge">トレーニングノートPDF</span>
+        <span class="shop-badge">フォーム解説ミニ冊子</span>
+        <span class="shop-badge">部活・チーム向け素材</span>
+      </div>
+
+      <div class="shop-placeholder">
+        現在、商品を準備中です。<br>
+        公開できるアイテムが揃いしだい、このエリアにカード形式で表示されます。
+      </div>
+    </section>
+
+    <!-- 今後、ここに並べたいもの -->
+    <section class="card">
+      <h2 class="card-title">今後並べていきたいもの（予定）</h2>
+      <ul class="shop-list">
+        <li>印刷して使える「週間トレーニングログ」PDFテンプレート</li>
+        <li>RPEやボリューム管理の考え方をまとめたミニ解説資料</li>
+        <li>部活・チーム向けの共有用シートテンプレートや配布資料</li>
+        <li>Train Punch の使い方・運用アイデアをまとめたガイド</li>
+      </ul>
+      <p class="shop-note">
+        ※内容は開発状況やフィードバックに応じて変更される場合があります。
       </p>
     </section>
   </main>
