@@ -4,48 +4,113 @@
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  background: #050608;
-  color: #f5f5f5;
+/* ===== カラーパレット ===== */
+:root {
+  /* ベース */
+  --tp-bg:        #0b1016;
+  --tp-bg-alt:    #111822;
+  --tp-surface:   #182130;
+  --tp-border:    #2b3546;
+
+  /* 文字色 */
+  --tp-text:      #e5e7eb;
+  --tp-muted:     #9ca3af;
+
+  /* アクセント（銅・グローブ） */
+  --tp-primary:   #c7792a;
+  --tp-primary-hi:#f59e0b;
+  --tp-danger:    #e11d48;
+
+  /* 影・角丸 */
+  --tp-shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.7);
+  --tp-radius-card: 14px;
 }
 
+/* ===== ベース ===== */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  background:
+    radial-gradient(circle at top left, #3f2a22 0, transparent 55%),
+    radial-gradient(circle at bottom right, #111827 0, transparent 55%),
+    var(--tp-bg);
+  color: var(--tp-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== アプリ枠（任意：今後使う用） ===== */
+.tp-app {
+  min-height: 100vh;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 12px 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tp-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ===== ヘッダー ===== */
 .header {
   padding: 16px;
   text-align: center;
-  background: #111318;
-  border-bottom: 1px solid #22252f;
+  background: radial-gradient(circle at top, rgba(248, 113, 113, 0.08), transparent 60%),
+              var(--tp-bg-alt);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
 }
 
 .header h1 {
   margin: 0;
   font-size: 1.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #f97316;
+  text-shadow: 0 0 8px rgba(248, 113, 113, 0.6);
 }
 
 .header-sub {
   margin: 4px 0 0;
   font-size: 0.8rem;
-  color: #a0a3b1;
+  color: var(--tp-muted);
 }
 
+/* ===== コンテナ ===== */
 .container {
-  max-width: 640px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 16px 12px 20px;
 }
 
+/* ===== カード ===== */
 .card {
-  background: #111318;
-  border-radius: 10px;
+  background: radial-gradient(circle at top left, rgba(248, 250, 252, 0.04), transparent 60%),
+              var(--tp-surface);
+  border-radius: var(--tp-radius-card);
   padding: 16px;
   margin-bottom: 16px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--tp-shadow-soft);
+  border: 1px solid var(--tp-border);
 }
 
 .card-title {
   margin: 0 0 12px;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .card-header-row {
@@ -55,6 +120,7 @@ body {
   gap: 8px;
 }
 
+/* ===== フォーム ===== */
 .form .field {
   margin-bottom: 10px;
 }
@@ -71,20 +137,21 @@ body {
 label {
   display: block;
   margin-bottom: 4px;
-  font-size: 0.85rem;
-  color: #c2c5d3;
+  font-size: 0.82rem;
+  color: var(--tp-muted);
 }
 
+/* 入力系 */
 input,
 textarea,
 button,
 select {
   width: 100%;
   padding: 8px;
-  border-radius: 6px;
-  border: 1px solid #2a2e3b;
-  background: #181b24;
-  color: #f5f5f5;
+  border-radius: 8px;
+  border: 1px solid var(--tp-border);
+  background: #020617;
+  color: var(--tp-text);
   font-size: 0.95rem;
 }
 
@@ -92,43 +159,57 @@ input:focus,
 textarea:focus,
 select:focus {
   outline: none;
-  border-color: #4f8cff;
-  box-shadow: 0 0 0 1px rgba(79, 140, 255, 0.4);
+  border-color: var(--tp-primary-hi);
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.55);
 }
 
 textarea {
   resize: vertical;
 }
 
-/* ==== ボタン共通 ===== */
+/* ===== ボタン ===== */
 .btn-primary,
 .btn-danger {
   cursor: pointer;
   border: none;
   font-weight: 600;
   display: inline-block;
+  border-radius: 999px;
+  padding: 9px 14px;
+  text-align: center;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-/* メイン青ボタン */
+/* メイン銅ボタン */
 .btn-primary {
-  background: #4f8cff;
-  border-color: #4f8cff;
-  color: #ffffff;
+  background: radial-gradient(circle at top, #f97316, #b45309);
+  border: 1px solid #fbbf24;
+  color: #111827;
   text-decoration: none;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7);
 }
 
 .btn-primary:visited {
-  color: #ffffff;
+  color: #111827;
 }
 
 .btn-primary:hover {
-  opacity: 0.9;
+  opacity: 0.96;
+  transform: translateY(-0.5px);
 }
 
-/* 危険系ボタン */
+.btn-primary:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.8);
+}
+
+/* 危険系ボタン（削除など） */
 .btn-danger {
-  background: #ff4f6a;
-  border-color: #ff4f6a;
+  background: radial-gradient(circle at top, #fb7185, #b91c1c);
+  border: 1px solid #fecaca;
+  color: #fee2e2;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.7);
 }
 
 .btn-danger.small {
@@ -137,18 +218,31 @@ textarea {
   font-size: 0.8rem;
 }
 
+/* 行削除ボタン */
+.btn-row-delete {
+  padding: 2px 4px;
+  font-size: 0.7rem;
+  background: #b91c1c;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #fee2e2;
+}
+
+/* ===== メッセージ／テキスト ===== */
 .message {
   min-height: 1.2em;
   margin: 6px 0 0;
   font-size: 0.85rem;
-  color: #a0f0a0;
+  color: #bbf7d0;
 }
 
 .empty {
   font-size: 0.85rem;
-  color: #a0a3b1;
+  color: var(--tp-muted);
 }
 
+/* ===== テーブル ===== */
 .table-wrapper {
   margin-top: 8px;
   overflow-x: auto;
@@ -162,7 +256,7 @@ textarea {
 
 .log-table th,
 .log-table td {
-  border-bottom: 1px solid #22252f;
+  border-bottom: 1px solid var(--tp-border);
   padding: 4px 6px;
   vertical-align: top;
 }
@@ -170,35 +264,27 @@ textarea {
 .log-table th {
   text-align: left;
   white-space: nowrap;
-  color: #c2c5d3;
+  color: var(--tp-muted);
 }
 
 .log-table td:last-child {
   width: 40px;
 }
 
-.btn-row-delete {
-  padding: 2px 4px;
-  font-size: 0.7rem;
-  background: #ff4f6a;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
+/* ===== フッター ===== */
 .footer {
   text-align: center;
   padding: 8px 16px 16px;
   font-size: 0.75rem;
-  color: #7a7d89;
+  color: #6b7280;
 }
 
-/* タブナビ */
+/* ===== タブナビ ===== */
 .tab-nav {
   margin-top: 10px;
   display: flex;
   gap: 6px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
 }
 
 .tab-nav .tab {
@@ -206,21 +292,21 @@ textarea {
   text-align: center;
   padding: 6px 4px;
   border-radius: 999px;
-  border: 1px solid #2a2e3b;
-  background: #181b24;
-  color: #c2c5d3;
+  border: 1px solid var(--tp-border);
+  background: rgba(15, 23, 42, 0.95);
+  color: var(--tp-muted);
   text-decoration: none;
   white-space: nowrap;
 }
 
 .tab-nav .tab.active {
-  background: #4f8cff;
-  border-color: #4f8cff;
-  color: #ffffff;
-  font-weight: 600;
+  background: linear-gradient(to right, #f97316, #b45309);
+  border-color: #fbbf24;
+  color: #0b1020;
+  font-weight: 700;
 }
 
-/* RPE ヘルプ用 */
+/* ===== RPE ヘルプ ===== */
 .label-row {
   display: flex;
   align-items: center;
@@ -234,17 +320,17 @@ textarea {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 1px solid #2a2e3b;
+  border: 1px solid var(--tp-border);
   font-size: 0.75rem;
-  color: #c2c5d3;
-  background: #181b24;
+  color: var(--tp-muted);
+  background: rgba(15, 23, 42, 0.95);
   cursor: pointer;
 }
 
 .help-text {
   margin: 4px 0 0;
   font-size: 0.75rem;
-  color: #a0a3b1;
+  color: var(--tp-muted);
   line-height: 1.5;
   display: none;
 }
@@ -253,7 +339,7 @@ textarea {
   display: block;
 }
 
-/* 部位タブ＆種目リスト */
+/* ===== 部位タブ＆種目リスト ===== */
 .bodypart-tabs {
   display: flex !important;
   flex-wrap: nowrap;
@@ -269,18 +355,18 @@ textarea {
   width: auto !important;
   padding: 6px 12px;
   border-radius: 999px;
-  border: 1px solid #2a2e3b;
-  background: #181b24;
-  color: #c2c5d3;
+  border: 1px solid var(--tp-border);
+  background: rgba(15, 23, 42, 0.95);
+  color: var(--tp-muted);
   font-size: 0.9rem;
   text-align: center;
   white-space: nowrap;
 }
 
 .bodypart-tab.active {
-  background: #4f8cff;
-  border-color: #4f8cff;
-  color: #ffffff;
+  background: linear-gradient(to right, #f97316, #b45309);
+  border-color: #fbbf24;
+  color: #0b1020;
   font-weight: 600;
 }
 
@@ -293,17 +379,17 @@ textarea {
   width: 100%;
   padding: 8px;
   border-radius: 8px;
-  border: 1px solid #2a2e3b;
-  background: #181b24;
-  color: #f5f5f5;
+  border: 1px solid var(--tp-border);
+  background: rgba(15, 23, 42, 0.95);
+  color: var(--tp-text);
   font-size: 0.9rem;
   text-align: center;
   margin-top: 4px;
 }
 
 .exercise-chip.active {
-  border-color: #4f8cff;
-  box-shadow: 0 0 0 1px rgba(79, 140, 255, 0.4);
+  border-color: var(--tp-primary-hi);
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.55);
 }
 
 /* 非表示用クラス */
@@ -314,17 +400,36 @@ textarea {
 .selected-exercise-label {
   margin-top: 8px;
   font-size: 0.8rem;
-  color: #c2c5d3;
+  color: var(--tp-muted);
 }
 
 /* 集計期間用の小さめテキスト */
 .period-note {
   font-size: 0.75rem;
-  color: #a0a3b1;
+  color: var(--tp-muted);
   margin-top: 4px;
 }
 
-/* 大きい画面用の微調整 */
+/* ===== ブログ画像 ===== */
+.blog-screenshot {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.blog-screenshot img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: var(--tp-shadow-soft);
+}
+
+.blog-screenshot figcaption {
+  font-size: 0.8rem;
+  color: var(--tp-muted);
+  margin-top: 0.4rem;
+}
+
+/* ===== 大きい画面用 ===== */
 @media (min-width: 768px) {
   .header h1 {
     font-size: 1.8rem;
@@ -335,20 +440,4 @@ textarea {
   .card {
     padding: 20px;
   }
-}
-.blog-screenshot {
-  margin: 1.5rem 0;
-  text-align: center;
-}
-
-.blog-screenshot img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 12px;
-}
-
-.blog-screenshot figcaption {
-  font-size: 0.8rem;
-  color: #c2c5d3;
-  margin-top: 0.4rem;
 }
